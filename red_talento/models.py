@@ -88,3 +88,15 @@ class Reporte(models.Model):
                ('resuelto', 'estado_resuelto'),
                ('en_revision', 'estado_en_revision')]
     estado = models.CharField(choices=ESTADOS, default='pendiente', max_length=15)
+
+
+class Postulacion(models.Model):
+    estudiante = models.ForeignKey(PerfilEstudiante,  on_delete=models.CASCADE)
+    oferta = models.ForeignKey(OfertaLaboral,  on_delete=models.CASCADE)
+    mensaje_estudiante = models.TextField(blank=True, null=True)
+    mensaje_empresa = models.TextField(blank=True, null=True)
+    fecha = models.DateTimeField(auto_now_add=True)
+    ESTADOS = [('Contratado', 'estado_contratado'),
+               ('Negado', 'estado_negado'),
+               ('Pendiente', 'estado_pendiente')]
+    estado = models.CharField(choices=ESTADOS, default='Pendiente', max_length=15)

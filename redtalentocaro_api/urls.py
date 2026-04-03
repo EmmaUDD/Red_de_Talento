@@ -23,7 +23,7 @@ from red_talento.views import LoginView
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('api/token/', LoginView.as_view(), name='token_obtain_pair'),
+    path('api/login/', LoginView.as_view(), name='token_obtain_pair'),
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path('api/', include('red_talento.urls')),
 ]
