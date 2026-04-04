@@ -74,6 +74,10 @@ class Disponibilidad(models.Model):
     disponibilidad = models.CharField(choices=DISPONIBILIDAD,
                                       max_length=16,
                                       default='part_time')
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['disponibilidad', 'estudiante'], name='disponibilidad_estudiante')
+        ]
 
     
 class Evidencia(models.Model):

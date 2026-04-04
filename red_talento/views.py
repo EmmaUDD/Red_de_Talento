@@ -1,7 +1,9 @@
 from django.shortcuts import render
 from rest_framework.views import APIView
 from rest_framework.response import Response
+from django.http import HttpResponse
 from rest_framework import status
+from django.db import IntegrityError
 from .serializers import (
     RegistroEstudianteSerializer, 
     RegistroEmpresaSerializer, 
@@ -34,6 +36,9 @@ from .models import (
 )
 from .permissions import EsDocente, EsEstudiante, EsEmpresa
 from rest_framework.permissions import IsAuthenticated
+import qrcode
+import io
+
 
 class LoginView(TokenObtainPairView):
     serializer_class = TokenRole
@@ -84,7 +89,10 @@ class DisponibilidadView(APIView):
         serializer = DisponibilidadSerializer(data=request.data)
         if serializer.is_valid():
             perfil = request.user.perfil_estudiante
-            serializer.save(estudiante=perfil)
+            try:
+                serializer.save(estudiante=perfil)
+            except IntegrityError:
+                return Response({'error': 'Ya tienes esta disponibilidad registrada'}, status=status.HTTP_400_BAD_REQUEST)
             return Response({'mensaje': 'Disponibilidad Registrada'}, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -251,6 +259,52 @@ class BusquedaEstudiantesView(APIView):
            estudiante = estudiante.filter(usuario__first_name=nombre)
         serializer = PerfilEstudianteSerializer(estudiante, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+class BusquedaEmpresasView(APIView):
+    permission_classes = [IsAuthenticated]
+    def get(self, request):
+        empresa = PerfilEmpresa.objects.all()
+        industria = request.query_params.get('industria')
+        con_ofertas = request.query_params.get('con_ofertas')
+        nombre_empresa = request.query_params.get('nombre_empresa')
+        if industria:
+           empresa = empresa.filter(industria=industria)
+        if con_ofertas:
+           empresa = empresa.filter(ofertalaboral__activa=True).distinct()
+        if nombre_empresa:
+            empresa = empresa.filter(nombre_empresa=nombre_empresa)
+        serializer = PerfilEmpresaSerializer(empresa, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class EstadisticasView(APIView):
+    permission_classes = [IsAuthenticated]
+    def get(self, request):
+        if not EsDocente().has_permission(request, self):
+            return Response({'error': 'Usuario sin permisos'}, status=status.HTTP_403_FORBIDDEN)
+        total_estudiantes = Usuario.objects.filter(role='estudiante', is_active=True).count()
+        totale_empresas = Usuario.objects.filter(role='empresa').count()
+        total_habilidades = Habilidades.objects.filter(estado='Aprobado').count()
+        total_postulaciones = Postulacion.objects.count()
+        return Response({"estudiantes_reg" : total_estudiantes,
+                         "empresas_reg" : totale_empresas,
+                         "habilidades_all":total_habilidades,
+                         "postulaciones_all" : total_postulaciones}, status=status.HTTP_200_OK)
+class QRView(APIView):
+    permission_classes = [IsAuthenticated]
+    def get(self, request, id):
+        try:
+            perfil = PerfilEstudiante.objects.get(id=id)
+        except PerfilEstudiante.DoesNotExist:
+            return Response({'error': 'Estudiante no registrado'}, status=status.HTTP_404_NOT_FOUND)
+        qr = qrcode.make(f"http://localhost:3000/perfil/estudiante/{perfil.id}")
+        buffer = io.BytesIO()
+        qr.save(buffer, format='PNG')
+        buffer.seek(0)
+        return HttpResponse(buffer.getvalue(), content_type='image/png')
+
+
+        
 # Create your views here.
 class RegistroEstudianteView(APIView):
     def post(self, request):
