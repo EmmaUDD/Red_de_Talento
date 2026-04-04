@@ -38,6 +38,7 @@ class DisponibilidadSerializer(serializers.ModelSerializer):
     class Meta:
         model = Disponibilidad
         fields = '__all__'
+        read_only_fields = ['estudiante']
 
 class EvidenciaSerializer(serializers.ModelSerializer):
     class Meta:
