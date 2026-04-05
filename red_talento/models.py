@@ -64,7 +64,7 @@ class Habilidades(models.Model):
                         )
 
 class Disponibilidad(models.Model):
-    estudiante = models.ForeignKey(PerfilEstudiante, on_delete=models.CASCADE)
+    estudiante = models.ForeignKey(PerfilEstudiante, on_delete=models.CASCADE, related_name='disponibilidad')
     DISPONIBILIDAD = [
         ('part_time','Part_Time'),
         ('full_time', 'Full_Time'),
@@ -73,7 +73,7 @@ class Disponibilidad(models.Model):
     ]
     disponibilidad = models.CharField(choices=DISPONIBILIDAD,
                                       max_length=16,
-                                      default='part_time')
+                                      default='part_time',)
     class Meta:
         constraints = [
             models.UniqueConstraint(fields=['disponibilidad', 'estudiante'], name='disponibilidad_estudiante')
@@ -86,6 +86,7 @@ class Evidencia(models.Model):
     descripcion = models.TextField()
     imagen = models.ImageField(upload_to='evidencias/')
     fecha_subida = models.DateTimeField(auto_now_add=True)
+    
 
 
 class OfertaLaboral(models.Model):
@@ -95,6 +96,29 @@ class OfertaLaboral(models.Model):
     especialidad_requerida = models.CharField(max_length=150)
     fecha_publicacion = models.DateTimeField(auto_now_add=True)
     activa = models.BooleanField(default=True)
+    DISPONIBILIDAD = [
+        ('part_time','Part_Time'),
+        ('full_time', 'Full_Time'),
+        ('fines_de_semana', 'Fines_de_Semana'),
+        ('practicas', 'Practicas'),
+    ]
+    disponibilidad_requerida = models.CharField(choices=DISPONIBILIDAD,
+                                      max_length=16,
+                                      blank=True, 
+                                      null=True)
+    GRADO = [
+        ('4to_medio', '4to_medio'),
+        ('egresado' , 'Egresado')
+    ]
+    grado_requerido = models.CharField(choices=GRADO, max_length=15, blank=True, null=True)
+
+class HabilidadRequerida(models.Model):
+    oferta = models.ForeignKey(OfertaLaboral,  on_delete=models.CASCADE, related_name='habilidades_requeridas')
+    habilidad = models.CharField(max_length=20)
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['habilidad', 'oferta'], name='habilidad_oferta')
+        ]
 
 class Reporte(models.Model):
     reportado_por = models.ForeignKey(Usuario,  on_delete=models.CASCADE, related_name='reportado_por')

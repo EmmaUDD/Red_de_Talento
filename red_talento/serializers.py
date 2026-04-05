@@ -14,6 +14,7 @@ from .models import (
     PublicacionesFeed,
     Reporte,
     Disponibilidad,
+    HabilidadRequerida,
 )
 
 
@@ -46,7 +47,14 @@ class EvidenciaSerializer(serializers.ModelSerializer):
         fields = '__all__'
         read_only_fields = ['estudiante']
 
+class HabilidadRequeridaSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = HabilidadRequerida
+        fields = '__all__'
+        read_only_fields = ['oferta']
+
 class OfertaLaboralSerializer(serializers.ModelSerializer):
+    habilidades_requeridas = HabilidadRequeridaSerializer(many=True, read_only=True)
     class Meta:
         model = OfertaLaboral
         fields = '__all__'
@@ -108,7 +116,7 @@ class PerfilEstudianteSerializer(serializers.ModelSerializer):
         habilidades = obj.habilidades_set.filter(estado='Aprobado')
         return HabilidadSerializer(habilidades, many=True).data
     def get_disponibilidad_perfil(self, obj):
-        disponibilidad = obj.disponibilidad_set.all()
+        disponibilidad = obj.disponibilidad.all()
         return DisponibilidadSerializer(disponibilidad, many=True).data
 
 
