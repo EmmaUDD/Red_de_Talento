@@ -17,7 +17,8 @@ from .views import (
     BusquedaEstudiantesView,
     BusquedaEmpresasView,
     EstadisticasView,
-    QRView
+    QRView,
+    RecomendacionesView
     
 )
 
@@ -48,4 +49,5 @@ urlpatterns = [
     path('estadisticas/', EstadisticasView.as_view(), name='estadisticas'),
     path('perfil/estudiante/<id>/qr/', QRView.as_view(), name='qr'),
     path('empresas/', BusquedaEmpresasView.as_view(), name='buscador_empresa'),
+    path('empresa/recomendacion/<int:id>/', RecomendacionesView.as_view(), name='recomendacion'),
 ]

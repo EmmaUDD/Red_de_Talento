@@ -36,6 +36,7 @@ from .models import (
 )
 from .permissions import EsDocente, EsEstudiante, EsEmpresa
 from rest_framework.permissions import IsAuthenticated
+from .utils import score
 import qrcode
 import io
 
@@ -253,10 +254,13 @@ class BusquedaEstudiantesView(APIView):
         estudiante = PerfilEstudiante.objects.all()
         especialidad = request.query_params.get('especialidad')
         nombre = request.query_params.get('nombre')
+        disponibilidad = request.query_params.get('disponibilidad')
         if especialidad:
            estudiante = estudiante.filter(especialidad=especialidad)
         if nombre:
            estudiante = estudiante.filter(usuario__first_name=nombre)
+        if disponibilidad:
+           estudiante = estudiante.filter(disponibilidad__disponibilidad=disponibilidad)
         serializer = PerfilEstudianteSerializer(estudiante, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
@@ -275,6 +279,26 @@ class BusquedaEmpresasView(APIView):
             empresa = empresa.filter(nombre_empresa=nombre_empresa)
         serializer = PerfilEmpresaSerializer(empresa, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+class RecomendacionesView(APIView):
+    permission_classes = [IsAuthenticated]
+    def get(self, request, id):
+        if not EsEmpresa().has_permission(request, self):
+            return Response({'error': 'Usuario sin permisos'}, status=status.HTTP_403_FORBIDDEN)
+        try:
+            oferta = OfertaLaboral.objects.get(id=id)
+        except OfertaLaboral.DoesNotExist:
+            return Response({'error': 'Oferta no encontrada'}, status=status.HTTP_404_NOT_FOUND)
+        if oferta.empresa.usuario != request.user:
+            return Response({'error': 'Error de permisos'}, status=status.HTTP_403_FORBIDDEN)
+        total_estudiantes = PerfilEstudiante .objects.filter(usuario__is_active=True).prefetch_related('disponibilidad', 'habilidades_set', 'evidencia_set')
+        resultados = []
+        for estudiante in total_estudiantes:
+            data = PerfilEstudianteSerializer(estudiante).data
+            data['score'] = score(estudiante, oferta)
+            resultados.append(data)
+        resultados.sort(key=lambda x: x['score'], reverse=True)
+        return Response(resultados, status=status.HTTP_200_OK)
 
 
 class EstadisticasView(APIView):
