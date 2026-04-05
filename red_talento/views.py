@@ -201,6 +201,12 @@ class OfertaLaboralView(APIView):
 
     def get(self, request):
         ofertas = OfertaLaboral.objects.filter(activa=True)
+        especialidad = request.query_params.get('especialidad_requerida')
+        disponibilidad = request.query_params.get('disponibilidad_requerida')
+        if especialidad:
+           ofertas = ofertas.filter(especialidad_requerida__icontains =especialidad)
+        if disponibilidad:
+           ofertas = ofertas.filter(disponibilidad_requerida__icontains =disponibilidad)
         serializer = OfertaLaboralSerializer(ofertas, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
     
