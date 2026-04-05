@@ -96,6 +96,13 @@ class OfertaLaboral(models.Model):
     especialidad_requerida = models.CharField(max_length=150)
     fecha_publicacion = models.DateTimeField(auto_now_add=True)
     activa = models.BooleanField(default=True)
+    remuneracion = models.CharField(max_length=15, blank=True, null=True)
+    ubicacion = models.CharField(max_length=100, blank=True, null=True)
+    modalidad = models.CharField(choices=[('online', 'Online'),
+                                          ('presencial', 'Presencial'),
+                                          ('semi_presencial', 'Semi-Presencial')],
+                                          max_length=20,
+                                          default='presencial')
     DISPONIBILIDAD = [
         ('part_time','Part_Time'),
         ('full_time', 'Full_Time'),
