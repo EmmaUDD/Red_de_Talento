@@ -5,9 +5,9 @@ from django.http import HttpResponse
 from rest_framework import status
 from django.db import IntegrityError
 from .serializers import (
-    RegistroEstudianteSerializer, 
-    RegistroEmpresaSerializer, 
-    RegistroDocenteSerializer, 
+    RegistroEstudianteSerializer,
+    RegistroEmpresaSerializer,
+    RegistroDocenteSerializer,
     TokenRole,
     PerfilEstudianteSerializer,
     PerfilDocenteSerializer,
@@ -19,22 +19,28 @@ from .serializers import (
     PublicacionFeedSerializer,
     ReporteSerializer,
     DisponibilidadSerializer,
+    InsigniaEstudianteSerializer,
+    CursoSerializer,
+    CursoCompletadoSerializer,
 )
 from rest_framework_simplejwt.views import TokenObtainPairView
 from .models import (
-    Usuario, 
-    PerfilEstudiante, 
-    PerfilDocente, 
+    Usuario,
+    PerfilEstudiante,
+    PerfilDocente,
     PerfilEmpresa,
-    Habilidades, 
-    OfertaLaboral, 
-    Evidencia, 
-    Postulacion, 
-    PublicacionesFeed, 
+    Habilidades,
+    OfertaLaboral,
+    Evidencia,
+    Postulacion,
+    PublicacionesFeed,
     Reporte,
     Disponibilidad,
+    InsigniaEstudiante,
+    Curso,
+    CursoCompletado,
 )
-from .permissions import EsDocente, EsEstudiante, EsEmpresa
+from .permissions import EsDocente, EsDocenteAdmin, EsEstudiante, EsEmpresa
 from rest_framework.permissions import IsAuthenticated
 from .utils import score
 import qrcode
@@ -45,7 +51,7 @@ class LoginView(TokenObtainPairView):
     serializer_class = TokenRole
 
 class ActivarEstudianteView(APIView):
-    permission_classes = [IsAuthenticated, EsDocente]
+    permission_classes = [IsAuthenticated, EsDocenteAdmin]
     def patch(self, request, id):
         try:
             usuario = Usuario.objects.get(id=id, role='estudiante')
@@ -167,14 +173,14 @@ class ReporteView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
     def get(self, request):
-        if not EsDocente().has_permission(request, self):
+        if not EsDocenteAdmin().has_permission(request, self):
             return Response({'error': 'Usuario sin permisos'}, status=status.HTTP_403_FORBIDDEN)
         reportes = Reporte.objects.all()
         serializer = ReporteSerializer(reportes, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
-    
+
     def patch(self, request, id):
-        if not EsDocente().has_permission(request, self):
+        if not EsDocenteAdmin().has_permission(request, self):
             return Response({'error': 'Usuario sin permisos'}, status=status.HTTP_403_FORBIDDEN)
         try:
             reporte = Reporte.objects.get(id=id)
@@ -334,7 +340,6 @@ class QRView(APIView):
         return HttpResponse(buffer.getvalue(), content_type='image/png')
 
 
-        
 # Create your views here.
 class RegistroEstudianteView(APIView):
     def post(self, request):
@@ -423,7 +428,7 @@ class PerfilEmpresaView(APIView):
         try:
             perfil = PerfilEmpresa.objects.get(id=id)
         except PerfilEmpresa.DoesNotExist:
-            return Response({'error': 'Empresa no encontrada'}, status=status.HTTP_404_NOT_FOUND)  
+            return Response({'error': 'Empresa no encontrada'}, status=status.HTTP_404_NOT_FOUND)
         if perfil.usuario != request.user:
             return Response({'error': 'No autorizado'}, status=status.HTTP_403_FORBIDDEN)
         serializer = PerfilEmpresaSerializer(perfil, data=request.data, partial=True)
@@ -431,3 +436,66 @@ class PerfilEmpresaView(APIView):
             serializer.save()
             return Response(serializer.data, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class CursoView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        if not EsDocente().has_permission(request, self):
+            return Response({'error': 'Usuario sin permisos'}, status=status.HTTP_403_FORBIDDEN)
+        serializer = CursoSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save(publicado_por=request.user.perfil_docente)
+            return Response({'mensaje': 'Curso publicado'}, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def get(self, request):
+        cursos = Curso.objects.all()
+        especialidad = request.query_params.get('especialidad')
+        if especialidad:
+            cursos = cursos.filter(especialidad__icontains=especialidad)
+        serializer = CursoSerializer(cursos, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class CursoCompletadoView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        if not EsEstudiante().has_permission(request, self):
+            return Response({'error': 'Usuario sin permisos'}, status=status.HTTP_403_FORBIDDEN)
+        serializer = CursoCompletadoSerializer(data=request.data)
+        if serializer.is_valid():
+            try:
+                serializer.save(estudiante=request.user.perfil_estudiante)
+            except IntegrityError:
+                return Response({'error': 'Ya marcaste este curso como completado'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'mensaje': 'Curso marcado como completado, pendiente de validación'}, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def patch(self, request, id):
+        if not EsDocente().has_permission(request, self):
+            return Response({'error': 'Usuario sin permisos'}, status=status.HTTP_403_FORBIDDEN)
+        try:
+            completado = CursoCompletado.objects.get(id=id)
+        except CursoCompletado.DoesNotExist:
+            return Response({'error': 'No encontrado'}, status=status.HTTP_404_NOT_FOUND)
+        if completado.curso.publicado_por != request.user.perfil_docente:
+            return Response({'error': 'Solo el docente dueño del curso puede validarlo'}, status=status.HTTP_403_FORBIDDEN)
+        serializer = CursoCompletadoSerializer(completado, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class InsigniasEstudianteView(APIView):
+    permission_classes = [IsAuthenticated]
+    def get(self, request):
+        if not EsEstudiante().has_permission(request, self):
+            return Response({'error': 'Usuario sin permisos'}, status=status.HTTP_403_FORBIDDEN)
+        perfil = request.user.perfil_estudiante
+        insignias = InsigniaEstudiante.objects.filter(estudiante=perfil)
+        serializer = InsigniaEstudianteSerializer(insignias, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)

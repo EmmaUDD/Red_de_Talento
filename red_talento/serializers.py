@@ -3,11 +3,11 @@ from rest_framework_simplejwt.serializers import(
 )
 from rest_framework import serializers
 from .models import (
-    Usuario, 
-    PerfilEstudiante, 
-    PerfilDocente, 
-    PerfilEmpresa, 
-    Habilidades, 
+    Usuario,
+    PerfilEstudiante,
+    PerfilDocente,
+    PerfilEmpresa,
+    Habilidades,
     Evidencia,
     OfertaLaboral,
     Postulacion,
@@ -15,6 +15,10 @@ from .models import (
     Reporte,
     Disponibilidad,
     HabilidadRequerida,
+    Insignias,
+    InsigniaEstudiante,
+    Curso,
+    CursoCompletado,
 )
 
 
@@ -172,3 +176,31 @@ class PerfilEmpresaSerializer(serializers.ModelSerializer):
     def get_ofertas_laboral(self, obj):
         ofertas = obj.ofertalaboral_set.filter(activa=True)
         return OfertaLaboralSerializer(ofertas, many=True).data
+
+
+class InsigniaSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Insignias
+        fields = ['id', 'nombre', 'descripcion', 'icono', 'criterio_codigo']
+
+class InsigniaEstudianteSerializer(serializers.ModelSerializer):
+    insignia = InsigniaSerializer(read_only=True)
+    class Meta:
+        model = InsigniaEstudiante
+        fields = ['id', 'insignia', 'fecha_obtenida']
+
+class CursoSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Curso
+        fields = '__all__'
+        read_only_fields = ['publicado_por', 'fecha_publicacion']
+
+class CursoCompletadoSerializer(serializers.ModelSerializer):
+    curso = CursoSerializer(read_only=True)
+    curso_id = serializers.PrimaryKeyRelatedField(
+        queryset=Curso.objects.all(), source='curso', write_only=True
+    )
+    class Meta:
+        model = CursoCompletado
+        fields = ['id', 'curso', 'curso_id', 'estado', 'fecha_completado']
+        read_only_fields = ['estudiante', 'fecha_completado']

@@ -36,6 +36,7 @@ class PerfilDocente(models.Model):
     usuario  = models.OneToOneField(Usuario, on_delete=models.CASCADE, related_name='perfil_docente')
     departamento = models.CharField(max_length=200)
     bio = models.TextField(blank=True, null=True)
+    es_admin = models.BooleanField(default=False)
 
 
 class PerfilEmpresa(models.Model):
@@ -159,3 +160,64 @@ class PublicacionesFeed(models.Model):
     tipo = models.CharField(choices=(('post','Post'), ('empleo', 'Empleo'), ('evento', 'Evento')), default='post', max_length= 6)
     contenido = models.TextField()
     fecha = models.DateTimeField(auto_now_add=True)
+
+class Insignias(models.Model):
+    nombre = models.CharField(max_length=100)
+    descripcion = models.TextField()
+    icono = models.CharField(max_length=100)  # Por ahora va a ser un icono, emoji algo simple. Hasta que se hagan los diseños finales
+    CODIGOS = [
+        ('habilidad_aprobada', 'Habilidad_aprobada'),
+        ('empleo_conseguido', 'Empleo_conseguido'),
+        ('3_cursos_completados', '3_Cursos_Completados'),
+        ('5_cursos_completados', '5_Cursos_Completados'),
+        ('10_cursos_completados', '10_Cursos_Completados'),
+        ('perfil_completo', 'Perfil_Completo')
+    ]
+    
+    criterio_codigo = models.CharField(choices=CODIGOS, max_length=30, blank=True, null=True)
+
+
+class InsigniaEstudiante(models.Model):
+    estudiante = models.ForeignKey(PerfilEstudiante, on_delete=models.CASCADE)
+    insignia = models.ForeignKey(Insignias, on_delete=models.CASCADE)
+    fecha_obtenida = models.DateTimeField(auto_now_add=True)
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['estudiante', 'insignia'], name='estudiante_insignia')
+        ]
+
+class Curso(models.Model):
+    titulo = models.CharField(max_length=150)
+    descripcion = models.TextField()
+    url = models.URLField()
+    PLATAFORMAS = [
+        ('youtube', 'YouTube'),
+        ('udemy', 'Udemy'),
+        ('otro', 'Otro'),
+    ]
+    plataforma = models.CharField(choices=PLATAFORMAS, max_length=10, default='otro')
+    especialidad = models.CharField(max_length=200)
+    NIVELES = [
+        ('basico', 'Básico'),
+        ('intermedio', 'Intermedio'),
+        ('avanzado', 'Avanzado'),
+    ]
+    nivel = models.CharField(choices=NIVELES, max_length=12, default='basico')
+    publicado_por = models.ForeignKey(PerfilDocente, on_delete=models.CASCADE, related_name='cursos')
+    fecha_publicacion = models.DateTimeField(auto_now_add=True)
+
+
+class CursoCompletado(models.Model):
+    estudiante = models.ForeignKey(PerfilEstudiante, on_delete=models.CASCADE, related_name='cursos_completados')
+    curso = models.ForeignKey(Curso, on_delete=models.CASCADE, related_name='completados')
+    fecha_completado = models.DateTimeField(auto_now_add=True)
+    ESTADOS = [
+        ('pendiente', 'Pendiente'),
+        ('aprobado', 'Aprobado'),
+        ('rechazado', 'Rechazado'),
+    ]
+    estado = models.CharField(choices=ESTADOS, max_length=12, default='pendiente')
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['estudiante', 'curso'], name='estudiante_curso')
+        ]

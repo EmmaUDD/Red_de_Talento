@@ -1,0 +1,52 @@
+[
+    {
+        "model": "red_talento.insignias",
+        "pk": 1,
+        "fields": {
+            "nombre": "Habilidad Aprobada",
+            "descripcion": "Tienes tu primera habilidad validada por un docente.",
+            "icono": "🏅",
+            "criterio_codigo": "habilidad_aprobada"
+        }
+    },
+    {
+        "model": "red_talento.insignias",
+        "pk": 2,
+        "fields": {
+            "nombre": "Empleo Conseguido",
+            "descripcion": "Conseguiste tu primer empleo, felicidades!",
+            "icono": "💼",
+            "criterio_codigo": "empleo_conseguido"
+        }
+    },
+    {
+        "model": "red_talento.insignias",
+        "pk": 3,
+        "fields": {
+            "nombre": "En Camino",
+            "descripcion": "Completaste 3 cursos. Sigue aprendiendo!",
+            "icono": "📚",
+            "criterio_codigo": "3_cursos_completados"
+        }
+    },
+    {
+        "model": "red_talento.insignias",
+        "pk": 4,
+        "fields": {
+            "nombre": "Estudiante Comprometido",
+            "descripcion": "Completaste 5 cursos. Tu dedicacion se nota.",
+            "icono": "🎓",
+            "criterio_codigo": "5_cursos_completados"
+        }
+    },
+    {
+        "model": "red_talento.insignias",
+        "pk": 5,
+        "fields": {
+            "nombre": "Experto en Crecimiento",
+            "descripcion": "Completaste 10 cursos. Eres un ejemplo para los demas.",
+            "icono": "⭐",
+            "criterio_codigo": "10_cursos_completados"
+        }
+    }
+]

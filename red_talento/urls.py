@@ -1,7 +1,7 @@
 from django.urls import path
 from .views import (
-    RegistroEstudianteView, 
-    RegistroDocenteView, 
+    RegistroEstudianteView,
+    RegistroDocenteView,
     RegistroEmpresaView,
     ActivarEstudianteView,
     PerfilEstudianteView,
@@ -18,8 +18,10 @@ from .views import (
     BusquedaEmpresasView,
     EstadisticasView,
     QRView,
-    RecomendacionesView
-    
+    RecomendacionesView,
+    InsigniasEstudianteView,
+    CursoView,
+    CursoCompletadoView,
 )
 
 
@@ -50,4 +52,8 @@ urlpatterns = [
     path('perfil/estudiante/<id>/qr/', QRView.as_view(), name='qr'),
     path('empresas/', BusquedaEmpresasView.as_view(), name='buscador_empresa'),
     path('empresa/recomendacion/<int:id>/', RecomendacionesView.as_view(), name='recomendacion'),
+    path('mis-insignias/', InsigniasEstudianteView.as_view(), name='mis_insignias'),
+    path('cursos/', CursoView.as_view(), name='cursos'),
+    path('cursos/completar/', CursoCompletadoView.as_view(), name='completar_curso'),
+    path('cursos/completar/<int:id>/validar/', CursoCompletadoView.as_view(), name='validar_curso'),
 ]
