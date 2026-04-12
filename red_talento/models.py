@@ -14,6 +14,7 @@ class Usuario(AbstractUser):
                             max_length=12,
                             default='estudiante'
                         )
+    foto_perfil = models.ImageField(upload_to='perfiles/', null=True, blank=True)
     def save(self, *args, **kwargs):
         if self.pk is None and self.role == 'estudiante':
             self.is_active = False
@@ -23,6 +24,9 @@ class PerfilEstudiante(models.Model):
     usuario  = models.OneToOneField(Usuario, on_delete=models.CASCADE,  related_name='perfil_estudiante')
     especialidad = models.CharField(max_length=200)
     GRADO = [
+        ('1ro_medio', '1ro_medio'),
+        ('2do_medio', '2do_medio'),
+        ('3ro_medio', '3ro_medio'),
         ('4to_medio', '4to_medio'),
         ('egresado' , 'Egresado')
     ]
@@ -66,10 +70,10 @@ class Habilidades(models.Model):
 class Disponibilidad(models.Model):
     estudiante = models.ForeignKey(PerfilEstudiante, on_delete=models.CASCADE, related_name='disponibilidad')
     DISPONIBILIDAD = [
-        ('part_time','Part_Time'),
-        ('full_time', 'Full_Time'),
-        ('fines_de_semana', 'Fines_de_Semana'),
-        ('practicas', 'Practicas'),
+        ('part_time', 'Part-time'),
+        ('full_time', 'Full-time'),
+        ('practica', 'Práctica'),
+        ('no_disponible', 'No disponible'),
     ]
     disponibilidad = models.CharField(choices=DISPONIBILIDAD,
                                       max_length=16,
@@ -104,10 +108,10 @@ class OfertaLaboral(models.Model):
                                           max_length=20,
                                           default='presencial')
     DISPONIBILIDAD = [
-        ('part_time','Part_Time'),
-        ('full_time', 'Full_Time'),
-        ('fines_de_semana', 'Fines_de_Semana'),
-        ('practicas', 'Practicas'),
+        ('part_time', 'Part-time'),
+        ('full_time', 'Full-time'),
+        ('practica', 'Práctica'),
+        ('no_disponible', 'No disponible'),
     ]
     disponibilidad_requerida = models.CharField(choices=DISPONIBILIDAD,
                                       max_length=16,
@@ -147,6 +151,8 @@ class Postulacion(models.Model):
     fecha = models.DateTimeField(auto_now_add=True)
     ESTADOS = [('Contratado', 'estado_contratado'),
                ('Negado', 'estado_negado'),
+               ('Rechazado', 'estado_rechazado'),
+               ('Seleccionado', 'estado_seleccionado'),
                ('Pendiente', 'estado_pendiente')]
     estado = models.CharField(choices=ESTADOS, default='Pendiente', max_length=15)
     class Meta:
@@ -158,4 +164,33 @@ class PublicacionesFeed(models.Model):
     autor = models.ForeignKey(Usuario, on_delete=models.CASCADE)
     tipo = models.CharField(choices=(('post','Post'), ('empleo', 'Empleo'), ('evento', 'Evento')), default='post', max_length= 6)
     contenido = models.TextField()
+    imagen = models.ImageField(upload_to='publicaciones/', null=True, blank=True)
     fecha = models.DateTimeField(auto_now_add=True)
+
+class Notificacion(models.Model):
+    usuario = models.ForeignKey(Usuario, on_delete=models.CASCADE, related_name='notificaciones')
+    mensaje = models.TextField()
+    tipo = models.CharField(max_length=20, default='info') # info, success, warning
+    leido = models.BooleanField(default=False)
+    fecha = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-fecha']
+
+
+class PostLike(models.Model):
+    usuario = models.ForeignKey(Usuario, on_delete=models.CASCADE)
+    publicacion = models.ForeignKey(PublicacionesFeed, on_delete=models.CASCADE, related_name='likes')
+    fecha = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('usuario', 'publicacion')
+
+class PostComentario(models.Model):
+    usuario = models.ForeignKey(Usuario, on_delete=models.CASCADE)
+    publicacion = models.ForeignKey(PublicacionesFeed, on_delete=models.CASCADE, related_name='comentarios')
+    contenido = models.TextField()
+    fecha = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['fecha']

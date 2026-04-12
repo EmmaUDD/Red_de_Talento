@@ -18,8 +18,10 @@ from .views import (
     BusquedaEmpresasView,
     EstadisticasView,
     QRView,
-    RecomendacionesView
-    
+    RecomendacionesView,
+    NotificacionView,
+    PostLikeView,
+    PostComentarioView,
 )
 
 
@@ -39,6 +41,9 @@ urlpatterns = [
     path('postulaciones/', PostulacionView.as_view(), name='postulaciones'),
     path('postulaciones/oferta/<int:id>/', PostulacionView.as_view(), name='postulacion_oferta'),
     path('postulaciones/<int:id>/', PostulacionView.as_view(), name='estado_postulacion'),
+    path('notificaciones/<int:id>/', NotificacionView.as_view(), name='marcar_notificacion'),
+    path('feed/<int:id>/like/', PostLikeView.as_view(), name='post_like'),
+    path('feed/<int:id>/comentarios/', PostComentarioView.as_view(), name='post_comentarios'),
     path('feed/', PublicacionFeedView.as_view(), name='feed'),
     path('feed/<int:id>/', PublicacionFeedView.as_view(), name='feed_detalle'),
     path('reporte/', ReporteView.as_view(), name='reportes'),
