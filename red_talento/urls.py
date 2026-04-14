@@ -1,0 +1,53 @@
+from django.urls import path
+from .views import (
+    RegistroEstudianteView, 
+    RegistroDocenteView, 
+    RegistroEmpresaView,
+    ActivarEstudianteView,
+    PerfilEstudianteView,
+    PerfilDocenteView,
+    PerfilEmpresaView,
+    HabilidadesView,
+    EvidenciasView,
+    OfertaLaboralView,
+    PostulacionView,
+    PublicacionFeedView,
+    ReporteView,
+    DisponibilidadView,
+    BusquedaEstudiantesView,
+    BusquedaEmpresasView,
+    EstadisticasView,
+    QRView,
+    RecomendacionesView
+    
+)
+
+
+urlpatterns = [
+    path('registro/estudiante/', RegistroEstudianteView.as_view(), name='registro_estudiante'),
+    path('registro/docente/', RegistroDocenteView.as_view(), name='registro_docente'),
+    path('registro/empresa/', RegistroEmpresaView.as_view(), name='registro_empresa'),
+    path('estudiantes/<int:id>/activar/', ActivarEstudianteView.as_view(), name='activar_estudiante'),
+    path('perfil/estudiante/<int:id>/', PerfilEstudianteView.as_view(), name='perfil_estudiante'),
+    path('perfil/docente/<int:id>/', PerfilDocenteView.as_view(), name='perfil_docente'),
+    path('perfil/empresa/<int:id>/', PerfilEmpresaView.as_view(), name='perfil_empresa'),
+    path('habilidades/', HabilidadesView.as_view(), name='registro_habilidad'),
+    path('habilidades/<int:id>/validar/', HabilidadesView.as_view(), name='validar_habilidad'),
+    path('evidencias/', EvidenciasView.as_view(), name='registrar_evidencia'),
+    path('evidencias/estudiante/<int:id>/', EvidenciasView.as_view(), name='ver_evidencias'),
+    path('ofertas/', OfertaLaboralView.as_view(), name='ver_ofertas'),
+    path('postulaciones/', PostulacionView.as_view(), name='postulaciones'),
+    path('postulaciones/oferta/<int:id>/', PostulacionView.as_view(), name='postulacion_oferta'),
+    path('postulaciones/<int:id>/', PostulacionView.as_view(), name='estado_postulacion'),
+    path('feed/', PublicacionFeedView.as_view(), name='feed'),
+    path('feed/<int:id>/', PublicacionFeedView.as_view(), name='feed_detalle'),
+    path('reporte/', ReporteView.as_view(), name='reportes'),
+    path('reporte/<int:id>/', ReporteView.as_view(), name='estado_reporte'),
+    path('disponibilidad/', DisponibilidadView.as_view(), name='disponibilidad'),
+    path('disponibilidad/<id>/', DisponibilidadView.as_view(), name='borrar_disponibilidad'),
+    path('estudiantes/', BusquedaEstudiantesView.as_view(), name='buscador'),
+    path('estadisticas/', EstadisticasView.as_view(), name='estadisticas'),
+    path('perfil/estudiante/<id>/qr/', QRView.as_view(), name='qr'),
+    path('empresas/', BusquedaEmpresasView.as_view(), name='buscador_empresa'),
+    path('empresa/recomendacion/<int:id>/', RecomendacionesView.as_view(), name='recomendacion'),
+]
