@@ -5,18 +5,18 @@ import {
   TrendingUp, Activity,
 } from "lucide-react";
 import { apiRequest } from "../../../api/client";
-
+ 
 interface Stats {
   estudiantes_reg: number;
   empresas_reg: number;
   habilidades_all: number;
   postulaciones_all: number;
 }
-
+ 
 export function TeacherEstadisticas() {
   const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(true);
-
+ 
   useEffect(() => {
     apiRequest("/api/estadisticas/")
       .then((r) => r.json())
@@ -24,7 +24,7 @@ export function TeacherEstadisticas() {
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
-
+ 
   const cards = stats
     ? [
         { label: "Estudiantes registrados", value: stats.estudiantes_reg, icon: Users, color: "text-blue-600", bg: "bg-blue-50" },
@@ -33,7 +33,7 @@ export function TeacherEstadisticas() {
         { label: "Postulaciones totales", value: stats.postulaciones_all, icon: Briefcase, color: "text-purple-600", bg: "bg-purple-50" },
       ]
     : [];
-
+ 
   return (
     <div className="min-h-screen bg-[#F9FAFB]">
       <div className="bg-white border-b border-slate-200 px-6 py-5">
@@ -42,7 +42,7 @@ export function TeacherEstadisticas() {
           <p className="text-slate-500 text-sm mt-0.5">Liceo Cardenal Caro · Datos en tiempo real</p>
         </div>
       </div>
-
+ 
       <div className="max-w-5xl mx-auto px-4 py-6 space-y-6">
         {loading ? (
           <div className="text-center py-16 text-slate-400 text-sm">Cargando estadísticas...</div>
@@ -71,7 +71,7 @@ export function TeacherEstadisticas() {
                 );
               })}
             </div>
-
+ 
             {/* Info adicional */}
             <div className="bg-white rounded-xl border border-slate-200 p-6">
               <div className="flex items-center gap-2 mb-4">
@@ -105,7 +105,7 @@ export function TeacherEstadisticas() {
                 </div>
               </div>
             </div>
-
+ 
             <div className="bg-white rounded-xl border border-slate-200 p-6">
               <div className="flex items-center gap-2 mb-2">
                 <TrendingUp className="w-4 h-4 text-slate-500" />

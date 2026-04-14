@@ -7,7 +7,7 @@ import {
   Image, Briefcase, CalendarDays, Send, Award, Users,
   TrendingUp, Bell, Pin, CheckCircle,
 } from "lucide-react";
-
+ 
 interface BackendPost {
   id: number;
   autor: number;
@@ -16,7 +16,7 @@ interface BackendPost {
   contenido: string;
   fecha: string;
 }
-
+ 
 function timeAgo(dateStr: string): string {
   const diff = Date.now() - new Date(dateStr).getTime();
   const mins = Math.floor(diff / 60000);
@@ -25,13 +25,13 @@ function timeAgo(dateStr: string): string {
   if (hrs < 24) return `hace ${hrs}h`;
   return `hace ${Math.floor(hrs / 24)} días`;
 }
-
+ 
 function PostComposer({ onPublished }: { onPublished: () => void }) {
   const { user } = useUser();
   const [text, setText] = useState("");
   const [postType, setPostType] = useState<"post" | "empleo" | "evento">("post");
   const [loading, setLoading] = useState(false);
-
+ 
   const postTypes =
     user?.role === "company"
       ? [
@@ -45,7 +45,7 @@ function PostComposer({ onPublished }: { onPublished: () => void }) {
           { id: "evento", label: "Evento", icon: CalendarDays },
         ]
       : [{ id: "post", label: "Publicación", icon: Send }];
-
+ 
   const handlePublish = async () => {
     if (!text.trim()) return;
     setLoading(true);
@@ -62,7 +62,7 @@ function PostComposer({ onPublished }: { onPublished: () => void }) {
       setLoading(false);
     }
   };
-
+ 
   return (
     <div className="bg-white rounded-xl border border-slate-200 p-4">
       <div className="flex items-start gap-3">
@@ -121,7 +121,7 @@ function PostComposer({ onPublished }: { onPublished: () => void }) {
     </div>
   );
 }
-
+ 
 function StudentSidebar() {
   return (
     <div className="space-y-3">
@@ -147,7 +147,7 @@ function StudentSidebar() {
     </div>
   );
 }
-
+ 
 function TeacherSidebar() {
   return (
     <div className="space-y-3">
@@ -161,7 +161,7 @@ function TeacherSidebar() {
     </div>
   );
 }
-
+ 
 function CompanySidebar() {
   return (
     <div className="space-y-3">
@@ -175,13 +175,13 @@ function CompanySidebar() {
     </div>
   );
 }
-
+ 
 export function HomeFeed() {
   const { user } = useUser();
   const canModerate = user?.role === "teacher";
   const [posts, setPosts] = useState<BackendPost[]>([]);
   const [loading, setLoading] = useState(true);
-
+ 
   const loadPosts = async () => {
     try {
       const res = await apiRequest("/api/feed/");
@@ -195,11 +195,11 @@ export function HomeFeed() {
       setLoading(false);
     }
   };
-
+ 
   useEffect(() => {
     loadPosts();
   }, []);
-
+ 
   return (
     <div className="min-h-screen bg-[#F9FAFB]">
       <div className="max-w-5xl mx-auto px-4 py-6">
@@ -230,10 +230,10 @@ export function HomeFeed() {
                 </div>
               )}
             </div>
-
+ 
             {/* Composer */}
             <PostComposer onPublished={loadPosts} />
-
+ 
             {/* Posts */}
             {loading ? (
               <div className="text-center py-10 text-slate-400 text-sm">Cargando publicaciones...</div>
@@ -270,7 +270,7 @@ export function HomeFeed() {
               ))
             )}
           </div>
-
+ 
           {/* Sidebar */}
           <aside className="hidden lg:block w-64 flex-shrink-0">
             {user?.role === "student" && <StudentSidebar />}

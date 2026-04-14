@@ -6,7 +6,7 @@ import {
 } from "lucide-react";
 import { ReportModal } from "../shared/ReportModal";
 import { apiRequest } from "../../../api/client";
-
+ 
 interface Estudiante {
   id: number;
   usuario: { id: number; first_name: string; last_name: string; is_active: boolean };
@@ -15,7 +15,7 @@ interface Estudiante {
   disponibilidad?: { id: number; disponibilidad: string }[];
   habilidades_set?: { nombre: string; nivel: string; estado: string }[];
 }
-
+ 
 const specialties = ["Electricidad", "Computación", "Construcción", "Mecánica Automotriz"];
 const availabilities = ["part_time", "full_time", "fines_de_semana", "practicas"];
 const availabilityLabels: Record<string, string> = {
@@ -24,7 +24,7 @@ const availabilityLabels: Record<string, string> = {
   fines_de_semana: "Fines de semana",
   practicas: "Prácticas",
 };
-
+ 
 export function CompanyBuscar() {
   const [query, setQuery] = useState("");
   const [selSpec, setSelSpec] = useState<string[]>([]);
@@ -34,9 +34,9 @@ export function CompanyBuscar() {
   const [reportTarget, setReportTarget] = useState<string | null>(null);
   const [estudiantes, setEstudiantes] = useState<Estudiante[]>([]);
   const [loading, setLoading] = useState(true);
-
+ 
   const toggle = <T,>(arr: T[], val: T) => arr.includes(val) ? arr.filter((x) => x !== val) : [...arr, val];
-
+ 
   const loadEstudiantes = async () => {
     setLoading(true);
     try {
@@ -48,9 +48,9 @@ export function CompanyBuscar() {
     } catch {}
     setLoading(false);
   };
-
+ 
   useEffect(() => { loadEstudiantes(); }, [selSpec, selAvail]);
-
+ 
   const filtered = estudiantes.filter((e) => {
     const fullName = `${e.usuario.first_name} ${e.usuario.last_name}`.toLowerCase();
     const q = query.toLowerCase();
@@ -59,9 +59,9 @@ export function CompanyBuscar() {
     const matchAvail = selAvail.length === 0 || (e.disponibilidad ?? []).some((d) => selAvail.includes(d.disponibilidad));
     return matchQ && matchSpec && matchAvail;
   });
-
+ 
   const hasFilters = selSpec.length + selAvail.length > 0;
-
+ 
   return (
     <>
       <div className="min-h-screen bg-[#F9FAFB]">
@@ -95,7 +95,7 @@ export function CompanyBuscar() {
             </div>
           </div>
         </div>
-
+ 
         <div className="max-w-6xl mx-auto px-4 md:px-6 py-5">
           <div className="flex flex-col md:flex-row gap-5">
             {/* Filters */}
@@ -146,13 +146,13 @@ export function CompanyBuscar() {
                 </motion.aside>
               )}
             </AnimatePresence>
-
+ 
             {/* Results */}
             <div className="flex-1 space-y-3">
               <p className="text-slate-500 text-sm">
                 <span className="text-slate-900" style={{ fontWeight: 600 }}>{filtered.length}</span> candidatos
               </p>
-
+ 
               {loading ? (
                 <div className="text-center py-10 text-slate-400 text-sm">Cargando candidatos...</div>
               ) : filtered.map((e, i) => (
@@ -169,7 +169,7 @@ export function CompanyBuscar() {
                         </div>
                       )}
                     </div>
-
+ 
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start justify-between gap-2">
                         <div>
@@ -184,7 +184,7 @@ export function CompanyBuscar() {
                           </span>
                         )}
                       </div>
-
+ 
                       <div className="flex flex-wrap gap-2 mt-1.5 text-xs text-slate-500">
                         <span className="flex items-center gap-1"><Award className="w-3 h-3" /> {e.grado}</span>
                         {(e.disponibilidad ?? []).map((d) => (
@@ -193,7 +193,7 @@ export function CompanyBuscar() {
                           </span>
                         ))}
                       </div>
-
+ 
                       {(e.habilidades_set ?? []).filter((h) => h.estado === "Aprobado").length > 0 && (
                         <div className="mt-2 flex flex-wrap gap-1.5">
                           {(e.habilidades_set ?? []).filter((h) => h.estado === "Aprobado").slice(0, 3).map((h) => (
@@ -205,7 +205,7 @@ export function CompanyBuscar() {
                       )}
                     </div>
                   </div>
-
+ 
                   <div className="mt-3 flex gap-2">
                     <button className="flex-1 py-2 rounded-lg bg-slate-900 hover:bg-slate-700 text-white text-xs flex items-center justify-center gap-1.5 transition-colors" style={{ fontWeight: 600 }}>
                       <Eye className="w-3.5 h-3.5" /> Ver perfil
@@ -222,7 +222,7 @@ export function CompanyBuscar() {
                   </div>
                 </motion.div>
               ))}
-
+ 
               {!loading && filtered.length === 0 && (
                 <div className="text-center py-16">
                   <Users className="w-10 h-10 text-slate-200 mx-auto mb-3" />
@@ -234,7 +234,7 @@ export function CompanyBuscar() {
           </div>
         </div>
       </div>
-
+ 
       {reportTarget && (
         <ReportModal targetName={reportTarget} targetType="usuario" onClose={() => setReportTarget(null)} />
       )}

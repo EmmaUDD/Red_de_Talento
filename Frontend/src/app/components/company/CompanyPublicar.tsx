@@ -5,9 +5,9 @@ import {
   Trash2, Eye, Clock, MapPin, Building2, AlertCircle, X,
 } from "lucide-react";
 import { apiRequest } from "../../../api/client";
-
+ 
 type PostType = "empleo" | "evento" | "anuncio";
-
+ 
 interface Oferta {
   id: number;
   titulo: string;
@@ -19,13 +19,13 @@ interface Oferta {
   activa: boolean;
   fecha_publicacion: string;
 }
-
+ 
 export function CompanyPublicar() {
   const [postType, setPostType] = useState<PostType>("empleo");
   const [publishedSuccess, setPublishedSuccess] = useState(false);
   const [ofertas, setOfertas] = useState<Oferta[]>([]);
   const [loading, setLoading] = useState(false);
-
+ 
   // Form fields
   const [titulo, setTitulo] = useState("");
   const [descripcion, setDescripcion] = useState("");
@@ -34,7 +34,7 @@ export function CompanyPublicar() {
   const [ubicacion, setUbicacion] = useState("");
   const [modalidad, setModalidad] = useState("presencial");
   const [disponibilidad, setDisponibilidad] = useState("");
-
+ 
   const loadOfertas = async () => {
     try {
       const res = await apiRequest("/api/ofertas/");
@@ -44,16 +44,16 @@ export function CompanyPublicar() {
       }
     } catch {}
   };
-
+ 
   useEffect(() => {
     loadOfertas();
   }, []);
-
+ 
   const handlePublish = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!titulo || !descripcion) return;
     setLoading(true);
-
+ 
     try {
       if (postType === "empleo") {
         const res = await apiRequest("/api/ofertas/", {
@@ -96,13 +96,13 @@ export function CompanyPublicar() {
       setLoading(false);
     }
   };
-
+ 
   const postTypes = [
     { id: "empleo", label: "Oferta de Empleo", icon: Briefcase, desc: "Publica una vacante para estudiantes o egresados" },
     { id: "evento", label: "Evento", icon: CalendarDays, desc: "Jornada de visita, feria, charla u otro evento" },
     { id: "anuncio", label: "Anuncio / Post", icon: Send, desc: "Novedad, logro, mensaje para la comunidad" },
   ] as const;
-
+ 
   return (
     <div className="min-h-screen bg-[#F9FAFB]">
       <div className="bg-white border-b border-slate-200 px-6 py-5">
@@ -111,7 +111,7 @@ export function CompanyPublicar() {
           <p className="text-slate-500 text-sm mt-0.5">Crea empleos, eventos y anuncios para la comunidad del Liceo</p>
         </div>
       </div>
-
+ 
       <div className="max-w-4xl mx-auto px-4 md:px-6 py-5">
         <AnimatePresence>
           {publishedSuccess && (
@@ -126,7 +126,7 @@ export function CompanyPublicar() {
             </motion.div>
           )}
         </AnimatePresence>
-
+ 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
           {/* Form */}
           <div className="lg:col-span-2 space-y-4">
@@ -149,13 +149,13 @@ export function CompanyPublicar() {
                 })}
               </div>
             </div>
-
+ 
             {/* Form fields */}
             <div className="bg-white rounded-xl border border-slate-200 p-5">
               <h3 className="text-slate-900 mb-4" style={{ fontSize: "0.875rem", fontWeight: 600 }}>
                 {postType === "empleo" ? "Detalles de la oferta" : postType === "evento" ? "Detalles del evento" : "Redactar anuncio"}
               </h3>
-
+ 
               <form onSubmit={handlePublish} className="space-y-4">
                 <div>
                   <label className="block text-slate-700 text-sm mb-1.5" style={{ fontWeight: 500 }}>Título *</label>
@@ -167,7 +167,7 @@ export function CompanyPublicar() {
                     className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-slate-200"
                   />
                 </div>
-
+ 
                 <div>
                   <label className="block text-slate-700 text-sm mb-1.5" style={{ fontWeight: 500 }}>Descripción *</label>
                   <textarea
@@ -179,7 +179,7 @@ export function CompanyPublicar() {
                     className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2.5 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-slate-200"
                   />
                 </div>
-
+ 
                 {postType === "empleo" && (
                   <>
                     <div>
@@ -242,7 +242,7 @@ export function CompanyPublicar() {
                     </div>
                   </>
                 )}
-
+ 
                 <button
                   type="submit"
                   disabled={loading}
@@ -254,7 +254,7 @@ export function CompanyPublicar() {
               </form>
             </div>
           </div>
-
+ 
           {/* Sidebar — mis ofertas activas */}
           <div className="space-y-4">
             <div className="bg-white rounded-xl border border-slate-200 p-4">
@@ -283,3 +283,4 @@ export function CompanyPublicar() {
     </div>
   );
 }
+ 

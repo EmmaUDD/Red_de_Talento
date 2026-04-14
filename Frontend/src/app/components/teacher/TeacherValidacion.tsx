@@ -7,16 +7,16 @@ import {
   Eye, MessageSquare, ClipboardCheck,
 } from "lucide-react";
 import { apiRequest } from "../../../api/client";
-
+ 
 type SkillLevel = "Bajo" | "Medio" | "Alto" | null;
-
+ 
 interface Estudiante {
   id: number;
   usuario: { id: number; username: string; first_name: string; last_name: string; email: string; is_active: boolean };
   especialidad: string;
   grado: string;
 }
-
+ 
 interface Habilidad {
   id: number;
   nombre: string;
@@ -24,7 +24,7 @@ interface Habilidad {
   estado: string;
   estudiante: number;
 }
-
+ 
 interface Reporte {
   id: number;
   reportado_por: number;
@@ -34,7 +34,7 @@ interface Reporte {
   fecha: string;
   estado: string;
 }
-
+ 
 function LevelBtn({ l, sel, onClick }: { l: string; sel: boolean; onClick: () => void }) {
   const styles: Record<string, string> = {
     Bajo: sel ? "bg-red-500 text-white border-red-500" : "border-slate-200 text-slate-600 hover:bg-slate-50",
@@ -47,22 +47,22 @@ function LevelBtn({ l, sel, onClick }: { l: string; sel: boolean; onClick: () =>
     </button>
   );
 }
-
+ 
 export function TeacherValidacion() {
   const [tab, setTab] = useState<"aprobacion" | "validacion" | "denuncias" | "habilidades" | "cursos">("aprobacion");
   const [search, setSearch] = useState("");
-
+ 
   // Data del backend
   const [estudiantes, setEstudiantes] = useState<Estudiante[]>([]);
   const [habilidades, setHabilidades] = useState<Habilidad[]>([]);
   const [reportes, setReportes] = useState<Reporte[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedReport, setExpandedReport] = useState<number | null>(null);
-
+ 
   // Cursos form (sin endpoint en backend, solo UI)
   const [courseForm, setCourseForm] = useState({ title: "", link: "", specialty: "", desc: "" });
   const [coursePublished, setCoursePublished] = useState(false);
-
+ 
   const loadData = async () => {
     setLoading(true);
     try {
@@ -77,9 +77,9 @@ export function TeacherValidacion() {
     } catch {}
     setLoading(false);
   };
-
+ 
   useEffect(() => { loadData(); }, []);
-
+ 
   const activarEstudiante = async (id: number) => {
     try {
       const res = await apiRequest(`/api/estudiantes/${id}/activar/`, { method: "PATCH" });
@@ -88,7 +88,7 @@ export function TeacherValidacion() {
       }
     } catch {}
   };
-
+ 
   const validarHabilidad = async (id: number, nivel: string, estado: string) => {
     try {
       const res = await apiRequest(`/api/habilidades/${id}/validar/`, {
@@ -100,7 +100,7 @@ export function TeacherValidacion() {
       }
     } catch {}
   };
-
+ 
   const actualizarReporte = async (id: number, estado: string) => {
     try {
       const res = await apiRequest(`/api/reporte/${id}/`, {
@@ -112,11 +112,11 @@ export function TeacherValidacion() {
       }
     } catch {}
   };
-
+ 
   const pendingApproval = estudiantes.filter((e) => !e.usuario.is_active).length;
   const pendingHabilidades = habilidades.filter((h) => h.estado === "Pendiente").length;
   const pendingReportes = reportes.filter((r) => r.estado === "pendiente").length;
-
+ 
   const tabList = [
     { id: "aprobacion", label: "Aprobación", icon: UserCheck, badge: pendingApproval },
     { id: "validacion", label: "Estudiantes", icon: Star, badge: 0 },
@@ -124,13 +124,13 @@ export function TeacherValidacion() {
     { id: "denuncias", label: "Denuncias", icon: Flag, badge: pendingReportes },
     { id: "cursos", label: "Cursos", icon: BookOpen, badge: 0 },
   ] as const;
-
+ 
   const reportStatusBadge = (status: string) => {
     if (status === "pendiente") return "bg-red-50 text-red-600 border-red-200";
     if (status === "en_revision") return "bg-amber-50 text-amber-700 border-amber-200";
     return "bg-green-50 text-green-700 border-green-200";
   };
-
+ 
   return (
     <div className="min-h-screen bg-[#F9FAFB]">
       <div className="bg-white border-b border-slate-200 px-6 py-5">
@@ -153,7 +153,7 @@ export function TeacherValidacion() {
           </div>
         </div>
       </div>
-
+ 
       <div className="max-w-5xl mx-auto px-4 md:px-6 py-5">
         {/* Tabs */}
         <div className="flex bg-white rounded-xl border border-slate-200 p-1 mb-5 overflow-x-auto">
@@ -175,7 +175,7 @@ export function TeacherValidacion() {
             );
           })}
         </div>
-
+ 
         {/* Search */}
         {["aprobacion", "validacion"].includes(tab) && (
           <div className="relative mb-4">
@@ -185,7 +185,7 @@ export function TeacherValidacion() {
               className="w-full bg-white border border-slate-200 rounded-xl pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-slate-200" />
           </div>
         )}
-
+ 
         {/* ── APROBACIÓN ── */}
         {tab === "aprobacion" && (
           <div className="space-y-3">
@@ -248,7 +248,7 @@ export function TeacherValidacion() {
             )}
           </div>
         )}
-
+ 
         {/* ── ESTUDIANTES ── */}
         {tab === "validacion" && (
           <div className="space-y-3">
@@ -283,7 +283,7 @@ export function TeacherValidacion() {
             )}
           </div>
         )}
-
+ 
         {/* ── HABILIDADES ── */}
         {tab === "habilidades" && (
           <div className="space-y-3">
@@ -326,7 +326,7 @@ export function TeacherValidacion() {
             ))}
           </div>
         )}
-
+ 
         {/* ── DENUNCIAS ── */}
         {tab === "denuncias" && (
           <div className="space-y-3">
@@ -387,7 +387,7 @@ export function TeacherValidacion() {
             ))}
           </div>
         )}
-
+ 
         {/* ── CURSOS (solo UI, sin endpoint backend) ── */}
         {tab === "cursos" && (
           <div className="max-w-lg">

@@ -8,9 +8,9 @@ import {
   QrCode, Share2,
 } from "lucide-react";
 import { apiRequest } from "../../../api/client";
-
+ 
 type Level = "Alto" | "Medio" | "Bajo";
-
+ 
 interface PerfilEstudiante {
   id: number;
   usuario: { id: number; first_name: string; last_name: string; email: string };
@@ -18,7 +18,7 @@ interface PerfilEstudiante {
   grado: string;
   video_pitch: string | null;
 }
-
+ 
 interface Habilidad {
   id: number;
   nombre: string;
@@ -26,7 +26,7 @@ interface Habilidad {
   estado: string;
   estudiante: number;
 }
-
+ 
 interface Evidencia {
   id: number;
   titulo: string;
@@ -34,19 +34,19 @@ interface Evidencia {
   imagen: string;
   fecha_subida: string;
 }
-
+ 
 interface Disponibilidad {
   id: number;
   disponibilidad: string;
 }
-
+ 
 const availabilityLabels: Record<string, string> = {
   part_time: "Part-time",
   full_time: "Full-time",
   fines_de_semana: "Fines de semana",
   practicas: "Prácticas",
 };
-
+ 
 function LevelBadge({ level }: { level: string }) {
   const cfg: Record<string, string> = {
     Alto: "bg-green-50 text-green-700 border-green-200",
@@ -59,7 +59,7 @@ function LevelBadge({ level }: { level: string }) {
     </span>
   );
 }
-
+ 
 function SkillBar({ percent, level }: { percent: number; level: string }) {
   const c: Record<string, string> = { Alto: "#10b981", Medio: "#f59e0b", Bajo: "#ef4444" };
   return (
@@ -74,7 +74,7 @@ function SkillBar({ percent, level }: { percent: number; level: string }) {
     </div>
   );
 }
-
+ 
 function QRPanel({ onClose, profileId, name }: { onClose: () => void; profileId: number; name: string }) {
   const profileUrl = `${window.location.origin}/perfil/estudiante/${profileId}`;
   return (
@@ -103,32 +103,32 @@ function QRPanel({ onClose, profileId, name }: { onClose: () => void; profileId:
     </motion.div>
   );
 }
-
+ 
 export function StudentProfile() {
   const [tab, setTab] = useState<"perfil" | "habilidades" | "crecimiento">("perfil");
   const [imgIdx, setImgIdx] = useState(0);
   const [editMode, setEditMode] = useState(false);
   const [showQR, setShowQR] = useState(false);
-
+ 
   // Data del backend
   const [perfil, setPerfil] = useState<PerfilEstudiante | null>(null);
   const [habilidades, setHabilidades] = useState<Habilidad[]>([]);
   const [evidencias, setEvidencias] = useState<Evidencia[]>([]);
   const [disponibilidades, setDisponibilidades] = useState<Disponibilidad[]>([]);
   const [loading, setLoading] = useState(true);
-
+ 
   // Formulario nueva habilidad
   const [newSkill, setNewSkill] = useState({ nombre: "", nivel: "Bajo" });
   const [addingSkill, setAddingSkill] = useState(false);
   const [savingSkill, setSavingSkill] = useState(false);
-
+ 
   const userId = localStorage.getItem("user_id");
-
+ 
   useEffect(() => {
     if (!userId) return;
     loadData();
   }, [userId]);
-
+ 
   const loadData = async () => {
     setLoading(true);
     try {
@@ -151,12 +151,12 @@ export function StudentProfile() {
     } catch {}
     setLoading(false);
   };
-
+ 
   const handleSave = async () => {
     // En la versión actual el backend no expone campos editables desde el frontend
     setEditMode(false);
   };
-
+ 
   const handleAddSkill = async () => {
     if (!newSkill.nombre || !perfil) return;
     setSavingSkill(true);
@@ -174,14 +174,14 @@ export function StudentProfile() {
     } catch {}
     setSavingSkill(false);
   };
-
+ 
   const fullName = perfil ? `${perfil.usuario.first_name} ${perfil.usuario.last_name}` : "Estudiante";
   const tabs = [
     { id: "perfil", label: "Perfil" },
     { id: "habilidades", label: "Competencias" },
     { id: "crecimiento", label: "Crecimiento" },
   ] as const;
-
+ 
   if (loading) {
     return (
       <div className="min-h-screen bg-[#F9FAFB] flex items-center justify-center">
@@ -189,7 +189,7 @@ export function StudentProfile() {
       </div>
     );
   }
-
+ 
   if (!perfil) {
     return (
       <div className="min-h-screen bg-[#F9FAFB] flex items-center justify-center">
@@ -197,7 +197,7 @@ export function StudentProfile() {
       </div>
     );
   }
-
+ 
   return (
     <div className="min-h-screen bg-[#F9FAFB]">
       {/* Header */}
@@ -208,7 +208,7 @@ export function StudentProfile() {
             <CheckCircle className="w-3.5 h-3.5" style={{ color: "#D4AF37" }} />
             Perfil Institucional · Liceo Cardenal Caro
           </div>
-
+ 
           <div className="flex items-start gap-4 mb-5">
             <div className="relative flex-shrink-0">
               <div className="w-20 h-20 rounded-xl bg-slate-200 border border-slate-200 flex items-center justify-center">
@@ -218,7 +218,7 @@ export function StudentProfile() {
                 <CheckCircle className="w-3.5 h-3.5 text-white" />
               </div>
             </div>
-
+ 
             <div className="flex-1">
               <h1 className="text-slate-900" style={{ fontSize: "1.2rem", fontWeight: 700, lineHeight: 1.2 }}>{fullName}</h1>
               <p className="text-slate-600 text-sm mt-0.5" style={{ fontWeight: 500 }}>{perfil.especialidad}</p>
@@ -233,7 +233,7 @@ export function StudentProfile() {
                 </div>
               )}
             </div>
-
+ 
             <div className="flex flex-col gap-2 flex-shrink-0">
               <button onClick={() => { if (editMode) handleSave(); else setEditMode(true); }}
                 className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs transition-all border ${editMode ? "bg-slate-900 text-white border-slate-900" : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"}`}
@@ -247,7 +247,7 @@ export function StudentProfile() {
               </button>
             </div>
           </div>
-
+ 
           {/* Tabs */}
           <div className="flex border-b border-slate-200 -mx-4 px-4">
             {tabs.map((t) => (
@@ -260,7 +260,7 @@ export function StudentProfile() {
           </div>
         </div>
       </div>
-
+ 
       {/* Content */}
       <div className="max-w-2xl mx-auto px-4 py-5 space-y-4">
         {/* ── PERFIL ── */}
@@ -279,7 +279,7 @@ export function StudentProfile() {
                 )}
               </div>
             </div>
-
+ 
             {/* Evidencias */}
             {evidencias.length > 0 && (
               <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
@@ -311,7 +311,7 @@ export function StudentProfile() {
                 </div>
               </div>
             )}
-
+ 
             {evidencias.length === 0 && (
               <div className="bg-white rounded-xl border border-slate-200 p-5 text-center">
                 <p className="text-slate-400 text-sm">No hay evidencias publicadas aún.</p>
@@ -319,7 +319,7 @@ export function StudentProfile() {
             )}
           </motion.div>
         )}
-
+ 
         {/* ── HABILIDADES ── */}
         {tab === "habilidades" && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
@@ -327,7 +327,7 @@ export function StudentProfile() {
               <Shield className="w-4 h-4 text-slate-500 flex-shrink-0" />
               <p className="text-slate-600 text-xs">Niveles certificados por docentes del Liceo.</p>
             </div>
-
+ 
             <div className="bg-white rounded-xl border border-slate-200 p-5">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-2">
@@ -335,7 +335,7 @@ export function StudentProfile() {
                   <h3 className="text-slate-900" style={{ fontSize: "0.875rem", fontWeight: 600 }}>Habilidades</h3>
                 </div>
               </div>
-
+ 
               {habilidades.length === 0 ? (
                 <p className="text-slate-400 text-sm text-center py-4">No has registrado habilidades aún.</p>
               ) : (
@@ -357,7 +357,7 @@ export function StudentProfile() {
                   ))}
                 </div>
               )}
-
+ 
               {/* Agregar habilidad */}
               {editMode && (
                 <div className="mt-4">
@@ -400,7 +400,7 @@ export function StudentProfile() {
             </div>
           </motion.div>
         )}
-
+ 
         {/* ── CRECIMIENTO ── */}
         {tab === "crecimiento" && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
@@ -430,7 +430,7 @@ export function StudentProfile() {
                 </div>
               </div>
             </div>
-
+ 
             <div className="bg-white rounded-xl border border-slate-200 p-5">
               <div className="flex items-center gap-2 mb-3">
                 <Medal className="w-4 h-4 text-slate-500" />
@@ -452,7 +452,7 @@ export function StudentProfile() {
           </motion.div>
         )}
       </div>
-
+ 
       {showQR && <QRPanel onClose={() => setShowQR(false)} profileId={perfil.id} name={fullName} />}
     </div>
   );

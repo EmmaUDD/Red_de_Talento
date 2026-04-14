@@ -5,7 +5,7 @@ import {
   Eye, Heart, TrendingUp, Filter, RefreshCw, Zap, Users, Briefcase,
 } from "lucide-react";
 import { apiRequest } from "../../../api/client";
-
+ 
 interface Candidato {
   id: number;
   usuario: { id: number; first_name: string; last_name: string; is_active: boolean };
@@ -15,27 +15,27 @@ interface Candidato {
   habilidades_set?: { nombre: string; nivel: string; estado: string }[];
   score?: number;
 }
-
+ 
 interface Oferta {
   id: number;
   titulo: string;
   especialidad_requerida: string;
 }
-
+ 
 const availabilityLabels: Record<string, string> = {
   part_time: "Part-time",
   full_time: "Full-time",
   fines_de_semana: "Fines de semana",
   practicas: "Prácticas",
 };
-
+ 
 function MatchCircle({ score }: { score: number }) {
   const color = score >= 90 ? "#10b981" : score >= 75 ? "#f59e0b" : "#94a3b8";
   const stroke = score >= 90 ? "text-green-500" : score >= 75 ? "text-amber-500" : "text-slate-400";
   const radius = 20;
   const circ = 2 * Math.PI * radius;
   const offset = circ - (score / 100) * circ;
-
+ 
   return (
     <div className="relative w-14 h-14 flex-shrink-0">
       <svg className="w-full h-full -rotate-90" viewBox="0 0 48 48">
@@ -49,7 +49,7 @@ function MatchCircle({ score }: { score: number }) {
     </div>
   );
 }
-
+ 
 export function CompanyRecomendaciones() {
   const [saved, setSaved] = useState<number[]>([]);
   const [candidatos, setCandidatos] = useState<Candidato[]>([]);
@@ -57,9 +57,9 @@ export function CompanyRecomendaciones() {
   const [selectedOferta, setSelectedOferta] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-
+ 
   const toggle = (id: number) => setSaved((p) => p.includes(id) ? p.filter((x) => x !== id) : [...p, id]);
-
+ 
   useEffect(() => {
     // Cargar las ofertas de esta empresa
     apiRequest("/api/ofertas/")
@@ -72,12 +72,12 @@ export function CompanyRecomendaciones() {
       })
       .catch(() => {});
   }, []);
-
+ 
   useEffect(() => {
     if (!selectedOferta) return;
     loadRecomendaciones();
   }, [selectedOferta]);
-
+ 
   const loadRecomendaciones = async () => {
     if (!selectedOferta) return;
     setLoading(true);
@@ -90,15 +90,15 @@ export function CompanyRecomendaciones() {
     } catch {}
     setLoading(false);
   };
-
+ 
   const handleRefresh = async () => {
     setRefreshing(true);
     await loadRecomendaciones();
     setRefreshing(false);
   };
-
+ 
   const ofertaActual = ofertas.find((o) => o.id === selectedOferta);
-
+ 
   return (
     <div className="min-h-screen bg-[#F9FAFB]">
       <div className="bg-white border-b border-slate-200 px-6 py-5">
@@ -118,9 +118,9 @@ export function CompanyRecomendaciones() {
           </button>
         </div>
       </div>
-
+ 
       <div className="max-w-4xl mx-auto px-4 md:px-6 py-5 space-y-4">
-
+ 
         {/* Selector de oferta */}
         {ofertas.length > 0 ? (
           <div className="bg-white rounded-xl border border-slate-200 p-4">
@@ -142,7 +142,7 @@ export function CompanyRecomendaciones() {
             <p className="text-slate-400 text-xs mt-1">Publica una oferta para ver candidatos recomendados.</p>
           </div>
         )}
-
+ 
         {/* Summary */}
         {candidatos.length > 0 && (
           <div className="flex items-center gap-3 bg-white rounded-xl border border-slate-200 p-4">
@@ -156,7 +156,7 @@ export function CompanyRecomendaciones() {
             </p>
           </div>
         )}
-
+ 
         {/* Candidates */}
         {loading ? (
           <div className="text-center py-10 text-slate-400 text-sm">Calculando recomendaciones...</div>
@@ -170,15 +170,15 @@ export function CompanyRecomendaciones() {
                 width: `${score}%`,
                 backgroundColor: score >= 90 ? "#10b981" : score >= 75 ? "#D4AF37" : "#94a3b8",
               }} />
-
+ 
               <div className="p-5">
                 <div className="flex items-start gap-4">
                   <MatchCircle score={score} />
-
+ 
                   <div className="w-12 h-12 rounded-xl bg-slate-100 flex items-center justify-center flex-shrink-0">
                     <Users className="w-6 h-6 text-slate-400" />
                   </div>
-
+ 
                   <div className="flex-1">
                     <div className="flex items-start justify-between gap-2">
                       <div>
@@ -203,7 +203,7 @@ export function CompanyRecomendaciones() {
                     </div>
                   </div>
                 </div>
-
+ 
                 {/* Razones de coincidencia */}
                 <div className="mt-4 bg-slate-50 rounded-xl p-3">
                   <p className="text-slate-600 text-xs mb-2" style={{ fontWeight: 600 }}>¿Por qué te recomendamos este perfil?</p>
@@ -228,7 +228,7 @@ export function CompanyRecomendaciones() {
                     )}
                   </ul>
                 </div>
-
+ 
                 {/* Habilidades */}
                 {habAprobadas.length > 0 && (
                   <div className="mt-3 flex flex-wrap gap-1.5">
@@ -239,7 +239,7 @@ export function CompanyRecomendaciones() {
                     ))}
                   </div>
                 )}
-
+ 
                 <div className="mt-3 flex gap-2">
                   <button className="flex-1 py-2 rounded-lg bg-slate-900 hover:bg-slate-700 text-white text-xs flex items-center justify-center gap-1.5 transition-colors" style={{ fontWeight: 600 }}>
                     <Eye className="w-3.5 h-3.5" /> Ver perfil
@@ -253,7 +253,7 @@ export function CompanyRecomendaciones() {
             </motion.div>
           );
         })}
-
+ 
         {!loading && selectedOferta && candidatos.length === 0 && (
           <div className="text-center py-12">
             <Users className="w-10 h-10 text-slate-200 mx-auto mb-3" />

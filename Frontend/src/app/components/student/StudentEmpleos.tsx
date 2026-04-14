@@ -5,7 +5,7 @@ import {
   Search, MapPin, Clock, Briefcase, CheckCircle, Bookmark,
   Send, X, Star, Building2,
 } from "lucide-react";
-
+ 
 interface Oferta {
   id: number;
   titulo: string;
@@ -20,7 +20,7 @@ interface Oferta {
   empresa: number;
   empresa_nombre?: string;
 }
-
+ 
 function timeAgo(dateStr: string): string {
   const diff = Date.now() - new Date(dateStr).getTime();
   const days = Math.floor(diff / 86400000);
@@ -28,12 +28,12 @@ function timeAgo(dateStr: string): string {
   if (days === 1) return "hace 1 día";
   return `hace ${days} días`;
 }
-
+ 
 function JobDetailModal({ job, onClose }: { job: Oferta; onClose: () => void }) {
   const [applied, setApplied] = useState(false);
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState("");
-
+ 
   const handleApply = async () => {
     setLoading(true);
     try {
@@ -53,7 +53,7 @@ function JobDetailModal({ job, onClose }: { job: Oferta; onClose: () => void }) 
       setLoading(false);
     }
   };
-
+ 
   return (
     <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-end md:items-center justify-center p-0 md:p-4">
       <motion.div
@@ -92,7 +92,7 @@ function JobDetailModal({ job, onClose }: { job: Oferta; onClose: () => void }) 
             )}
           </div>
         </div>
-
+ 
         <div className="p-5 space-y-4">
           <div>
             <h4 className="text-slate-800 mb-2" style={{ fontSize: "0.9rem", fontWeight: 600 }}>Descripción</h4>
@@ -108,7 +108,7 @@ function JobDetailModal({ job, onClose }: { job: Oferta; onClose: () => void }) 
               <p className="text-slate-600 text-sm">{job.disponibilidad_requerida}</p>
             </div>
           )}
-
+ 
           {!applied && (
             <div>
               <label className="block text-slate-700 text-sm mb-1.5" style={{ fontWeight: 500 }}>
@@ -123,7 +123,7 @@ function JobDetailModal({ job, onClose }: { job: Oferta; onClose: () => void }) 
               />
             </div>
           )}
-
+ 
           <div className="flex gap-3">
             {applied ? (
               <div className="flex-1 bg-green-100 text-green-700 py-3.5 rounded-2xl text-sm text-center" style={{ fontWeight: 600 }}>
@@ -149,9 +149,9 @@ function JobDetailModal({ job, onClose }: { job: Oferta; onClose: () => void }) 
     </div>
   );
 }
-
+ 
 const tipos = ["Todos", "online", "presencial", "semi_presencial"];
-
+ 
 export function StudentEmpleos() {
   const [query, setQuery] = useState("");
   const [selectedType, setSelectedType] = useState("Todos");
@@ -159,7 +159,7 @@ export function StudentEmpleos() {
   const [activeJob, setActiveJob] = useState<Oferta | null>(null);
   const [ofertas, setOfertas] = useState<Oferta[]>([]);
   const [loading, setLoading] = useState(true);
-
+ 
   useEffect(() => {
     apiRequest("/api/ofertas/")
       .then((r) => r.json())
@@ -167,14 +167,14 @@ export function StudentEmpleos() {
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
-
+ 
   const filtered = ofertas.filter((j) => {
     const q = query.toLowerCase();
     const matchQ = !q || j.titulo.toLowerCase().includes(q) || j.especialidad_requerida.toLowerCase().includes(q) || (j.ubicacion ?? "").toLowerCase().includes(q);
     const matchType = selectedType === "Todos" || j.modalidad === selectedType;
     return matchQ && matchType;
   });
-
+ 
   return (
     <div className="min-h-screen bg-[#F9FAFB]">
       <div className="bg-white border-b border-slate-200 px-6 py-5">
@@ -193,7 +193,7 @@ export function StudentEmpleos() {
           </div>
         </div>
       </div>
-
+ 
       <div className="max-w-2xl mx-auto px-4 py-5 space-y-4">
         {/* Filters */}
         <div className="flex gap-2 overflow-x-auto pb-1">
@@ -205,11 +205,11 @@ export function StudentEmpleos() {
             </button>
           ))}
         </div>
-
+ 
         <p className="text-slate-500 text-sm">
           <span className="text-slate-900" style={{ fontWeight: 600 }}>{filtered.length}</span> ofertas disponibles
         </p>
-
+ 
         {loading ? (
           <div className="text-center py-10 text-slate-400 text-sm">Cargando ofertas...</div>
         ) : (
@@ -233,7 +233,7 @@ export function StudentEmpleos() {
                         <Bookmark className="w-4 h-4" fill={saved.includes(job.id) ? "currentColor" : "none"} />
                       </button>
                     </div>
-
+ 
                     <div className="flex flex-wrap gap-1.5 mt-2">
                       <span className="flex items-center gap-1 text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full border border-slate-200" style={{ fontWeight: 600 }}>
                         <Briefcase className="w-3 h-3" /> {job.modalidad}
@@ -247,11 +247,11 @@ export function StudentEmpleos() {
                         <Clock className="w-3 h-3 inline mr-0.5" /> {timeAgo(job.fecha_publicacion)}
                       </span>
                     </div>
-
+ 
                     <p className="text-slate-500 text-xs mt-2 line-clamp-2 leading-relaxed">{job.descripcion}</p>
                   </div>
                 </div>
-
+ 
                 <div className="mt-3 flex items-center justify-between">
                   <div className="flex items-center gap-1.5 text-xs text-slate-500">
                     <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
@@ -261,7 +261,7 @@ export function StudentEmpleos() {
                 </div>
               </motion.div>
             ))}
-
+ 
             {filtered.length === 0 && !loading && (
               <div className="text-center py-16">
                 <Briefcase className="w-10 h-10 text-slate-200 mx-auto mb-3" />
@@ -272,7 +272,7 @@ export function StudentEmpleos() {
           </div>
         )}
       </div>
-
+ 
       {activeJob && (
         <JobDetailModal job={activeJob} onClose={() => setActiveJob(null)} />
       )}

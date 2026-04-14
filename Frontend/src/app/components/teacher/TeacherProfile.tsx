@@ -8,14 +8,14 @@ import {
 } from "lucide-react";
 import { useUser } from "../../context/UserContext";
 import { apiRequest } from "../../../api/client";
-
+ 
 interface PerfilDocente {
   id: number;
   usuario: { id: number; first_name: string; last_name: string; email: string };
   departamento: string;
   bio: string | null;
 }
-
+ 
 export function TeacherProfile() {
   const { user } = useUser();
   const isOwn = user?.role === "teacher";
@@ -26,9 +26,9 @@ export function TeacherProfile() {
   const [saving, setSaving] = useState(false);
   const [posts, setPosts] = useState<any[]>([]);
   const [likedPosts, setLikedPosts] = useState<number[]>([]);
-
+ 
   const userId = localStorage.getItem("user_id");
-
+ 
   useEffect(() => {
     if (!userId) return;
     // Intentar cargar el perfil del docente actual
@@ -41,7 +41,7 @@ export function TeacherProfile() {
         }
       })
       .catch(() => {});
-
+ 
     // Cargar publicaciones del feed
     apiRequest("/api/feed/")
       .then(async (r) => {
@@ -53,7 +53,7 @@ export function TeacherProfile() {
       })
       .catch(() => {});
   }, [userId]);
-
+ 
   const handleSave = async () => {
     if (!perfil) return;
     setSaving(true);
@@ -70,18 +70,18 @@ export function TeacherProfile() {
     } catch {}
     setSaving(false);
   };
-
+ 
   const toggleLike = (id: number) => {
     setLikedPosts((p) => p.includes(id) ? p.filter((x) => x !== id) : [...p, id]);
   };
-
+ 
   function timeAgo(dateStr: string) {
     const diff = Date.now() - new Date(dateStr).getTime();
     const hrs = Math.floor(diff / 3600000);
     if (hrs < 24) return `hace ${hrs}h`;
     return `hace ${Math.floor(hrs / 24)} días`;
   }
-
+ 
   return (
     <div className="min-h-screen bg-[#F9FAFB]">
       <div className="bg-white border-b border-slate-200">
@@ -98,7 +98,7 @@ export function TeacherProfile() {
             <span className="text-slate-900 text-xs" style={{ fontWeight: 600 }}>Docente Verificado · Liceo Cardenal Caro</span>
           </div>
         </div>
-
+ 
         <div className="max-w-3xl mx-auto px-4 pb-0">
           <div className="flex items-end gap-4 -mt-10 mb-4 relative z-10">
             <div className="w-20 h-20 rounded-2xl bg-slate-200 border-4 border-white shadow-md flex items-center justify-center flex-shrink-0">
@@ -141,7 +141,7 @@ export function TeacherProfile() {
               </div>
             </div>
           </div>
-
+ 
           {/* Tabs */}
           <div className="flex border-b border-slate-200 -mx-4 px-4">
             {(["perfil", "publicaciones"] as const).map((t) => (
@@ -154,7 +154,7 @@ export function TeacherProfile() {
           </div>
         </div>
       </div>
-
+ 
       <div className="max-w-3xl mx-auto px-4 py-5 space-y-4">
         {tab === "perfil" && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
@@ -175,7 +175,7 @@ export function TeacherProfile() {
                 </p>
               )}
             </div>
-
+ 
             {/* Contact */}
             <div className="bg-white rounded-xl border border-slate-200 p-5">
               <h3 className="text-slate-900 mb-3" style={{ fontSize: "0.875rem", fontWeight: 700 }}>Contacto institucional</h3>
@@ -198,7 +198,7 @@ export function TeacherProfile() {
             </div>
           </motion.div>
         )}
-
+ 
         {tab === "publicaciones" && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
             {posts.length === 0 ? (

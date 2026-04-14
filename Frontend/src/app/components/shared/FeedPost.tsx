@@ -7,7 +7,7 @@ import {
 } from "lucide-react";
 import { ReportModal } from "./ReportModal";
 import { apiRequest } from "../../../api/client";
-
+ 
 export interface FeedPostData {
   id: number;
   type: "post" | "job" | "event" | "achievement";
@@ -29,13 +29,13 @@ export interface FeedPostData {
   liked?: boolean;
   saved?: boolean;
 }
-
+ 
 const roleConfig = {
   student: { label: "Estudiante", icon: GraduationCap, bg: "bg-blue-50", text: "text-blue-700" },
   teacher: { label: "Docente", icon: BookOpen, bg: "bg-green-50", text: "text-green-700" },
   company: { label: "Empresa", icon: Building2, bg: "bg-amber-50", text: "text-amber-700" },
 };
-
+ 
 export function FeedPostCard({
   post,
   canModerate = false,
@@ -52,15 +52,15 @@ export function FeedPostCard({
   const [saved, setSaved] = useState(post.saved ?? false);
   const [showOptions, setShowOptions] = useState(false);
   const [showReport, setShowReport] = useState(false);
-
+ 
   const currentUserId = Number(localStorage.getItem("user_id"));
   const isOwner = postAutorId !== undefined && postAutorId === currentUserId;
-
+ 
   const toggleLike = () => {
     setLiked((p) => !p);
     setLikeCount((p) => (liked ? p - 1 : p + 1));
   };
-
+ 
   const handleDelete = async () => {
     try {
       await apiRequest(`/api/feed/${post.id}/`, { method: "DELETE" });
@@ -70,10 +70,10 @@ export function FeedPostCard({
     }
     setShowOptions(false);
   };
-
+ 
   const roleCfg = roleConfig[post.author.role];
   const RoleIcon = roleCfg.icon;
-
+ 
   return (
     <>
       <div className="bg-white rounded-xl border border-slate-200 overflow-hidden hover:shadow-sm transition-shadow">
@@ -146,19 +146,19 @@ export function FeedPostCard({
             )}
           </div>
         </div>
-
+ 
         {/* Content */}
         <div className="px-4 pb-3">
           <p className="text-slate-700 text-sm leading-relaxed">{post.content}</p>
         </div>
-
+ 
         {/* Image */}
         {post.image && (
           <div className="mx-4 mb-3 rounded-lg overflow-hidden border border-slate-100">
             <img src={post.image} alt="post image" className="w-full h-52 object-cover" />
           </div>
         )}
-
+ 
         {/* Job card */}
         {post.type === "job" && post.jobDetails && (
           <div className="mx-4 mb-3 bg-slate-50 border border-slate-200 rounded-xl p-4">
@@ -180,7 +180,7 @@ export function FeedPostCard({
             </div>
           </div>
         )}
-
+ 
         {/* Event card */}
         {post.type === "event" && post.eventDetails && (
           <div className="mx-4 mb-3 border border-amber-200 rounded-xl p-4 bg-amber-50/50">
@@ -200,7 +200,7 @@ export function FeedPostCard({
             </div>
           </div>
         )}
-
+ 
         {/* Actions */}
         <div className="px-4 py-3 border-t border-slate-100 flex items-center justify-between">
           <div className="flex items-center gap-4">
@@ -227,7 +227,7 @@ export function FeedPostCard({
           </button>
         </div>
       </div>
-
+ 
       {showReport && (
         <ReportModal
           targetName={post.author.name}

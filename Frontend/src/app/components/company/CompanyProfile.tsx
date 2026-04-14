@@ -8,7 +8,7 @@ import {
 import { useUser } from "../../context/UserContext";
 import { ReportModal } from "../shared/ReportModal";
 import { apiRequest } from "../../../api/client";
-
+ 
 interface PerfilEmpresa {
   id: number;
   usuario: { id: number; first_name: string; last_name: string; email: string };
@@ -16,7 +16,7 @@ interface PerfilEmpresa {
   industria: string;
   rut: string | null;
 }
-
+ 
 interface Oferta {
   id: number;
   titulo: string;
@@ -28,7 +28,7 @@ interface Oferta {
   activa: boolean;
   fecha_publicacion: string;
 }
-
+ 
 interface PostFeed {
   id: number;
   contenido: string;
@@ -36,14 +36,14 @@ interface PostFeed {
   fecha: string;
   autor: number;
 }
-
+ 
 function timeAgo(dateStr: string) {
   const diff = Date.now() - new Date(dateStr).getTime();
   const hrs = Math.floor(diff / 3600000);
   if (hrs < 24) return `hace ${hrs}h`;
   return `hace ${Math.floor(hrs / 24)} días`;
 }
-
+ 
 export function CompanyProfile() {
   const { user } = useUser();
   const isOwn = user?.role === "company";
@@ -57,14 +57,14 @@ export function CompanyProfile() {
   const [saving, setSaving] = useState(false);
   const [showReport, setShowReport] = useState(false);
   const [likedPosts, setLikedPosts] = useState<number[]>([]);
-
+ 
   const userId = localStorage.getItem("user_id");
-
+ 
   useEffect(() => {
     if (!userId) return;
     loadData();
   }, [userId]);
-
+ 
   const loadData = async () => {
     setLoading(true);
     try {
@@ -73,7 +73,7 @@ export function CompanyProfile() {
         const data = await perfilRes.json();
         setPerfil(data);
         setIndustria(data.industria);
-
+ 
         // Cargar ofertas y publicaciones en paralelo
         const [ofertasRes, feedRes] = await Promise.all([
           apiRequest("/api/ofertas/"),
@@ -88,7 +88,7 @@ export function CompanyProfile() {
     } catch {}
     setLoading(false);
   };
-
+ 
   const handleSave = async () => {
     if (!perfil) return;
     setSaving(true);
@@ -105,11 +105,11 @@ export function CompanyProfile() {
     } catch {}
     setSaving(false);
   };
-
+ 
   const toggleLike = (id: number) => {
     setLikedPosts((p) => p.includes(id) ? p.filter((x) => x !== id) : [...p, id]);
   };
-
+ 
   if (loading) {
     return (
       <div className="min-h-screen bg-[#F9FAFB] flex items-center justify-center">
@@ -117,7 +117,7 @@ export function CompanyProfile() {
       </div>
     );
   }
-
+ 
   if (!perfil) {
     return (
       <div className="min-h-screen bg-[#F9FAFB] flex items-center justify-center">
@@ -125,9 +125,9 @@ export function CompanyProfile() {
       </div>
     );
   }
-
+ 
   const activeJobs = ofertas.filter((o) => o.activa);
-
+ 
   return (
     <>
       <div className="min-h-screen bg-[#F9FAFB]">
@@ -152,7 +152,7 @@ export function CompanyProfile() {
               </button>
             )}
           </div>
-
+ 
           <div className="max-w-3xl mx-auto px-4 pb-0">
             <div className="flex items-end gap-4 -mt-10 mb-4 relative z-10">
               <div className="w-20 h-20 rounded-2xl bg-slate-200 border-4 border-white shadow-md flex items-center justify-center flex-shrink-0">
@@ -201,7 +201,7 @@ export function CompanyProfile() {
                 </div>
               </div>
             </div>
-
+ 
             {/* Stats */}
             <div className="grid grid-cols-3 gap-2 mb-4">
               {[
@@ -215,7 +215,7 @@ export function CompanyProfile() {
                 </div>
               ))}
             </div>
-
+ 
             {/* Tabs */}
             <div className="flex border-b border-slate-200 -mx-4 px-4">
               {(["perfil", "empleos", "publicaciones"] as const).map((t) => (
@@ -228,7 +228,7 @@ export function CompanyProfile() {
             </div>
           </div>
         </div>
-
+ 
         <div className="max-w-3xl mx-auto px-4 py-5 space-y-4">
           {/* ── PERFIL TAB ── */}
           {tab === "perfil" && (
@@ -258,7 +258,7 @@ export function CompanyProfile() {
                   )}
                 </div>
               </div>
-
+ 
               <div className="rounded-xl p-5 flex items-center gap-4" style={{ backgroundColor: "#FFFBF0", border: "2px solid #D4AF37" }}>
                 <div className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0" style={{ backgroundColor: "#D4AF37" }}>
                   <Shield className="w-6 h-6 text-white" />
@@ -275,7 +275,7 @@ export function CompanyProfile() {
               </div>
             </motion.div>
           )}
-
+ 
           {/* ── EMPLEOS TAB ── */}
           {tab === "empleos" && (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-3">
@@ -319,7 +319,7 @@ export function CompanyProfile() {
               ))}
             </motion.div>
           )}
-
+ 
           {/* ── PUBLICACIONES TAB ── */}
           {tab === "publicaciones" && (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
@@ -358,7 +358,7 @@ export function CompanyProfile() {
           )}
         </div>
       </div>
-
+ 
       {showReport && (
         <ReportModal targetName={perfil.nombre_empresa} targetType="empresa" onClose={() => setShowReport(false)} />
       )}
