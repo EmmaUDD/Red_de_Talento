@@ -57,7 +57,7 @@ class TokenRole(TokenObtainPairSerializer):
 class UsuarioSerializer(serializers.ModelSerializer):
     class Meta:
         model = Usuario
-        fields = ['id', 'first_name', 'last_name', 'email', 'foto_perfil']
+        fields = ['id', 'first_name', 'last_name', 'email', 'foto_perfil', 'is_active']
 
 class HabilidadSerializer(serializers.ModelSerializer):
     class Meta:
@@ -134,7 +134,7 @@ class PostComentarioSerializer(serializers.ModelSerializer):
     class Meta:
         model = PostComentario
         fields = ['id', 'usuario', 'publicacion', 'contenido', 'fecha', 'autor_nombre', 'autor_foto']
-        read_only_fields = ['usuario', 'fecha']
+        read_only_fields = ['usuario', 'fecha', 'publicacion']
 
     def get_autor_nombre(self, obj):
         if obj.usuario.role == 'empresa' and hasattr(obj.usuario, 'perfil_empresa'):
@@ -213,6 +213,7 @@ class PerfilEstudianteSerializer(serializers.ModelSerializer):
     foto_perfil = serializers.ImageField(write_only=True, required=False)
     habilidades_aprobadas = serializers.SerializerMethodField()
     disponibilidad_perfil = serializers.SerializerMethodField()
+    activo = serializers.SerializerMethodField()
     class Meta:
         model = PerfilEstudiante
         fields = '__all__'
@@ -247,6 +248,8 @@ class PerfilEstudianteSerializer(serializers.ModelSerializer):
     def get_disponibilidad_perfil(self, obj):
         disponibilidad = obj.disponibilidad.all()
         return DisponibilidadSerializer(disponibilidad, many=True).data
+    def get_activo(self, obj):
+        return obj.usuario.is_active
 
 
 # Serializer para docente
@@ -274,9 +277,13 @@ class PerfilDocenteSerializer(serializers.ModelSerializer):
     last_name = serializers.CharField(write_only=True, required=False)
     email = serializers.EmailField(write_only=True, required=False)
     foto_perfil = serializers.ImageField(write_only=True, required=False)
+    activo = serializers.SerializerMethodField()
     class Meta:
         model = PerfilDocente
         fields = '__all__'
+
+    def get_activo(self, obj):
+        return obj.usuario.is_active
 
     def update(self, instance, validated_data):
         first_name = validated_data.pop('first_name', None)

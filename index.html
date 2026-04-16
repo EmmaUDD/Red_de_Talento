@@ -1167,6 +1167,7 @@
       subirEvidencia: (d, t) => api.req('POST', '/evidencias/', d, t, true),
       getEstudiantesList: (params, t) => api.req('GET', `/estudiantes/${params || ''}`, null, t),
       activarEstudiante: (id, t) => api.req('PATCH', `/estudiantes/${id}/activar/`, {}, t),
+      activarDocente: (id, t) => api.req('PATCH', `/docentes/${id}/activar/`, {}, t),
       getEmpresas: (params, t) => api.req('GET', `/empresas/${params || ''}`, null, t),
       getEstadisticas: (t) => api.req('GET', '/estadisticas/', null, t),
       getDisponibilidad: (t) => api.req('GET', '/disponibilidad/', null, t),
@@ -1175,7 +1176,7 @@
       getReportes: (t) => api.req('GET', '/reporte/', null, t),
       createReporte: (d, t) => api.req('POST', '/reporte/', d, t),
       updateReporte: (id, d, t) => api.req('PATCH', `/reporte/${id}/`, d, t),
-      getQR: (studentId, t) => `${BASE}/perfil/estudiante/${studentId}/qr/`,
+      getQR: (studentId, t) => `${BASE}/perfil/estudiante/${studentId}/qr/?url=${encodeURIComponent(window.location.origin + '/#/perfil/estudiante/' + studentId)}`,
       likePost: (id, t) => api.req('POST', `/feed/${id}/like/`, {}, t),
       getComments: (id, t) => api.req('GET', `/feed/${id}/comentarios/`, null, t),
       addComment: (id, d, t) => api.req('POST', `/feed/${id}/comentarios/`, d, t),
@@ -1458,11 +1459,23 @@
       if (done) return (
         <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg)' }}>
           <div className="card card-p fade-in" style={{ maxWidth: 380, textAlign: 'center', padding: 40 }}>
-            <div style={{ width: 56, height: 56, background: '#D1FAE5', borderRadius: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
-              <Icon name="CheckCircle" size={28} color="#16A34A" />
+            <div style={{ width: 56, height: 56, background: role === 'empresa' ? '#D1FAE5' : '#FFFBEB', borderRadius: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+              <Icon name={role === 'empresa' ? 'CheckCircle' : 'Clock'} size={28} color={role === 'empresa' ? '#16A34A' : '#D97706'} />
             </div>
-            <h2 style={{ fontWeight: 800, marginBottom: 8 }}>Solicitud enviada</h2>
-            <p style={{ color: 'var(--slate-500)', fontSize: '.85rem', marginBottom: 24 }}>Tu solicitud fue enviada. Recibirás un correo cuando sea aprobada por el Liceo Cardenal Caro.</p>
+            <h2 style={{ fontWeight: 800, marginBottom: 8 }}>
+              {role === 'empresa' ? 'Empresa registrada' : 'Solicitud enviada'}
+            </h2>
+            <p style={{ color: 'var(--slate-500)', fontSize: '.85rem', marginBottom: 24 }}>
+              {role === 'empresa'
+                ? 'Tu cuenta de empresa ha sido creada. Ya puedes iniciar sesión y publicar ofertas.'
+                : 'Tu solicitud fue enviada. Un docente del Liceo Cardenal Caro debe verificar y activar tu cuenta antes de que puedas iniciar sesión.'}
+            </p>
+            {role !== 'empresa' && (
+              <div style={{ background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: 10, padding: '10px 14px', marginBottom: 16, fontSize: '.82rem', color: '#92400E', display: 'flex', alignItems: 'center', gap: 8 }}>
+                <Icon name="Info" size={14} />
+                Tu cuenta estará disponible una vez que un docente la apruebe.
+              </div>
+            )}
             <button className="btn btn-primary w-full" onClick={() => navigate('/login')}>Volver al inicio</button>
           </div>
         </div>
@@ -1479,7 +1492,7 @@
                 <h2 style={{ fontWeight: 800, marginBottom: 4 }}>Crear cuenta</h2>
                 <p style={{ color: 'var(--slate-500)', fontSize: '.85rem', marginBottom: 20 }}>¿Cómo te registras?</p>
                 {roles.map(r => (
-                  <div key={r.id} onClick={() => setRole(r.id)} style={{ border: `2px solid ${role === r.id ? 'var(--navy)' : 'var(--slate-200)'}`, borderRadius: 12, padding: '14px 16px', marginBottom: 10, cursor: 'pointer', background: role === r.id ? 'var(--slate-100)' : 'white', transition: 'all .15s' }}>
+                  <div key={r.id} onClick={() => setRole(r.id)} style={{ border: `2px solid ${role === r.id ? 'var(--navy)' : 'var(--border-color)'}`, borderRadius: 12, padding: '14px 16px', marginBottom: 10, cursor: 'pointer', background: role === r.id ? 'var(--slate-100)' : 'var(--surface)', transition: 'all .15s' }}>
                     <p style={{ fontWeight: 700, fontSize: '.9rem' }}>{r.label}</p>
                     <p style={{ fontSize: '.78rem', color: 'var(--slate-500)', marginTop: 2 }}>{r.desc}</p>
                   </div>
@@ -1717,7 +1730,7 @@
               {/* Posts */}
               {loading ? <div style={{ display: 'flex', justifyContent: 'center', padding: 40 }}><Spinner /></div> :
                 posts.length === 0 ? <EmptyState title="Sin publicaciones aún" sub="Sé el primero en publicar algo" icon="Send" /> :
-                  posts.map(post => <PostCard key={post.id} post={post} onDelete={handleDelete} currentRole={role} />)}
+                  posts.map(post => <PostCard key={post.id} post={post} onDelete={handleDelete} currentRole={role} token={token} />)}
             </div>
 
             {/* Sidebar */}
@@ -1731,8 +1744,8 @@
       );
     }
 
-    function PostCard({ post, onDelete, currentRole }) {
-      const { token, addToast } = useAuth();
+    function PostCard({ post, onDelete, currentRole, token }) {
+      const { addToast } = useAuth();
       const author = post.autor_nombre || post.autor?.username || 'Usuario';
       const authorRole = post.autor_role || post.autor?.role || '';
 
@@ -1740,15 +1753,16 @@
       const [likesCount, setLikesCount] = useState(post.likes_count || 0);
       const [showComments, setShowComments] = useState(false);
       const [comments, setComments] = useState([]);
+      const [commentCount, setCommentCount] = useState(post.comentarios_count || 0);
       const [newComment, setNewComment] = useState('');
       const [loadingComments, setLoadingComments] = useState(false);
       const [submittingComment, setSubmittingComment] = useState(false);
 
       const handleLike = async () => {
         const prevLiked = liked;
-        const prevCount = likesCount;
+        const prevCount = likesCount || 0;
         setLiked(!prevLiked);
-        setLikesCount(prevLiked ? prevCount - 1 : prevCount + 1);
+        setLikesCount(!prevLiked ? prevCount + 1 : prevCount - 1);
 
         try {
           const res = await api.likePost(post.id, token);
@@ -1788,6 +1802,7 @@
         try {
           const res = await api.addComment(post.id, { contenido: newComment }, token);
           setComments(prev => [...prev, res]);
+          setCommentCount(prev => prev + 1);
           setNewComment('');
         } catch {
           addToast('Error al publicar comentario', 'error');
@@ -1826,18 +1841,18 @@
             <button
               className="btn btn-ghost"
               onClick={handleLike}
-              style={{ gap: 5, color: liked ? 'var(--blue-600)' : 'var(--slate-500)', fontSize: '.78rem', padding: '4px 0' }}
+              style={{ gap: 5, color: liked ? '#2563EB' : 'var(--slate-500)', fontSize: '.78rem', padding: '4px 0' }}
             >
-              <Icon name="ThumbsUp" size={14} color={liked ? 'var(--blue-600)' : 'var(--slate-500)'} />
+              <Icon name="ThumbsUp" size={14} color={liked ? '#2563EB' : 'var(--slate-500)'} />
               {likesCount > 0 ? likesCount : ''} Me gusta
             </button>
             <button
               className="btn btn-ghost"
               onClick={toggleComments}
-              style={{ gap: 5, color: showComments ? 'var(--blue-600)' : 'var(--slate-500)', fontSize: '.78rem', padding: '4px 0' }}
+              style={{ gap: 5, color: showComments ? '#2563EB' : 'var(--slate-500)', fontSize: '.78rem', padding: '4px 0' }}
             >
               <Icon name="MessageSquare" size={14} />
-              {post.comentarios_count > 0 || comments.length > 0 ? (comments.length || post.comentarios_count) : ''} Comentar
+              {commentCount > 0 ? commentCount : ''} Comentar
             </button>
           </div>
 
@@ -1958,7 +1973,7 @@
     }
 
     // ─── Student Profile ──────────────────────────────────────────────────────
-    function StudentProfilePage({ token, userId }) {
+    function StudentProfilePage({ token, userId, isPublic }) {
       const { updateAuth, addToast } = useAuth();
       const [profile, setProfile] = useState(null);
       const [loading, setLoading] = useState(true);
@@ -2037,14 +2052,16 @@
                   <p style={{ color: 'rgba(255,255,255,.4)', fontSize: '.78rem', marginTop: 2 }}>{profile.user?.email}</p>
                 </div>
               </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10, alignItems: 'center' }}>
-                <button className="btn btn-gold btn-sm" onClick={() => setEditing(!editing)} style={{ width: '100%', justifyContent: 'center' }}>
-                  <Icon name="Edit" size={13} /> {editing ? 'Cancelar Edición' : 'Editar Perfil'}
-                </button>
-                <button className="btn btn-outline btn-sm" onClick={() => setQrModal(true)} style={{ color: 'white', borderColor: 'rgba(255,255,255,0.4)', width: '100%', justifyContent: 'center' }}>
-                  <Icon name="QrCode" size={13} /> Código QR
-                </button>
-              </div>
+              {!isPublic && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10, alignItems: 'center' }}>
+                  <button className="btn btn-gold btn-sm" onClick={() => setEditing(!editing)} style={{ width: '100%', justifyContent: 'center' }}>
+                    <Icon name="Edit" size={13} /> {editing ? 'Cancelar Edición' : 'Editar Perfil'}
+                  </button>
+                  <button className="btn btn-outline btn-sm" onClick={() => setQrModal(true)} style={{ color: 'white', borderColor: 'rgba(255,255,255,0.4)', width: '100%', justifyContent: 'center' }}>
+                    <Icon name="QrCode" size={13} /> Código QR
+                  </button>
+                </div>
+              )}
             </div>
           </div>
 
@@ -2123,7 +2140,7 @@
 
               <div className="card card-p">
                 <p style={{ fontWeight: 700, marginBottom: 16 }}>Disponibilidad</p>
-                <DisponibilidadPanel token={token} studentId={userId} disponibilidad={profile.disponibilidad_perfil} />
+                <DisponibilidadPanel token={token} studentId={userId} disponibilidad={profile.disponibilidad_perfil} isPublic={isPublic} />
               </div>
 
               <div className="card card-p">
@@ -2164,7 +2181,12 @@
                     ))}
                 </div>
               </div>
-              <EvidenciaUpload token={token} studentId={userId} onUpload={e => setEvidencias(p => [e, ...p])} />
+              {!isPublic && (
+                <div className="card card-p" style={{ marginTop: 24, padding: 20 }}>
+                  <p style={{ fontWeight: 700, marginBottom: 12 }}>Añadir Evidencia</p>
+                  <EvidenciaUpload token={token} studentId={userId} onUpload={e => setEvidencias(prev => [e, ...prev])} />
+                </div>
+              )}
             </div>
           )}
 
@@ -2185,19 +2207,26 @@
                     ))}
                 </div>
               </div>
-              <div className="card card-p">
-                <p style={{ fontWeight: 700, marginBottom: 12 }}>Agregar competencia</p>
-                <div style={{ display: 'flex', gap: 10 }}>
-                  <input className="input" placeholder="Nombre de la competencia" value={newSkill.nombre} onChange={e => setNewSkill(s => ({ ...s, nombre: e.target.value }))} style={{ flex: 1 }} />
-                  <select className="input" value={newSkill.nivel} onChange={e => setNewSkill(s => ({ ...s, nivel: e.target.value }))} style={{ width: 120 }}>
-                    <option>Bajo</option><option>Medio</option><option>Alto</option>
-                  </select>
-                  <button className="btn btn-primary" onClick={handleAddSkill} disabled={addingSkill || !newSkill.nombre}>
-                    {addingSkill ? <Spinner size={14} /> : <Icon name="Plus" size={15} />}
-                  </button>
+              {!isPublic && (
+                <div className="card card-p fade-in">
+                  <p style={{ fontWeight: 700, marginBottom: 16 }}>Añadir Competencia</p>
+                  <div className="grid-2" style={{ alignItems: 'end', marginBottom: 16 }}>
+                    <div>
+                      <label className="label">Competencia</label>
+                      <input className="input" placeholder="Ej. Instalación eléctrica domiciliaria" value={newSkill.nombre} onChange={e => setNewSkill(s => ({ ...s, nombre: e.target.value }))} />
+                    </div>
+                    <div>
+                      <label className="label">Nivel de Dominio</label>
+                      <select className="input" value={newSkill.nivel} onChange={e => setNewSkill(s => ({ ...s, nivel: e.target.value }))}>
+                        <option value="Basico">Básico</option>
+                        <option value="Medio">Medio</option>
+                        <option value="Avanzado">Avanzado</option>
+                      </select>
+                    </div>
+                  </div>
+                  <button className="btn btn-primary" onClick={handleAddSkill} disabled={addingSkill || !newSkill.nombre}><Icon name="Plus" size={14} /> Añadir Competencia</button>
                 </div>
-                <p style={{ fontSize: '.75rem', color: 'var(--slate-400)', marginTop: 8 }}>Las competencias quedan pendientes hasta ser validadas por un docente.</p>
-              </div>
+              )}
             </div>
           )}
 
@@ -2270,7 +2299,7 @@
       );
     }
 
-    function DisponibilidadPanel({ token, disponibilidad }) {
+    function DisponibilidadPanel({ token, studentId, disponibilidad, isPublic }) {
       const { addToast } = useAuth();
       const [selections, setSelections] = useState(Array.isArray(disponibilidad) ? disponibilidad : []);
       const options = [{ value: 'full_time', label: 'Full-time' }, { value: 'part_time', label: 'Part-time' }, { value: 'practica', label: 'Práctica' }, { value: 'no_disponible', label: 'No disponible' }];
@@ -2310,6 +2339,24 @@
           addToast('Error al actualizar la visibilidad', 'error');
         }
       };
+
+      if (isPublic) {
+        return (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {selections.length === 0 ? <p style={{ fontSize: '.85rem', color: 'var(--slate-500)' }}>No especificada</p> :
+              selections.map(s => {
+                const opt = options.find(o => o.value === s.disponibilidad);
+                return (
+                  <div key={s.id} style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--text-main)', fontSize: '.85rem', fontWeight: 600 }}>
+                    <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--gold)' }} />
+                    {opt ? opt.label : s.disponibilidad}
+                  </div>
+                );
+              })
+            }
+          </div>
+        );
+      }
 
       return (
         <div>
@@ -2567,6 +2614,7 @@
       const { addToast } = useAuth();
       const [tab, setTab] = useState('estudiantes');
       const [estudiantes, setEstudiantes] = useState([]);
+      const [docentes, setDocentes] = useState([]);
       const [reportes, setReportes] = useState([]);
       const [loading, setLoading] = useState(true);
       const [selectedStudent, setSelectedStudent] = useState(null);
@@ -2576,11 +2624,13 @@
       useEffect(() => {
         const load = async () => {
           try {
-            const [e, r] = await Promise.all([
+            const [e, d, r] = await Promise.all([
               api.getEstudiantesList('', token),
+              api.req('GET', '/docentes/', null, token).catch(() => []),
               api.getReportes(token),
             ]);
             setEstudiantes(Array.isArray(e) ? e : e?.results || []);
+            setDocentes(Array.isArray(d) ? d : d?.results || []);
             setReportes(Array.isArray(r) ? r : r?.results || []);
           } catch (err) {
             addToast('Error al cargar datos', 'error');
@@ -2589,12 +2639,20 @@
         load();
       }, [token]);
 
-      const handleActivar = async (id) => {
+      const handleActivar = async (usuarioId, perfilId) => {
         try {
-          await api.activarEstudiante(id, token);
-          setEstudiantes(p => p.map(e => e.id === id ? { ...e, activo: true } : e));
+          await api.activarEstudiante(usuarioId, token);
+          setEstudiantes(p => p.map(e => e.id === perfilId ? { ...e, activo: true } : e));
           addToast('Estudiante activado exitosamente');
         } catch { addToast('Error al activar', 'error'); }
+      };
+
+      const handleActivarDocente = async (usuarioId, perfilId) => {
+        try {
+          await api.activarDocente(usuarioId, token);
+          setDocentes(p => p.map(d => d.id === perfilId ? { ...d, activo: true } : d));
+          addToast('Docente activado exitosamente');
+        } catch { addToast('Error al activar docente', 'error'); }
       };
 
       const handleReporte = async (id, estado) => {
@@ -2628,16 +2686,23 @@
 
       const pending = estudiantes.filter(e => !e.activo);
       const active = estudiantes.filter(e => e.activo);
+      const docentesPendientes = docentes.filter(d => !d.activo);
+      const docentesActivos = docentes.filter(d => d.activo);
+      const totalPendientes = pending.length + docentesPendientes.length;
 
       return (
         <div className="page fade-in">
           <h1 style={{ fontWeight: 800, fontSize: '1.4rem', marginBottom: 6 }}>Administración</h1>
-          <p style={{ color: 'var(--slate-500)', fontSize: '.85rem', marginBottom: 20 }}>Gestiona estudiantes, validaciones y reportes</p>
+          <p style={{ color: 'var(--slate-500)', fontSize: '.85rem', marginBottom: 20 }}>Gestiona estudiantes, docentes, validaciones y reportes</p>
 
           <div className="tabs" style={{ marginBottom: 20 }}>
-            {['estudiantes', 'reportes'].map(t => (
+            {['estudiantes', 'docentes', 'reportes'].map(t => (
               <div key={t} className={`tab${tab === t ? ' active' : ''}`} onClick={() => setTab(t)}>
-                {t === 'estudiantes' ? `Estudiantes ${pending.length > 0 ? `(${pending.length} pendientes)` : ''}` : 'Reportes'}
+                {t === 'estudiantes'
+                  ? `Estudiantes ${pending.length > 0 ? `(${pending.length} pendientes)` : ''}`
+                  : t === 'docentes'
+                    ? `Docentes ${docentesPendientes.length > 0 ? `(${docentesPendientes.length} pendientes)` : ''}`
+                    : 'Reportes'}
               </div>
             ))}
           </div>
@@ -2659,7 +2724,7 @@
                             <p style={{ fontSize: '.78rem', color: 'var(--slate-500)' }}>{e.especialidad} · {e.grado}</p>
                           </div>
                         </div>
-                        <button className="btn btn-success btn-sm" onClick={() => handleActivar(e.id)}>
+                        <button className="btn btn-success btn-sm" onClick={() => handleActivar(e.usuario, e.id)}>
                           <Icon name="UserCheck" size={13} /> Activar
                         </button>
                       </div>
@@ -2673,7 +2738,7 @@
                       <thead><tr><th>Nombre</th><th>Especialidad</th><th>Grado</th><th>Estado</th></tr></thead>
                       <tbody>
                         {active.map(e => (
-                          <tr key={e.id} onClick={() => handleViewStudent(e.usuario_id || e.id)} style={{ cursor: 'pointer' }}>
+                          <tr key={e.id} onClick={() => handleViewStudent({ id: e.usuario })} style={{ cursor: 'pointer' }}>
                             <td style={{ fontWeight: 600 }}>{`${e.user?.first_name || ''} ${e.user?.last_name || ''}`.trim() || e.user?.username || 'Estudiante'}</td>
                             <td>{e.especialidad || '—'}</td>
                             <td>{e.grado || '—'}</td>
@@ -2681,6 +2746,51 @@
                           </tr>
                         ))}
                         {active.length === 0 && <tr><td colSpan={4} style={{ textAlign: 'center', color: 'var(--slate-400)', padding: 32 }}>Sin estudiantes activos</td></tr>}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {tab === 'docentes' && (
+              <div>
+                {docentesPendientes.length > 0 && (
+                  <div style={{ marginBottom: 20 }}>
+                    <h3 style={{ fontWeight: 700, marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span className="badge badge-amber">Docentes pendientes de activación</span>
+                    </h3>
+                    {docentesPendientes.map(d => (
+                      <div key={d.id} className="card card-p" style={{ marginBottom: 10, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                          <Avatar src={d.user?.foto_perfil} role="docente" size={40} />
+                          <div>
+                            <p style={{ fontWeight: 700, fontSize: '.9rem' }}>{`${d.user?.first_name || ''} ${d.user?.last_name || ''}`.trim() || d.user?.username || 'Docente'}</p>
+                            <p style={{ fontSize: '.78rem', color: 'var(--slate-500)' }}>Departamento: {d.departamento || '—'}</p>
+                          </div>
+                        </div>
+                        <button className="btn btn-success btn-sm" onClick={() => handleActivarDocente(d.usuario, d.id)}>
+                          <Icon name="UserCheck" size={13} /> Activar
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <h3 style={{ fontWeight: 700, marginBottom: 12 }}>Todos los docentes ({docentesActivos.length})</h3>
+                <div className="card">
+                  <div className="table-wrap">
+                    <table>
+                      <thead><tr><th>Nombre</th><th>Departamento</th><th>Email</th><th>Estado</th></tr></thead>
+                      <tbody>
+                        {docentesActivos.map(d => (
+                          <tr key={d.id}>
+                            <td style={{ fontWeight: 600 }}>{`${d.user?.first_name || ''} ${d.user?.last_name || ''}`.trim() || d.user?.username || 'Docente'}</td>
+                            <td>{d.departamento || '—'}</td>
+                            <td>{d.user?.email || '—'}</td>
+                            <td><span className="badge badge-green"><Icon name="CheckCircle" size={11} color="#16A34A" /> Activo</span></td>
+                          </tr>
+                        ))}
+                        {docentesActivos.length === 0 && <tr><td colSpan={4} style={{ textAlign: 'center', color: 'var(--slate-400)', padding: 32 }}>Sin docentes activos</td></tr>}
                       </tbody>
                     </table>
                   </div>
@@ -3321,7 +3431,8 @@
 
       // Auth guard
       useEffect(() => {
-        if (!auth && route !== '/login' && route !== '/register') {
+        const isPublicProfile = route.startsWith('/perfil/estudiante/');
+        if (!auth && route !== '/login' && route !== '/register' && !isPublicProfile) {
           navigate('/login');
         }
         if (auth && (route === '/login' || route === '/register')) {
@@ -3349,7 +3460,12 @@
           case '/publicar': return <CompanyPublicarPage token={token} userId={userId} />;
           case '/buscar': return <CompanyBuscarPage token={token} />;
           case '/perfil-empresa': return <CompanyProfilePage token={token} userId={userId} />;
-          default: return <HomePage token={token} role={role} user={auth.user} />;
+          default:
+            if (route.startsWith('/perfil/estudiante/')) {
+              const targetId = route.split('/')[3];
+              return <StudentProfilePage token={token} userId={targetId} isPublic={String(targetId) !== String(userId)} />;
+            }
+            return <HomePage token={token} role={role} user={auth?.user} />;
         }
       };
 

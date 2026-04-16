@@ -44,6 +44,7 @@ from .serializers import (
 
 )
 
+from rest_framework.permissions import IsAuthenticated, AllowAny, IsAuthenticatedOrReadOnly
 from rest_framework_simplejwt.views import TokenObtainPairView
 
 from .models import (
@@ -73,6 +74,8 @@ from .models import (
     PostLike,
 
     PostComentario,
+
+    Notificacion,
 
 )
 
@@ -121,6 +124,18 @@ class ActivarEstudianteView(APIView):
 
 
 
+
+class ActivarDocenteView(APIView):
+    permission_classes = [IsAuthenticated, EsDocente]
+    def patch(self, request, id):
+        try:
+            usuario = Usuario.objects.get(id=id, role='docente')
+        except Usuario.DoesNotExist:
+            return Response({'error': 'Docente no encontrado'}, status=status.HTTP_404_NOT_FOUND)
+        
+        usuario.is_active = True
+        usuario.save()
+        return Response({'mensaje': 'Docente activado'}, status=status.HTTP_200_OK)
 
 class HabilidadesView(APIView):
 
@@ -226,7 +241,7 @@ class DisponibilidadView(APIView):
 
 class EvidenciasView(APIView):
 
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticatedOrReadOnly]
 
     def post(self, request):
 
@@ -568,6 +583,20 @@ class BusquedaEstudiantesView(APIView):
 
 
 
+class BusquedaDocentesView(APIView):
+
+    permission_classes = [IsAuthenticated, EsDocente]
+
+    def get(self, request):
+
+        docentes = PerfilDocente.objects.select_related('usuario').all()
+
+        serializer = PerfilDocenteSerializer(docentes, many=True)
+
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+
 class BusquedaEmpresasView(APIView):
 
     permission_classes = [IsAuthenticated]
@@ -669,8 +698,7 @@ class EstadisticasView(APIView):
                          "postulaciones_all" : total_postulaciones}, status=status.HTTP_200_OK)
 
 class QRView(APIView):
-
-    permission_classes = [IsAuthenticated]
+    # No permission classes needed, QR can be public
 
     def get(self, request, id):
 
@@ -682,7 +710,11 @@ class QRView(APIView):
 
             return Response({'error': 'Estudiante no registrado'}, status=status.HTTP_404_NOT_FOUND)
 
-        qr = qrcode.make(f"http://localhost:3000/perfil/estudiante/{perfil.id}")
+        url_base = request.query_params.get('url')
+        if not url_base:
+            url_base = f"http://localhost:3000/#/perfil/estudiante/{id}"
+            
+        qr = qrcode.make(url_base)
 
         buffer = io.BytesIO()
 
@@ -718,7 +750,7 @@ class RegistroEstudianteView(APIView):
 
 class PerfilEstudianteView(APIView):
 
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticatedOrReadOnly]
 
     def get(self, request, id):
 

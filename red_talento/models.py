@@ -16,7 +16,7 @@ class Usuario(AbstractUser):
                         )
     foto_perfil = models.ImageField(upload_to='perfiles/', null=True, blank=True)
     def save(self, *args, **kwargs):
-        if self.pk is None and self.role == 'estudiante':
+        if self.pk is None and self.role in ('estudiante', 'docente'):
             self.is_active = False
         super().save(*args, **kwargs)
 
