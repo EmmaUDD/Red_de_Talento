@@ -16,16 +16,21 @@ from .views import (
     DisponibilidadView,
     BusquedaEstudiantesView,
     BusquedaEmpresasView,
+    BusquedaDocentesView,
     EstadisticasView,
     QRView,
     RecomendacionesView,
+    RecomendacionesEmpresaView,
     InsigniasEstudianteView,
     CursoView,
     CursoCompletadoView,
+    MeView,
+    GestionUsuarioView,
 )
 
 
 urlpatterns = [
+    path('me/', MeView.as_view(), name='me'),
     path('registro/estudiante/', RegistroEstudianteView.as_view(), name='registro_estudiante'),
     path('registro/docente/', RegistroDocenteView.as_view(), name='registro_docente'),
     path('registro/empresa/', RegistroEmpresaView.as_view(), name='registro_empresa'),
@@ -38,7 +43,7 @@ urlpatterns = [
     path('evidencias/', EvidenciasView.as_view(), name='registrar_evidencia'),
     path('evidencias/estudiante/<int:id>/', EvidenciasView.as_view(), name='ver_evidencias'),
     path('ofertas/', OfertaLaboralView.as_view(), name='ver_ofertas'),
-    path('postulaciones/', PostulacionView.as_view(), name='postulaciones'),
+    path('postulaciones/', PostulacionView.as_view(), name='postulaciones'),  # GET(estudiante)=mis postulaciones, POST=postular
     path('postulaciones/oferta/<int:id>/', PostulacionView.as_view(), name='postulacion_oferta'),
     path('postulaciones/<int:id>/', PostulacionView.as_view(), name='estado_postulacion'),
     path('feed/', PublicacionFeedView.as_view(), name='feed'),
@@ -51,9 +56,13 @@ urlpatterns = [
     path('estadisticas/', EstadisticasView.as_view(), name='estadisticas'),
     path('perfil/estudiante/<id>/qr/', QRView.as_view(), name='qr'),
     path('empresas/', BusquedaEmpresasView.as_view(), name='buscador_empresa'),
+    path('docentes/', BusquedaDocentesView.as_view(), name='buscador_docentes'),
     path('empresa/recomendacion/<int:id>/', RecomendacionesView.as_view(), name='recomendacion'),
+    path('empresa/recomendaciones/', RecomendacionesEmpresaView.as_view(), name='recomendaciones_empresa'),
+    path('ofertas/<int:id>/', OfertaLaboralView.as_view(), name='oferta_detalle'),
     path('mis-insignias/', InsigniasEstudianteView.as_view(), name='mis_insignias'),
     path('cursos/', CursoView.as_view(), name='cursos'),
     path('cursos/completar/', CursoCompletadoView.as_view(), name='completar_curso'),
     path('cursos/completar/<int:id>/validar/', CursoCompletadoView.as_view(), name='validar_curso'),
+    path('usuarios/<int:id>/gestion/', GestionUsuarioView.as_view(), name='gestion_usuario'),
 ]
