@@ -3,21 +3,28 @@ from django.contrib.auth.models import AbstractUser
 
 # Create your models here.
 class Usuario(AbstractUser):
-    ROLES = [ 
+    ROLES = [
             ('estudiante', 'Perfil_estudiante'),
-            ('docente', 'Perfil_docente'), 
+            ('docente', 'Perfil_docente'),
             ('empresa', 'Perfil_empresa')
         ]
-    
+
     role = models.CharField(
                             choices=ROLES,
                             max_length=12,
                             default='estudiante'
                         )
+    suspendido_hasta = models.DateTimeField(null=True, blank=True)
+
     def save(self, *args, **kwargs):
         if self.pk is None and self.role == 'estudiante':
             self.is_active = False
         super().save(*args, **kwargs)
+
+    @property
+    def esta_suspendido(self):
+        from django.utils import timezone
+        return self.suspendido_hasta is not None and self.suspendido_hasta > timezone.now()
 
 class PerfilEstudiante(models.Model):
     usuario  = models.OneToOneField(Usuario, on_delete=models.CASCADE,  related_name='perfil_estudiante')
@@ -27,7 +34,9 @@ class PerfilEstudiante(models.Model):
         ('egresado' , 'Egresado')
     ]
     grado = models.CharField(choices=GRADO, max_length=15, default='4to_medio')
-    video_pitch = models.URLField(blank=True, null=True)
+    bio = models.TextField(blank=True, null=True)
+    video_pitch = models.CharField(max_length=500, blank=True, null=True)
+    foto_perfil = models.ImageField(upload_to='fotos_perfil/', blank=True, null=True)
     
     
 
@@ -37,6 +46,7 @@ class PerfilDocente(models.Model):
     departamento = models.CharField(max_length=200)
     bio = models.TextField(blank=True, null=True)
     es_admin = models.BooleanField(default=False)
+    foto_perfil = models.ImageField(upload_to='fotos_perfil/', blank=True, null=True)
 
 
 class PerfilEmpresa(models.Model):
@@ -44,22 +54,29 @@ class PerfilEmpresa(models.Model):
     nombre_empresa = models.CharField(max_length=200)
     industria  = models.CharField(max_length=200)
     rut = models.CharField(max_length=12, unique=True, null=True, blank=True)
+    foto_perfil = models.ImageField(upload_to='fotos_perfil/', blank=True, null=True)
+    descripcion = models.TextField(blank=True, null=True)
+    ubicacion = models.CharField(max_length=200, blank=True, null=True)
+    horario = models.CharField(max_length=200, blank=True, null=True)
+    que_buscamos = models.TextField(blank=True, null=True)
 
 class Habilidades(models.Model):
     estudiante = models.ForeignKey(PerfilEstudiante, on_delete=models.CASCADE)
     nombre = models.CharField(max_length=200)
+    TIPOS = [('tecnica', 'Técnica'), ('blanda', 'Blanda')]
     NIVELES = [('Alto','Nivel_Alto'),
                 ('Medio', 'Nivel_Medio'),
                 ('Bajo', 'Nivel_Bajo')]
     ESTADOS = [('Pendiente', 'estado_pendiente'),
               ('Aprobado', 'estado_aprobado'),
               ('Rechazado', 'estado_rechazado')]
-    
-    nivel = models.CharField(choices=NIVELES, 
+
+    tipo = models.CharField(choices=TIPOS, max_length=10, default='tecnica')
+    nivel = models.CharField(choices=NIVELES,
                              max_length=12,
                              default='Bajo'
                         )
-    estado = models.CharField(choices=ESTADOS, 
+    estado = models.CharField(choices=ESTADOS,
                              max_length=12,
                              default='Pendiente'
                         )
@@ -129,8 +146,9 @@ class HabilidadRequerida(models.Model):
         ]
 
 class Reporte(models.Model):
-    reportado_por = models.ForeignKey(Usuario,  on_delete=models.CASCADE, related_name='reportado_por')
-    usuario_reportado = models.ForeignKey(Usuario,  on_delete=models.CASCADE, related_name='usuario_reportado')
+    reportado_por = models.ForeignKey(Usuario, on_delete=models.CASCADE, related_name='reportado_por')
+    usuario_reportado = models.ForeignKey(Usuario, on_delete=models.CASCADE, related_name='usuario_reportado')
+    publicacion = models.ForeignKey('PublicacionesFeed', null=True, blank=True, on_delete=models.SET_NULL, related_name='reportes')
     motivo = models.CharField(max_length=200)
     descripcion = models.TextField()
     fecha = models.DateTimeField(auto_now_add=True)
@@ -159,6 +177,7 @@ class PublicacionesFeed(models.Model):
     autor = models.ForeignKey(Usuario, on_delete=models.CASCADE)
     tipo = models.CharField(choices=(('post','Post'), ('empleo', 'Empleo'), ('evento', 'Evento')), default='post', max_length= 6)
     contenido = models.TextField()
+    imagen = models.ImageField(upload_to='feed_imagenes/', blank=True, null=True)
     fecha = models.DateTimeField(auto_now_add=True)
 
 class Insignias(models.Model):
