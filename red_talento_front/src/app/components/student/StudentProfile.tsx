@@ -1,36 +1,63 @@
-import { motion } from "motion/react";
+import { motion, AnimatePresence } from "motion/react";
 import { useState, useEffect, useCallback } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import {
-  CheckCircle, Award, Play,
-  Shield, Wrench, Zap, Users, Clock, Pencil, Save, X,
-  PlusCircle, AlertCircle, Medal, Star, BookOpen, TrendingUp,
-  ExternalLink, MessageSquare, QrCode, Share2, Camera,
+  CheckCircle, Award, Play, Shield, Wrench, Zap, Users, Clock,
+  Pencil, Save, X, PlusCircle, AlertCircle, Medal, Star, BookOpen,
+  TrendingUp, ExternalLink, MessageSquare, QrCode, Share2, Camera,
 } from "lucide-react";
 import { useAuth } from "@/app/context/AuthContext";
 import {
-  habilidadesApi,
-  insigniasApi,
-  cursosApi,
-  disponibilidadApi,
-  qrApi,
-  perfilApi,
-  evidenciasApi,
-  postulacionesApi,
+  habilidadesApi, insigniasApi, cursosApi, disponibilidadApi,
+  qrApi, perfilApi, evidenciasApi, postulacionesApi,
 } from "@/api/api";
-import { AnimatePresence } from "motion/react";
-
 const BASE_URL = import.meta.env.VITE_API_URL ?? "http://127.0.0.1:8000";
 import type { Habilidad, Insignia, Curso, SkillLevel } from "@/app/types";
 
+const FONT_URL =
+  "https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap";
+
+const S = {
+  label: {
+    fontSize: "0.68rem", fontWeight: 700, color: "#94a3b8",
+    textTransform: "uppercase" as const, letterSpacing: "0.08em", margin: 0,
+  } as React.CSSProperties,
+  input: {
+    width: "100%", boxSizing: "border-box" as const,
+    backgroundColor: "#F6F5F0", border: "1px solid #E8E4DC",
+    borderRadius: 10, padding: "9px 12px", fontSize: "0.875rem",
+    outline: "none", fontFamily: "'Plus Jakarta Sans', sans-serif",
+    color: "#334155",
+  } as React.CSSProperties,
+  card: {
+    backgroundColor: "#FFFFFF", borderRadius: 16,
+    border: "1px solid #E8E4DC", padding: 20,
+    fontFamily: "'Plus Jakarta Sans', sans-serif",
+  } as React.CSSProperties,
+  modalOverlay: {
+    position: "fixed" as const, inset: 0, zIndex: 50,
+    display: "flex", alignItems: "center", justifyContent: "center",
+    padding: 16, backgroundColor: "rgba(0,0,0,0.45)", backdropFilter: "blur(4px)",
+  } as React.CSSProperties,
+  modalCard: {
+    backgroundColor: "white", borderRadius: 20,
+    boxShadow: "0 20px 60px rgba(0,0,0,0.18)",
+    width: "100%", maxWidth: 400, overflow: "hidden",
+  } as React.CSSProperties,
+  modalHeader: {
+    display: "flex", alignItems: "center", justifyContent: "space-between",
+    padding: "16px 20px", borderBottom: "1px solid #F0EDE8",
+  } as React.CSSProperties,
+};
+
 function LevelBadge({ level }: { level: SkillLevel }) {
-  const cfg: Record<SkillLevel, string> = {
-    Alto: "bg-green-50 text-green-700 border-green-200",
-    Medio: "bg-amber-50 text-amber-700 border-amber-200",
-    Bajo: "bg-red-50 text-red-600 border-red-200",
+  const cfg: Record<SkillLevel, React.CSSProperties> = {
+    Alto:  { backgroundColor: "#F0FDF4", color: "#15803d", border: "1px solid #bbf7d0" },
+    Medio: { backgroundColor: "#FFFBEB", color: "#b45309", border: "1px solid #fde68a" },
+    Bajo:  { backgroundColor: "#FEF2F2", color: "#b91c1c", border: "1px solid #fecaca" },
   };
   return (
-    <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold border ${cfg[level]}`}>
+    <span style={{ ...cfg[level], padding: "2px 9px", borderRadius: 999, fontSize: "0.68rem", fontWeight: 700 }}>
       {level}
     </span>
   );
@@ -39,66 +66,77 @@ function LevelBadge({ level }: { level: SkillLevel }) {
 function SkillBar({ percent, level }: { percent: number; level: SkillLevel }) {
   const c: Record<SkillLevel, string> = { Alto: "#10b981", Medio: "#f59e0b", Bajo: "#ef4444" };
   return (
-    <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
+    <div style={{ width: "100%", height: 6, backgroundColor: "#F0EDE8", borderRadius: 99, overflow: "hidden" }}>
       <motion.div
-        initial={{ width: 0 }}
-        whileInView={{ width: `${percent}%` }}
-        transition={{ duration: 0.8, ease: "easeOut" }}
-        className="h-full rounded-full"
-        style={{ backgroundColor: c[level] }}
+        initial={{ width: 0 }} whileInView={{ width: `${percent}%` }}
+        transition={{ duration: 0.9, ease: "easeOut" }}
+        style={{ height: "100%", borderRadius: 99, backgroundColor: c[level] }}
       />
     </div>
   );
 }
 
-function QRPanel({ profileUrl, nombre, especialidad, onClose }: {
-  profileUrl: string;
-  nombre: string;
-  especialidad: string;
-  onClose: () => void;
-}) {
-  const handleCopy = () => {
-    navigator.clipboard.writeText(profileUrl).catch(() => {});
-  };
-
+function CardHeading({ icon: Icon, title, right }: { icon?: React.ElementType; title: string; right?: React.ReactNode }) {
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4"
-      onClick={(e) => e.target === e.currentTarget && onClose()}
-    >
-      <motion.div
-        initial={{ scale: 0.95, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-xs text-center"
-      >
-        <div className="flex items-center justify-between mb-4">
-          <p className="text-slate-900 text-sm font-bold">Compartir perfil</p>
-          <button onClick={onClose} className="w-7 h-7 rounded-lg flex items-center justify-center hover:bg-slate-100 text-slate-400">
-            <X className="w-4 h-4" />
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+        {Icon && (
+          <div style={{ width: 26, height: 26, borderRadius: 7, backgroundColor: "#F6F5F0", border: "1px solid #E8E4DC", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <Icon style={{ width: 12, height: 12, color: "#8C7B6B" }} />
+          </div>
+        )}
+        <p style={{ ...S.label }}>{title}</p>
+      </div>
+      {right}
+    </div>
+  );
+}
+
+function ModalCloseBtn({ onClose }: { onClose: () => void }) {
+  return (
+    <button onClick={onClose} style={{ width: 28, height: 28, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", backgroundColor: "#F6F5F0", border: "none", cursor: "pointer", color: "#64748b" }}>
+      <X style={{ width: 14, height: 14 }} />
+    </button>
+  );
+}
+
+function QRPanel({ profileUrl, nombre, especialidad, onClose }: {
+  profileUrl: string; nombre: string; especialidad: string; onClose: () => void;
+}) {
+  const handleCopy = () => { navigator.clipboard.writeText(profileUrl).catch(() => {}); };
+  return (
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+      style={S.modalOverlay} onClick={(e) => e.target === e.currentTarget && onClose()}>
+      <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
+        style={{ ...S.modalCard, maxWidth: 320, overflow: "hidden" }}>
+        {/* Navy accent strip */}
+        <div style={{ height: 5, backgroundColor: "#0d1b35", backgroundImage: "radial-gradient(circle, rgba(212,175,55,0.3) 1px, transparent 1px)", backgroundSize: "8px 8px" }} />
+        <div style={{ padding: "20px 24px 24px", textAlign: "center" }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 18 }}>
+            <p style={{ ...S.label }}>Compartir perfil</p>
+            <ModalCloseBtn onClose={onClose} />
+          </div>
+          <div style={{ display: "flex", justifyContent: "center", padding: 16, backgroundColor: "#F6F5F0", border: "1px solid #E8E4DC", borderRadius: 14, marginBottom: 16 }}>
+            <QRCodeSVG value={profileUrl} size={152} bgColor="#F6F5F0" fgColor="#0d1b35" level="M" />
+          </div>
+          <p style={{ margin: 0, color: "#0d1b35", fontSize: "0.9rem", fontWeight: 700, fontFamily: "'Playfair Display', Georgia, serif" }}>{nombre}</p>
+          <p style={{ margin: "3px 0 0", color: "#6B5D52", fontSize: "0.75rem" }}>{especialidad} · Liceo Cardenal Caro</p>
+          <div style={{ display: "inline-flex", alignItems: "center", gap: 5, marginTop: 10, padding: "5px 12px", borderRadius: 999, border: "1px solid #D4AF37", backgroundColor: "#FFFBF0" }}>
+            <CheckCircle style={{ width: 11, height: 11, color: "#D4AF37" }} />
+            <span style={{ fontSize: "0.7rem", fontWeight: 700, color: "#B8962E" }}>Validado institucionalmente</span>
+          </div>
+          <p style={{ margin: "12px 0 0", color: "#94a3b8", fontSize: "0.72rem", lineHeight: 1.55 }}>
+            Escanea para ver el perfil completo con evidencias y competencias validadas.
+          </p>
+          <button onClick={handleCopy} style={{
+            marginTop: 14, width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+            padding: "10px 0", borderRadius: 10, border: "1px solid #E8E4DC",
+            color: "#0d1b35", fontSize: "0.8125rem", fontWeight: 600, cursor: "pointer",
+            backgroundColor: "#F6F5F0", fontFamily: "'Plus Jakarta Sans', sans-serif",
+          }}>
+            <Share2 style={{ width: 13, height: 13 }} /> Copiar enlace
           </button>
         </div>
-        <div className="flex items-center justify-center p-4 bg-white border-2 border-slate-100 rounded-xl mb-4 mx-auto w-fit">
-          <QRCodeSVG value={profileUrl} size={160} bgColor="#ffffff" fgColor="#0F172A" level="M" />
-        </div>
-        <p className="text-slate-900 text-sm font-semibold">{nombre}</p>
-        <p className="text-slate-500 text-xs mt-0.5">{especialidad} · Liceo Cardenal Caro</p>
-        <div className="flex items-center gap-1.5 justify-center mt-2 px-3 py-1.5 rounded-lg border border-slate-200 mx-auto w-fit">
-          <CheckCircle className="w-3.5 h-3.5" style={{ color: "#D4AF37" }} />
-          <span className="text-xs font-semibold" style={{ color: "#B8962E" }}>Perfil validado institucionalmente</span>
-        </div>
-        <p className="text-slate-400 text-xs mt-4 leading-relaxed">
-          Escanea el código QR para ver el perfil completo con evidencias y competencias validadas.
-        </p>
-        <button
-          onClick={handleCopy}
-          className="mt-3 w-full flex items-center justify-center gap-2 py-2.5 rounded-lg border border-slate-200 text-slate-700 text-sm font-medium hover:bg-slate-50 transition-colors"
-        >
-          <Share2 className="w-4 h-4" />
-          Copiar enlace
-        </button>
       </motion.div>
     </motion.div>
   );
@@ -144,20 +182,23 @@ export function StudentProfile() {
   const [newSkillTipo, setNewSkillTipo] = useState<"tecnica" | "blanda">("tecnica");
   const [addingSkill, setAddingSkill] = useState(false);
 
+  useEffect(() => {
+    if (!document.querySelector(`link[href="${FONT_URL}"]`)) {
+      const link = document.createElement("link");
+      link.href = FONT_URL; link.rel = "stylesheet";
+      document.head.appendChild(link);
+    }
+  }, []);
+
   const handleAddSkill = async () => {
     if (!newSkillNombre.trim()) return;
     setAddingSkill(true);
     try {
       await habilidadesApi.crear(newSkillNombre.trim(), newSkillTipo);
-      setNewSkillNombre("");
-      setNewSkillTipo("tecnica");
+      setNewSkillNombre(""); setNewSkillTipo("tecnica");
       setShowAddSkill(false);
       await loadData();
-    } catch {
-      // silently fail
-    } finally {
-      setAddingSkill(false);
-    }
+    } catch { } finally { setAddingSkill(false); }
   };
 
   const loadData = useCallback(async () => {
@@ -174,62 +215,37 @@ export function StudentProfile() {
         profileId ? evidenciasApi.getMias(profileId) : Promise.resolve([]),
         postulacionesApi.getMias().catch(() => []),
       ]);
-      setHabilidades(habs);
-      setInsignias(insigs);
-      setCursos(curs);
-      setMisCursos(misCurs);
+      setHabilidades(habs); setInsignias(insigs); setCursos(curs); setMisCursos(misCurs);
       setDisponibilidad(Array.isArray(disp) && disp.length > 0 ? disp[0].disponibilidad : "");
       setEvidencias(evs);
       const celebradas = JSON.parse(localStorage.getItem("postulaciones_celebradas") ?? "[]") as number[];
-      const aceptada = misPostulaciones.find(
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (p: any) => p.estado?.toLowerCase() === "contratado" && !celebradas.includes(p.id)
-      );
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const aceptada = misPostulaciones.find((p: any) => p.estado?.toLowerCase() === "contratado" && !celebradas.includes(p.id));
       if (aceptada) setEmpleoConseguido(aceptada);
-    } catch {
-      // datos vacíos si falla
-    } finally {
-      setLoadingData(false);
-    }
+    } catch { } finally { setLoadingData(false); }
   }, []);
 
-  useEffect(() => {
-    loadData();
-  }, [loadData]);
-
-  useEffect(() => {
-    if (user) {
-      setBio(user.bio ?? "");
-      setVideoPitch(user.video_pitch ?? "");
-    }
-  }, [user]);
+  useEffect(() => { loadData(); }, [loadData]);
+  useEffect(() => { if (user) { setBio(user.bio ?? ""); setVideoPitch(user.video_pitch ?? ""); } }, [user]);
 
   const handleSave = async () => {
     setSavingPerfil(true);
     try {
       const fd = new FormData();
-      fd.append("bio", bio);
-      fd.append("video_pitch", videoPitch);
+      fd.append("bio", bio); fd.append("video_pitch", videoPitch);
       await perfilApi.updatePerfil(fd);
       await disponibilidadApi.set(disponibilidad);
       await refreshUser();
       setEditMode(false);
-    } catch {
-      // silently fail
-    } finally {
-      setSavingPerfil(false);
-    }
+    } catch { } finally { setSavingPerfil(false); }
   };
 
   const handleSolicitarCambio = async (hab: Habilidad) => {
-    const nivelSiguiente: SkillLevel =
-      hab.nivel === "Bajo" ? "Medio" : hab.nivel === "Medio" ? "Alto" : "Bajo";
+    const nivelSiguiente: SkillLevel = hab.nivel === "Bajo" ? "Medio" : hab.nivel === "Medio" ? "Alto" : "Bajo";
     try {
       await habilidadesApi.solicitarCambio(hab.id, nivelSiguiente);
       setPendingIds((prev) => new Set(prev).add(hab.id));
-    } catch {
-      // silently fail
-    }
+    } catch { }
   };
 
   const handleAddEvidencia = async () => {
@@ -240,58 +256,79 @@ export function StudentProfile() {
       setEvTitulo(""); setEvDescripcion(""); setEvImagen(null);
       setShowAddEvidencia(false);
       await loadData();
-    } catch {
-      // silently fail
-    } finally {
-      setAddingEv(false);
-    }
+    } catch { } finally { setAddingEv(false); }
   };
 
   const handleInscribirse = async (cursoId: number) => {
     try {
       await cursosApi.inscribirse(cursoId);
-      setCursos((prev) =>
-        prev.map((c) => (c.id === cursoId ? { ...c, inscrito: true, progreso: 0 } : c))
-      );
-    } catch {
-      // silently fail
-    }
+      setCursos((prev) => prev.map((c) => (c.id === cursoId ? { ...c, inscrito: true, progreso: 0 } : c)));
+    } catch { }
   };
 
-  const nombre = user
-    ? `${user.first_name} ${user.last_name}`.trim() || user.username
-    : "—";
+  const nombre = user ? `${user.first_name} ${user.last_name}`.trim() || user.username : "—";
   const especialidad = user?.especialidad ?? "Técnico";
   const curso = user?.curso ?? "";
   const profileUrl = user ? qrApi.getUrlPerfil(user.id) : window.location.href;
+  const fotoSrc = user?.foto_perfil
+    ? (user.foto_perfil.startsWith("http") ? user.foto_perfil : `${BASE_URL}${user.foto_perfil}`)
+    : null;
 
   const techSkills = habilidades.filter((h) => h.tipo === "tecnica");
   const softSkills = habilidades.filter((h) => h.tipo === "blanda");
+  const habValidadas = habilidades.filter((h) => h.validado).length;
 
-  const tabs = [
-    { id: "perfil", label: "Perfil" },
-    { id: "habilidades", label: "Competencias" },
-    { id: "crecimiento", label: "Crecimiento" },
-  ] as const;
+  const dispLabel: Record<string, string> = {
+    part_time: "Part-time", full_time: "Full-time",
+    fines_de_semana: "Fines de semana", practicas: "Práctica laboral",
+  };
+
+  const TABS = [
+    { id: "perfil"      as const, label: "Perfil"      },
+    { id: "habilidades" as const, label: "Competencias" },
+    { id: "crecimiento" as const, label: "Crecimiento"  },
+  ];
 
   return (
-    <div className="min-h-screen bg-[#F9FAFB]">
-      <div className="bg-white border-b border-slate-200">
-        <div className="max-w-2xl mx-auto px-4 pt-6 pb-0">
+    <div style={{ minHeight: "100vh", backgroundColor: "#F6F5F0", fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+
+      <div style={{ backgroundColor: "#FFFFFF", borderBottom: "1px solid #E8E4DC" }}>
+
+        {/* Cover — full width, orthogonal grid (student texture) */}
+        <div style={{
+          height: 160, position: "relative", overflow: "hidden", backgroundColor: "#0d1b35",
+          backgroundImage: "linear-gradient(rgba(255,255,255,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.04) 1px, transparent 1px)",
+          backgroundSize: "32px 32px",
+        }}>
+          <div style={{ position: "absolute", inset: 0, background: "linear-gradient(135deg, transparent 60%, rgba(212,175,55,0.08) 100%)" }} />
+
+          {/* Validated badge */}
           {user?.validado && (
-            <div
-              className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 mb-4 text-xs font-bold"
-              style={{ backgroundColor: "#FFFBF0", border: "1px solid #D4AF37", color: "#B8962E" }}
-            >
-              <CheckCircle className="w-3.5 h-3.5" style={{ color: "#D4AF37" }} />
-              Perfil Validado Institucionalmente · Liceo Cardenal Caro
+            <div style={{
+              position: "absolute", top: 14, right: 16,
+              display: "inline-flex", alignItems: "center", gap: 5,
+              backgroundColor: "rgba(212,175,55,0.15)", border: "1px solid rgba(212,175,55,0.4)",
+              borderRadius: 20, padding: "4px 12px",
+            }}>
+              <CheckCircle style={{ width: 12, height: 12, color: "#D4AF37" }} />
+              <span style={{ fontSize: 11, fontWeight: 700, color: "#D4AF37" }}>Perfil Validado</span>
             </div>
           )}
 
-          <div className="flex items-start gap-4 mb-5">
-            <div className="relative flex-shrink-0">
-              <label className="cursor-pointer group block">
-                <input type="file" accept="image/*" className="hidden" onChange={async (e) => {
+          {/* Gold bottom line */}
+          <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 2, backgroundColor: "#D4AF37" }} />
+        </div>
+
+        {/* Identity container */}
+        <div style={{ maxWidth: 720, margin: "0 auto", padding: "0 20px" }}>
+
+          {/* Avatar + name row */}
+          <div style={{ display: "flex", alignItems: "flex-end", gap: 16, marginTop: -44 }}>
+
+            {/* Avatar — overlaps cover */}
+            <div style={{ flexShrink: 0, position: "relative" }}>
+              <label className="group" style={{ cursor: "pointer", display: "block", position: "relative" }}>
+                <input type="file" accept="image/*" style={{ display: "none" }} onChange={async (e) => {
                   const file = e.target.files?.[0];
                   if (!file) return;
                   const updated = await perfilApi.uploadFoto(file);
@@ -301,127 +338,129 @@ export function StudentProfile() {
                     if (img) img.src = updated.foto_perfil.startsWith("http") ? updated.foto_perfil : `${BASE_URL}${updated.foto_perfil}`;
                   }
                 }} />
-                {user?.foto_perfil ? (
-                  <img id="avatar-img"
-                    src={user.foto_perfil.startsWith("http") ? user.foto_perfil : `${BASE_URL}${user.foto_perfil}`}
-                    alt="avatar"
-                    className="w-20 h-20 rounded-xl object-cover border border-slate-200"
-                  />
+                {fotoSrc ? (
+                  <img id="avatar-img" src={fotoSrc} alt="avatar" style={{
+                    width: 96, height: 96, borderRadius: 18, objectFit: "cover",
+                    border: "4px solid #FFFFFF", boxShadow: "0 4px 16px rgba(0,0,0,0.14)", display: "block",
+                  }} />
                 ) : (
-                  <div className="w-20 h-20 rounded-xl bg-slate-200 flex items-center justify-center border border-slate-200">
-                    <span className="text-slate-500 text-2xl font-bold">
+                  <div style={{
+                    width: 96, height: 96, borderRadius: 18, backgroundColor: "#0d1b35",
+                    border: "4px solid #FFFFFF", boxShadow: "0 4px 16px rgba(0,0,0,0.14)",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                  }}>
+                    <span style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: "2.1rem", fontWeight: 700, color: "#D4AF37" }}>
                       {nombre.charAt(0).toUpperCase()}
                     </span>
                   </div>
                 )}
-                <div className="absolute inset-0 rounded-xl bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                  <Camera className="w-5 h-5 text-white" />
+                {user?.validado && (
+                  <div style={{ position: "absolute", inset: -5, borderRadius: 22, border: "1.5px solid rgba(212,175,55,0.45)", pointerEvents: "none" }} />
+                )}
+                <div className="opacity-0 group-hover:opacity-100 transition-opacity" style={{ position: "absolute", inset: 0, borderRadius: 18, backgroundColor: "rgba(0,0,0,0.4)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <Camera style={{ width: 18, height: 18, color: "white" }} />
                 </div>
               </label>
               {user?.validado && (
-                <div
-                  className="absolute -bottom-2 -right-2 w-6 h-6 rounded-full flex items-center justify-center border-2 border-white z-10"
-                  style={{ backgroundColor: "#D4AF37" }}
-                >
-                  <CheckCircle className="w-3.5 h-3.5 text-white" />
+                <div style={{ position: "absolute", bottom: -4, right: -4, width: 26, height: 26, borderRadius: 8, backgroundColor: "#D4AF37", border: "3px solid #FFFFFF", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 10 }}>
+                  <CheckCircle style={{ width: 12, height: 12, color: "white" }} />
                 </div>
               )}
             </div>
 
-            <div className="flex-1 min-w-0">
-              <h1 className="text-slate-900 font-bold truncate" style={{ fontSize: "1.2rem", lineHeight: 1.2 }}>
-                {nombre}
-              </h1>
-              <p className="text-slate-600 text-sm font-medium mt-0.5">{especialidad}</p>
-              {curso && <p className="text-slate-500 text-xs mt-0.5">{curso} · Liceo Cardenal Caro · Lo Espejo</p>}
+            {/* Name + meta */}
+            <div style={{ flex: 1, minWidth: 0, paddingBottom: 10, paddingTop: 48 }}>
+              <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
+                <div>
+                  <h1 style={{ margin: 0, fontFamily: "'Playfair Display', Georgia, serif", fontWeight: 800, fontSize: "1.4rem", lineHeight: 1.15, color: "#0d1b35" }}>
+                    {nombre}
+                  </h1>
+                  <p style={{ margin: "3px 0 0", color: "#6B5D52", fontSize: "0.9rem", fontWeight: 600 }}>{especialidad}</p>
+                  {curso && (
+                    <p style={{ margin: "2px 0 0", color: "#8C7B6B", fontSize: "0.75rem" }}>
+                      {curso} · Liceo Cardenal Caro
+                    </p>
+                  )}
+                  {editMode ? (
+                    <select value={disponibilidad} onChange={(e) => setDisponibilidad(e.target.value)}
+                      style={{ marginTop: 8, ...S.input, width: "auto", padding: "5px 10px", fontSize: "0.75rem" }}>
+                      <option value="">Sin especificar</option>
+                      <option value="part_time">Part-time</option>
+                      <option value="full_time">Full-time</option>
+                      <option value="fines_de_semana">Fines de semana</option>
+                      <option value="practicas">Práctica laboral</option>
+                    </select>
+                  ) : disponibilidad ? (
+                    <span style={{ marginTop: 6, display: "inline-flex", alignItems: "center", gap: 4, backgroundColor: "#EFF6FF", borderRadius: 999, padding: "3px 10px", fontSize: "0.72rem", color: "#1d4ed8", fontWeight: 600, border: "1px solid #bfdbfe" }}>
+                      <Clock style={{ width: 10, height: 10 }} /> {dispLabel[disponibilidad] ?? disponibilidad}
+                    </span>
+                  ) : null}
+                </div>
 
-              {editMode ? (
-                <select
-                  value={disponibilidad}
-                  onChange={(e) => setDisponibilidad(e.target.value)}
-                  className="mt-2 text-xs bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 focus:outline-none"
-                >
-                  <option value="">Sin especificar</option>
-                  <option value="part_time">Part-time</option>
-                  <option value="full_time">Full-time</option>
-                  <option value="fines_de_semana">Fines de semana</option>
-                  <option value="practicas">Práctica laboral</option>
-                </select>
-              ) : disponibilidad ? (
-                <span className="mt-2 inline-flex items-center gap-1 bg-slate-100 rounded-full px-2.5 py-1 text-xs text-slate-600">
-                  <Clock className="w-3 h-3" /> {{
-                    part_time: "Part-time",
-                    full_time: "Full-time",
-                    fines_de_semana: "Fines de semana",
-                    practicas: "Práctica laboral",
-                  }[disponibilidad] ?? disponibilidad}
-                </span>
-              ) : null}
-            </div>
-
-            <div className="flex flex-col gap-2 flex-shrink-0">
-              {editMode ? (
-                <>
-                  <button
-                    onClick={handleSave}
-                    disabled={savingPerfil}
-                    className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all border bg-slate-900 text-white border-slate-900 disabled:opacity-60"
-                  >
-                    <Save className="w-3.5 h-3.5" />
-                    {savingPerfil ? "Guardando…" : "Guardar"}
-                  </button>
-                  <button
-                    onClick={() => setEditMode(false)}
-                    className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold border border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
-                  >
-                    <X className="w-3.5 h-3.5" />
-                    Cancelar
-                  </button>
-                </>
-              ) : (
-                <>
-                  <button
-                    onClick={() => setEditMode(true)}
-                    className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all bg-slate-900 hover:bg-slate-700 text-white shadow-sm"
-                  >
-                    <Pencil className="w-3.5 h-3.5" /> Editar
-                  </button>
-                  <button
-                    onClick={() => setShowQR(true)}
-                    className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 transition-all"
-                  >
-                    <QrCode className="w-3.5 h-3.5" /> QR
-                  </button>
-                </>
-              )}
+                {/* Action buttons */}
+                <div style={{ display: "flex", gap: 7 }}>
+                  {editMode ? (
+                    <>
+                      <button onClick={handleSave} disabled={savingPerfil} style={{ display: "flex", alignItems: "center", gap: 5, padding: "7px 14px", borderRadius: 10, border: "none", backgroundColor: "#0d1b35", color: "white", fontSize: "0.775rem", fontWeight: 700, cursor: "pointer", opacity: savingPerfil ? 0.65 : 1, fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+                        <Save style={{ width: 12, height: 12 }} />
+                        {savingPerfil ? "Guardando…" : "Guardar"}
+                      </button>
+                      <button onClick={() => setEditMode(false)} style={{ display: "flex", alignItems: "center", gap: 5, padding: "7px 12px", borderRadius: 10, border: "1px solid #E8E4DC", backgroundColor: "white", color: "#6B5D52", fontSize: "0.775rem", cursor: "pointer", fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+                        <X style={{ width: 12, height: 12 }} /> Cancelar
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <button onClick={() => setEditMode(true)} style={{ display: "flex", alignItems: "center", gap: 5, padding: "7px 14px", borderRadius: 10, border: "none", backgroundColor: "#0d1b35", color: "white", fontSize: "0.775rem", fontWeight: 700, cursor: "pointer", fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+                        <Pencil style={{ width: 12, height: 12 }} /> Editar
+                      </button>
+                      <button onClick={() => setShowQR(true)} style={{ display: "flex", alignItems: "center", gap: 5, padding: "7px 12px", borderRadius: 10, border: "1px solid #E8E4DC", backgroundColor: "white", color: "#0d1b35", fontSize: "0.775rem", fontWeight: 600, cursor: "pointer", fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+                        <QrCode style={{ width: 12, height: 12 }} /> QR
+                      </button>
+                    </>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
 
+          {/* KPI row */}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", margin: "14px 0 0", backgroundColor: "#F6F5F0", border: "1px solid #E8E4DC", borderRadius: 12 }}>
+            {[
+              { label: "Competencias", value: habValidadas > 0 ? `${habValidadas}` : habilidades.length > 0 ? `${habilidades.length}` : "—" },
+              { label: "Insignias", value: insignias.length > 0 ? `${insignias.length}` : "—" },
+              { label: "Cursos", value: misCursos.length > 0 ? `${misCursos.length}` : "—" },
+            ].map((k, i) => (
+              <div key={k.label} style={{ textAlign: "center", padding: "11px 8px", borderRight: i < 2 ? "1px solid #E8E4DC" : "none" }}>
+                <p style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: "0.95rem", fontWeight: 700, color: "#0d1b35", margin: 0 }}>{k.value}</p>
+                <p style={{ ...S.label, marginTop: 2 }}>{k.label}</p>
+              </div>
+            ))}
+          </div>
+
+          {/* Insignias strip */}
           {insignias.length > 0 && (
-            <div className="flex gap-2 overflow-x-auto pb-3">
+            <div style={{ display: "flex", gap: 7, overflowX: "auto", paddingBottom: 12, paddingTop: 12 }}>
               {insignias.map((b) => (
-                <span
-                  key={b.id}
-                  className="flex-shrink-0 text-xs font-semibold rounded-full px-3 py-1.5 border"
-                  style={{ borderColor: "#D4AF37", color: "#B8962E", backgroundColor: "#FFFBF0" }}
-                >
+                <span key={b.id} style={{ flexShrink: 0, display: "inline-flex", alignItems: "center", gap: 5, fontSize: "0.7rem", fontWeight: 700, backgroundColor: "#FFFBF0", border: "1px solid #D4AF37", color: "#B8962E", borderRadius: 999, padding: "4px 11px" }}>
                   {b.icono} {b.nombre}
                 </span>
               ))}
             </div>
           )}
 
-          <div className="flex border-b border-slate-200 -mx-4 px-4">
-            {tabs.map((t) => (
-              <button
-                key={t.id}
-                onClick={() => setTab(t.id)}
-                className={`flex-1 py-3 text-sm transition-all border-b-2 -mb-px ${
-                  tab === t.id
-                    ? "border-slate-900 text-slate-900 font-bold"
-                    : "border-transparent text-slate-500 hover:text-slate-700 font-medium"
-                }`}
-              >
+          {/* Tabs */}
+          <div style={{ display: "flex", borderBottom: "2px solid #E8E4DC", marginTop: insignias.length > 0 ? 0 : 14 }}>
+            {TABS.map((t) => (
+              <button key={t.id} onClick={() => setTab(t.id)} style={{
+                flex: 1, padding: "10px 4px",
+                background: "none", border: "none", cursor: "pointer",
+                fontSize: "0.82rem", fontWeight: 600,
+                color: tab === t.id ? "#0d1b35" : "#94a3b8",
+                borderBottom: tab === t.id ? "2px solid #D4AF37" : "2px solid transparent",
+                marginBottom: -2, transition: "color 0.15s",
+                fontFamily: "'Plus Jakarta Sans', sans-serif",
+              }}>
                 {t.label}
               </button>
             ))}
@@ -429,139 +468,148 @@ export function StudentProfile() {
         </div>
       </div>
 
-      <div className="max-w-2xl mx-auto px-4 py-5 space-y-4">
+      <div style={{ maxWidth: 720, margin: "0 auto", padding: "20px 20px", display: "flex", flexDirection: "column", gap: 12 }}>
+
+        {/* Edit mode notice */}
         {editMode && (
-          <motion.div
-            initial={{ opacity: 0, y: -6 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="flex items-center gap-3 bg-blue-50 border border-blue-200 rounded-xl p-3"
-          >
-            <Pencil className="w-4 h-4 text-blue-600 flex-shrink-0" />
-            <div className="flex-1">
-              <p className="text-blue-700 text-xs font-semibold">Modo edición activo</p>
-              <p className="text-blue-600 text-xs">Los cambios en competencias requieren validación de un docente.</p>
+          <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }}
+            style={{ display: "flex", alignItems: "center", gap: 10, backgroundColor: "#FFFBF0", border: "1px solid #D4AF37", borderRadius: 12, padding: "10px 14px" }}>
+            <Pencil style={{ width: 13, height: 13, color: "#B8962E", flexShrink: 0 }} />
+            <div style={{ flex: 1 }}>
+              <p style={{ margin: 0, color: "#0d1b35", fontSize: "0.78rem", fontWeight: 700 }}>Modo edición activo</p>
+              <p style={{ margin: 0, color: "#8C7B6B", fontSize: "0.72rem" }}>Los cambios en competencias requieren validación de un docente.</p>
             </div>
-            <button onClick={() => setEditMode(false)} className="text-blue-400 hover:text-blue-600">
-              <X className="w-4 h-4" />
+            <button onClick={() => setEditMode(false)} style={{ color: "#D4AF37", background: "none", border: "none", cursor: "pointer", display: "flex" }}>
+              <X style={{ width: 14, height: 14 }} />
             </button>
           </motion.div>
         )}
 
         {loadingData && (
-          <div className="flex justify-center py-8">
-            <div className="w-6 h-6 border-2 border-slate-300 border-t-slate-900 rounded-full animate-spin" />
+          <div style={{ display: "flex", justifyContent: "center", padding: "32px 0" }}>
+            <Loader className="animate-spin" style={{ width: 22, height: 22, color: "#D4AF37" }} />
           </div>
         )}
 
         {!loadingData && tab === "perfil" && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
-            <div className="bg-white rounded-xl border border-slate-200 p-5">
-              <h3 className="text-slate-900 font-semibold mb-3" style={{ fontSize: "0.875rem" }}>Sobre mí</h3>
+          <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+
+            {/* Bio */}
+            <div style={S.card}>
+              <CardHeading title="Sobre mí" />
               {editMode ? (
-                <textarea
-                  value={bio}
-                  onChange={(e) => setBio(e.target.value)}
-                  rows={4}
+                <textarea value={bio} onChange={(e) => setBio(e.target.value)} rows={4}
                   placeholder="Cuéntanos sobre ti, tus intereses y experiencia…"
-                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2.5 text-sm text-slate-700 resize-none focus:outline-none focus:ring-2 focus:ring-slate-200"
-                />
+                  style={{ ...S.input, resize: "none" }}
+                  onFocus={(el) => { el.currentTarget.style.borderColor = "#D4AF37"; el.currentTarget.style.backgroundColor = "#FFFFFF"; }}
+                  onBlur={(el) => { el.currentTarget.style.borderColor = "#E8E4DC"; el.currentTarget.style.backgroundColor = "#F6F5F0"; }} />
               ) : (
-                <p className="text-slate-600 text-sm leading-relaxed">
-                  {bio || <span className="text-slate-400 italic">Aún no has agregado una descripción.</span>}
+                <p style={{ margin: 0, color: "#4A3F35", fontSize: "0.875rem", lineHeight: 1.7 }}>
+                  {bio || <span style={{ color: "#94a3b8", fontStyle: "italic" }}>Aún no has agregado una descripción.</span>}
                 </p>
               )}
             </div>
 
-            <div className="bg-white rounded-xl border border-slate-200 p-5">
-              <div className="flex items-center justify-between mb-2">
-                <h3 className="text-slate-900 font-semibold" style={{ fontSize: "0.875rem" }}>Contacto</h3>
-                <span className="flex items-center gap-1 text-xs text-slate-400">
-                  <Shield className="w-3 h-3" /> Datos protegidos
+            {/* Contact */}
+            <div style={S.card}>
+              <CardHeading title="Contacto" right={
+                <span style={{ display: "flex", alignItems: "center", gap: 4, color: "#94a3b8", fontSize: "0.72rem" }}>
+                  <Shield style={{ width: 11, height: 11 }} /> Protegido
                 </span>
-              </div>
-              <p className="text-slate-600 text-sm">{user?.email ?? "—"}</p>
-              <p className="text-slate-400 text-xs mt-1">Solo visible para empresas verificadas con tu autorización</p>
-              <button className="mt-3 w-full py-2.5 rounded-lg bg-slate-900 hover:bg-slate-700 text-white text-sm font-semibold transition-colors flex items-center justify-center gap-2">
-                <MessageSquare className="w-4 h-4" />
-                Contactar
+              } />
+              <p style={{ margin: 0, color: "#4A3F35", fontSize: "0.875rem" }}>{user?.email ?? "—"}</p>
+              <p style={{ margin: "3px 0 12px", color: "#94a3b8", fontSize: "0.72rem" }}>Solo visible para empresas verificadas con tu autorización</p>
+              <button style={{ width: "100%", padding: "10px 0", borderRadius: 10, border: "none", backgroundColor: "#0d1b35", color: "white", fontSize: "0.8125rem", fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 7, fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+                <MessageSquare style={{ width: 13, height: 13 }} /> Contactar
               </button>
             </div>
 
-            <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-              <div className="px-5 pt-5 pb-3 flex items-center gap-2">
-                <Play className="w-4 h-4 text-slate-600" />
-                <h3 className="text-slate-900 font-semibold" style={{ fontSize: "0.875rem" }}>Video-Pitch (30 seg)</h3>
+            {/* Video pitch */}
+            <div style={{ ...S.card, padding: 0 }}>
+              <div style={{ padding: "16px 20px 12px" }}>
+                <CardHeading icon={Play} title="Video-Pitch" right={
+                  <span style={{ fontSize: "0.68rem", color: "#94a3b8" }}>30 segundos recomendados</span>
+                } />
               </div>
               {editMode ? (
-                <div className="px-5 pb-5">
-                  <input
-                    type="url"
-                    value={videoPitch}
-                    onChange={(e) => setVideoPitch(e.target.value)}
-                    placeholder="https://youtube.com/watch?v=..."
-                    className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-slate-200"
-                  />
-                  <p className="text-slate-400 text-xs mt-1.5">Pega el enlace de tu video en YouTube, Vimeo u otra plataforma.</p>
+                <div style={{ padding: "0 20px 20px" }}>
+                  <input type="url" value={videoPitch} onChange={(e) => setVideoPitch(e.target.value)}
+                    placeholder="https://youtube.com/watch?v=..." style={S.input}
+                    onFocus={(el) => { el.currentTarget.style.borderColor = "#D4AF37"; el.currentTarget.style.backgroundColor = "#FFFFFF"; }}
+                    onBlur={(el) => { el.currentTarget.style.borderColor = "#E8E4DC"; el.currentTarget.style.backgroundColor = "#F6F5F0"; }} />
+                  <p style={{ margin: "6px 0 0", color: "#94a3b8", fontSize: "0.72rem" }}>
+                    Pega el enlace de tu video en YouTube, Vimeo u otra plataforma.
+                  </p>
                 </div>
               ) : videoPitch ? (
-                <div className="px-5 pb-5">
+                <div style={{ padding: "0 20px 20px" }}>
                   {(() => {
                     const ytMatch = videoPitch.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&\s]+)/);
                     const videoId = ytMatch?.[1];
                     return videoId ? (
-                      <a href={videoPitch} target="_blank" rel="noopener noreferrer" className="block rounded-xl overflow-hidden border border-slate-200 relative group">
-                        <img src={`https://img.youtube.com/vi/${videoId}/hqdefault.jpg`} alt="miniatura video" className="w-full object-cover aspect-video" />
-                        <div className="absolute inset-0 flex items-center justify-center bg-black/30 group-hover:bg-black/40 transition-colors">
-                          <div className="w-12 h-12 rounded-full bg-white/90 flex items-center justify-center">
-                            <Play className="w-5 h-5 text-slate-900 ml-0.5" />
+                      <a href={videoPitch} target="_blank" rel="noopener noreferrer"
+                        style={{ display: "block", borderRadius: 12, overflow: "hidden", border: "1px solid #E8E4DC", position: "relative" }}
+                        className="group">
+                        <img src={`https://img.youtube.com/vi/${videoId}/hqdefault.jpg`} alt="miniatura video"
+                          style={{ width: "100%", objectFit: "cover", aspectRatio: "16/9", display: "block" }} />
+                        <div className="group-hover:bg-black/50 transition-colors" style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", backgroundColor: "rgba(0,0,0,0.28)" }}>
+                          <div style={{ width: 52, height: 52, borderRadius: "50%", backgroundColor: "rgba(255,255,255,0.92)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                            <Play style={{ width: 20, height: 20, color: "#0d1b35", marginLeft: 3 }} />
                           </div>
                         </div>
                       </a>
                     ) : (
                       <a href={videoPitch} target="_blank" rel="noopener noreferrer"
-                        className="flex items-center gap-2 px-4 py-3 rounded-lg border border-slate-200 text-slate-700 text-sm font-medium hover:bg-slate-50 transition-colors">
-                        <Play className="w-4 h-4 text-slate-500 flex-shrink-0" />
-                        <span className="truncate">{videoPitch}</span>
-                        <ExternalLink className="w-3.5 h-3.5 text-slate-400 flex-shrink-0 ml-auto" />
+                        style={{ display: "flex", alignItems: "center", gap: 8, padding: "12px 14px", borderRadius: 10, border: "1px solid #E8E4DC", color: "#0d1b35", fontSize: "0.8rem", fontWeight: 600, textDecoration: "none", backgroundColor: "#F6F5F0" }}>
+                        <Play style={{ width: 13, height: 13, color: "#8C7B6B", flexShrink: 0 }} />
+                        <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{videoPitch}</span>
+                        <ExternalLink style={{ width: 12, height: 12, color: "#8C7B6B", flexShrink: 0 }} />
                       </a>
                     );
                   })()}
                 </div>
               ) : (
-                <div className="mx-4 mb-4 rounded-lg bg-slate-50 border border-dashed border-slate-200 aspect-video flex flex-col items-center justify-center gap-2 text-slate-400">
-                  <Play className="w-8 h-8 text-slate-300" />
-                  <p className="text-xs">Sin video-pitch. Activa edición para agregar un enlace.</p>
+                <div style={{ margin: "0 20px 20px", borderRadius: 10, backgroundColor: "#F6F5F0", border: "2px dashed #E8E4DC", aspectRatio: "16/9", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 8 }}>
+                  <Play style={{ width: 26, height: 26, color: "#D4D0C8" }} />
+                  <p style={{ margin: 0, color: "#94a3b8", fontSize: "0.75rem", textAlign: "center" }}>
+                    Sin video-pitch. Activa edición para agregar un enlace.
+                  </p>
                 </div>
               )}
             </div>
 
-            <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-              <div className="px-5 pt-5 pb-3 flex items-center justify-between">
-                <h3 className="text-slate-900 font-semibold" style={{ fontSize: "0.875rem" }}>Galería de Evidencias</h3>
+            {/* Evidences gallery */}
+            <div style={{ ...S.card, padding: 0 }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 20px 12px" }}>
+                <p style={{ ...S.label }}>Galería de Evidencias</p>
                 {editMode && (
-                  <button onClick={() => setShowAddEvidencia(true)}
-                    className="flex items-center gap-1 text-slate-600 text-xs font-medium border border-slate-200 px-3 py-1.5 rounded-lg hover:bg-slate-50">
-                    <PlusCircle className="w-3.5 h-3.5" /> Agregar
+                  <button onClick={() => setShowAddEvidencia(true)} style={{ display: "flex", alignItems: "center", gap: 5, fontSize: "0.75rem", fontWeight: 600, color: "#0d1b35", border: "1px solid #E8E4DC", backgroundColor: "white", borderRadius: 9, padding: "5px 11px", cursor: "pointer", fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+                    <PlusCircle style={{ width: 12, height: 12 }} /> Agregar
                   </button>
                 )}
               </div>
               {evidencias.length === 0 ? (
-                <div className="mx-4 mb-4 rounded-lg bg-slate-50 border border-dashed border-slate-200 py-10 flex flex-col items-center justify-center gap-2 text-slate-400">
-                  <PlusCircle className="w-8 h-8 text-slate-300" />
-                  <p className="text-xs text-center leading-relaxed">
-                    Aún no hay evidencias.<br />Activa edición para agregar fotos de proyectos o trabajos.
+                <div style={{ margin: "0 20px 20px", borderRadius: 10, backgroundColor: "#F6F5F0", border: "2px dashed #E8E4DC", padding: "36px 20px", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 8 }}>
+                  <PlusCircle style={{ width: 24, height: 24, color: "#D4D0C8" }} />
+                  <p style={{ margin: 0, color: "#94a3b8", fontSize: "0.75rem", textAlign: "center", lineHeight: 1.55 }}>
+                    Aún no hay evidencias.<br />Activa edición para agregar fotos de proyectos.
                   </p>
                 </div>
               ) : (
-                <div className="flex gap-3 overflow-x-auto px-4 pb-4 scrollbar-hide">
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 10, padding: "0 20px 20px" }}>
                   {evidencias.map((ev) => (
                     <button key={ev.id} onClick={() => setSelectedEv(ev)}
-                      className="flex-shrink-0 w-44 rounded-xl overflow-hidden border border-slate-100 hover:border-slate-300 hover:shadow-md transition-all text-left group">
-                      <div className="relative aspect-video overflow-hidden">
-                        <img src={ev.imagen} alt={ev.titulo} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                      style={{ borderRadius: 12, overflow: "hidden", border: "1px solid #E8E4DC", textAlign: "left", cursor: "pointer", backgroundColor: "white", padding: 0 }}
+                      className="group">
+                      <div style={{ aspectRatio: "4/3", overflow: "hidden" }}>
+                        <img src={ev.imagen} alt={ev.titulo}
+                          style={{ width: "100%", height: "100%", objectFit: "cover", transition: "transform 0.3s" }}
+                          className="group-hover:scale-105" />
                       </div>
-                      <div className="p-2.5">
-                        <p className="text-slate-800 text-xs font-semibold leading-tight line-clamp-2">{ev.titulo}</p>
+                      <div style={{ padding: "8px 10px" }}>
+                        <p style={{ margin: 0, color: "#0d1b35", fontSize: "0.75rem", fontWeight: 700, lineHeight: 1.3, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>
+                          {ev.titulo}
+                        </p>
                       </div>
                     </button>
                   ))}
@@ -572,140 +620,134 @@ export function StudentProfile() {
         )}
 
         {!loadingData && tab === "habilidades" && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
-            <div className="flex items-center gap-3 bg-slate-50 border border-slate-200 rounded-xl p-3">
-              <Shield className="w-4 h-4 text-slate-500 flex-shrink-0" />
-              <p className="text-slate-600 text-xs">Niveles certificados por docentes. Información protegida con acceso autorizado.</p>
+          <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+
+            <div style={{ display: "flex", alignItems: "center", gap: 8, backgroundColor: "#F6F5F0", border: "1px solid #E8E4DC", borderRadius: 12, padding: "10px 14px" }}>
+              <Shield style={{ width: 13, height: 13, color: "#8C7B6B", flexShrink: 0 }} />
+              <p style={{ margin: 0, color: "#6B5D52", fontSize: "0.75rem" }}>
+                Niveles certificados por docentes. Información protegida con acceso autorizado.
+              </p>
             </div>
 
             {pendingIds.size > 0 && (
-              <div className="flex items-center gap-3 border rounded-xl p-3" style={{ backgroundColor: "#FFFBF0", borderColor: "#D4AF37" }}>
-                <AlertCircle className="w-4 h-4 flex-shrink-0" style={{ color: "#D4AF37" }} />
-                <p className="text-xs" style={{ color: "#B8962E" }}>Tienes solicitudes pendientes de revisión por un docente.</p>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, backgroundColor: "#FFFBF0", border: "1px solid #D4AF37", borderRadius: 12, padding: "10px 14px" }}>
+                <AlertCircle style={{ width: 13, height: 13, color: "#D4AF37", flexShrink: 0 }} />
+                <p style={{ margin: 0, color: "#B8962E", fontSize: "0.75rem" }}>
+                  Tienes solicitudes pendientes de revisión por un docente.
+                </p>
               </div>
             )}
 
-            <div className="bg-white rounded-xl border border-slate-200 p-5">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-2">
-                  <Wrench className="w-4 h-4 text-slate-500" />
-                  <h3 className="text-slate-900 font-semibold" style={{ fontSize: "0.875rem" }}>Habilidades Técnicas</h3>
-                </div>
-                <span
-                  className="text-xs font-semibold px-2.5 py-0.5 rounded-full"
-                  style={{ backgroundColor: "#FFFBF0", color: "#B8962E", border: "1px solid #D4AF37" }}
-                >
+            {/* Tech skills */}
+            <div style={S.card}>
+              <CardHeading icon={Wrench} title="Habilidades Técnicas" right={
+                <span style={{ backgroundColor: "#FFFBF0", color: "#B8962E", border: "1px solid #D4AF37", fontSize: "0.68rem", fontWeight: 700, padding: "2px 9px", borderRadius: 999 }}>
                   Certificadas
                 </span>
-              </div>
+              } />
               {techSkills.length === 0 ? (
-                <p className="text-slate-400 text-sm text-center py-4">Aún no tienes habilidades técnicas registradas.</p>
+                <p style={{ margin: 0, color: "#94a3b8", fontSize: "0.875rem", textAlign: "center", padding: "14px 0" }}>
+                  Aún no tienes habilidades técnicas registradas.
+                </p>
               ) : (
-                <div className="space-y-4">
-                  {techSkills.map((skill) => {
+                <div>
+                  {techSkills.map((skill, i) => {
                     const isPending = !skill.validado || pendingIds.has(skill.id);
                     const pct = skill.porcentaje ?? nivelAPorcentaje(skill.nivel);
                     return (
-                      <div key={skill.id}>
-                        <div className="flex items-center justify-between mb-1.5">
-                          <div className="flex items-center gap-2">
-                            <Zap className="w-3 h-3 text-slate-300" />
-                            <span className="text-slate-700 text-sm">{skill.nombre}</span>
+                      <div key={skill.id} style={{ paddingTop: i === 0 ? 0 : 12, paddingBottom: 12, borderBottom: i < techSkills.length - 1 ? "1px solid #F6F5F0" : "none" }}>
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 7 }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+                            <div style={{ width: 24, height: 24, borderRadius: 6, backgroundColor: "#F6F5F0", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                              <Zap style={{ width: 11, height: 11, color: "#8C7B6B" }} />
+                            </div>
+                            <span style={{ color: "#0d1b35", fontSize: "0.8125rem", fontWeight: 600 }}>{skill.nombre}</span>
                           </div>
-                          <div className="flex items-center gap-2">
-                            {isPending ? (
-                              <span className="text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200 px-2.5 py-0.5 rounded-full flex items-center gap-1">
-                                <Clock className="w-3 h-3" /> Pendiente
-                              </span>
-                            ) : (
-                              <>
-                                <LevelBadge level={skill.nivel} />
-                                {editMode && (
-                                  <button
-                                    onClick={() => handleSolicitarCambio(skill)}
-                                    className="text-xs text-slate-500 hover:text-slate-900 underline underline-offset-2"
-                                  >
-                                    Solicitar cambio
-                                  </button>
-                                )}
-                              </>
-                            )}
-                          </div>
-                        </div>
-                        <SkillBar percent={isPending ? 0 : pct} level={skill.nivel} />
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-              {editMode && (
-                <button
-                  onClick={() => { setNewSkillTipo("tecnica"); setShowAddSkill(true); }}
-                  className="mt-4 w-full flex items-center justify-center gap-2 py-2.5 border-2 border-dashed border-slate-200 rounded-xl text-slate-400 hover:border-slate-300 hover:text-slate-600 text-sm transition-all"
-                >
-                  <PlusCircle className="w-4 h-4" /> Proponer nueva habilidad técnica
-                </button>
-              )}
-            </div>
-
-            <div className="bg-white rounded-xl border border-slate-200 p-5">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-2">
-                  <Users className="w-4 h-4 text-slate-500" />
-                  <h3 className="text-slate-900 font-semibold" style={{ fontSize: "0.875rem" }}>Habilidades Blandas</h3>
-                </div>
-                <span className="text-xs font-semibold bg-slate-100 text-slate-600 px-2.5 py-0.5 rounded-full">
-                  Evaluadas
-                </span>
-              </div>
-              {softSkills.length === 0 ? (
-                <p className="text-slate-400 text-sm text-center py-4">Aún no tienes habilidades blandas registradas.</p>
-              ) : (
-                <div className="space-y-4">
-                  {softSkills.map((skill) => {
-                    const isPending = !skill.validado || pendingIds.has(skill.id);
-                    const pct = skill.porcentaje ?? nivelAPorcentaje(skill.nivel);
-                    return (
-                      <div key={skill.id}>
-                        <div className="flex items-center justify-between mb-1.5">
-                          <span className="text-slate-700 text-sm">{skill.nombre}</span>
                           {isPending ? (
-                            <span className="text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200 px-2.5 py-0.5 rounded-full flex items-center gap-1">
-                              <Clock className="w-3 h-3" /> Pendiente
+                            <span style={{ backgroundColor: "#FFFBEB", color: "#b45309", border: "1px solid #fde68a", fontSize: "0.68rem", fontWeight: 700, padding: "2px 8px", borderRadius: 999, display: "flex", alignItems: "center", gap: 3 }}>
+                              <Clock style={{ width: 9, height: 9 }} /> Pendiente
                             </span>
                           ) : (
-                            <LevelBadge level={skill.nivel} />
+                            <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+                              <LevelBadge level={skill.nivel} />
+                              {editMode && (
+                                <button onClick={() => handleSolicitarCambio(skill)} style={{ color: "#8C7B6B", fontSize: "0.7rem", cursor: "pointer", background: "none", border: "none", textDecoration: "underline", fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+                                  Cambiar
+                                </button>
+                              )}
+                            </div>
                           )}
                         </div>
-                        <SkillBar percent={isPending ? 0 : pct} level={skill.nivel} />
+                        {!isPending && (
+                          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                            <div style={{ flex: 1 }}><SkillBar percent={pct} level={skill.nivel} /></div>
+                            <span style={{ color: "#94a3b8", fontSize: "0.68rem", fontWeight: 600, width: 28, textAlign: "right", flexShrink: 0 }}>{pct}%</span>
+                          </div>
+                        )}
                       </div>
                     );
                   })}
                 </div>
               )}
               {editMode && (
-                <button
-                  onClick={() => { setNewSkillTipo("blanda"); setShowAddSkill(true); }}
-                  className="mt-4 w-full flex items-center justify-center gap-2 py-2.5 border-2 border-dashed border-slate-200 rounded-xl text-slate-400 hover:border-slate-300 hover:text-slate-600 text-sm transition-all"
-                >
-                  <PlusCircle className="w-4 h-4" /> Proponer nueva habilidad blanda
+                <button onClick={() => { setNewSkillTipo("tecnica"); setShowAddSkill(true); }} style={{ marginTop: techSkills.length > 0 ? 4 : 0, width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 7, padding: "10px 0", border: "2px dashed #E8E4DC", borderRadius: 10, color: "#8C7B6B", fontSize: "0.8rem", cursor: "pointer", backgroundColor: "transparent", fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+                  <PlusCircle style={{ width: 13, height: 13 }} /> Proponer nueva habilidad técnica
                 </button>
               )}
             </div>
 
-            <div
-              className="rounded-xl p-5 flex items-center gap-4"
-              style={{ backgroundColor: "#FFFBF0", border: "2px solid #D4AF37" }}
-            >
-              <div
-                className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0"
-                style={{ backgroundColor: "#D4AF37" }}
-              >
-                <Award className="w-7 h-7 text-white" />
+            {/* Soft skills */}
+            <div style={S.card}>
+              <CardHeading icon={Users} title="Habilidades Blandas" right={
+                <span style={{ backgroundColor: "#F6F5F0", color: "#4A3F35", border: "1px solid #E8E4DC", fontSize: "0.68rem", fontWeight: 700, padding: "2px 9px", borderRadius: 999 }}>
+                  Evaluadas
+                </span>
+              } />
+              {softSkills.length === 0 ? (
+                <p style={{ margin: 0, color: "#94a3b8", fontSize: "0.875rem", textAlign: "center", padding: "14px 0" }}>
+                  Aún no tienes habilidades blandas registradas.
+                </p>
+              ) : (
+                <div>
+                  {softSkills.map((skill, i) => {
+                    const isPending = !skill.validado || pendingIds.has(skill.id);
+                    const pct = skill.porcentaje ?? nivelAPorcentaje(skill.nivel);
+                    return (
+                      <div key={skill.id} style={{ paddingTop: i === 0 ? 0 : 12, paddingBottom: 12, borderBottom: i < softSkills.length - 1 ? "1px solid #F6F5F0" : "none" }}>
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 7 }}>
+                          <span style={{ color: "#0d1b35", fontSize: "0.8125rem", fontWeight: 600 }}>{skill.nombre}</span>
+                          {isPending ? (
+                            <span style={{ backgroundColor: "#FFFBEB", color: "#b45309", border: "1px solid #fde68a", fontSize: "0.68rem", fontWeight: 700, padding: "2px 8px", borderRadius: 999, display: "flex", alignItems: "center", gap: 3 }}>
+                              <Clock style={{ width: 9, height: 9 }} /> Pendiente
+                            </span>
+                          ) : <LevelBadge level={skill.nivel} />}
+                        </div>
+                        {!isPending && (
+                          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                            <div style={{ flex: 1 }}><SkillBar percent={pct} level={skill.nivel} /></div>
+                            <span style={{ color: "#94a3b8", fontSize: "0.68rem", fontWeight: 600, width: 28, textAlign: "right", flexShrink: 0 }}>{pct}%</span>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+              {editMode && (
+                <button onClick={() => { setNewSkillTipo("blanda"); setShowAddSkill(true); }} style={{ marginTop: softSkills.length > 0 ? 4 : 0, width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 7, padding: "10px 0", border: "2px dashed #E8E4DC", borderRadius: 10, color: "#8C7B6B", fontSize: "0.8rem", cursor: "pointer", backgroundColor: "transparent", fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+                  <PlusCircle style={{ width: 13, height: 13 }} /> Proponer nueva habilidad blanda
+                </button>
+              )}
+            </div>
+
+            {/* Institutional seal */}
+            <div style={{ backgroundColor: "#FFFBF0", border: "2px solid #D4AF37", borderRadius: 16, padding: "16px 20px", display: "flex", alignItems: "center", gap: 16 }}>
+              <div style={{ width: 48, height: 48, borderRadius: 13, backgroundColor: "#D4AF37", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, boxShadow: "0 4px 12px rgba(212,175,55,0.3)" }}>
+                <Award style={{ width: 24, height: 24, color: "white" }} />
               </div>
               <div>
-                <p className="text-slate-900 font-bold" style={{ fontSize: "0.9rem" }}>Sello Institucional Liceo Cardenal Caro</p>
-                <p className="text-slate-600 text-xs leading-relaxed mt-0.5">
+                <p style={{ margin: 0, color: "#0d1b35", fontSize: "0.88rem", fontWeight: 700, fontFamily: "'Playfair Display', Georgia, serif" }}>Sello Institucional · Liceo Cardenal Caro</p>
+                <p style={{ margin: "3px 0 0", color: "#6B5D52", fontSize: "0.75rem", lineHeight: 1.5 }}>
                   Competencias verificadas en taller por personal docente calificado.
                 </p>
               </div>
@@ -714,68 +756,58 @@ export function StudentProfile() {
         )}
 
         {!loadingData && tab === "crecimiento" && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
-            <div className="bg-white rounded-xl border border-slate-200 p-5">
-              <div className="flex items-center gap-2 mb-4">
-                <Medal className="w-4 h-4 text-slate-500" />
-                <h3 className="text-slate-900 font-semibold" style={{ fontSize: "0.875rem" }}>Insignias Ganadas</h3>
-              </div>
+          <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+
+            {/* Badges */}
+            <div style={S.card}>
+              <CardHeading icon={Medal} title="Insignias Ganadas" />
               {insignias.length === 0 ? (
-                <div className="flex flex-col items-center gap-2 py-6 text-slate-400">
-                  <Star className="w-10 h-10 text-slate-200" />
-                  <p className="text-sm">Completa acciones para ganar insignias</p>
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8, padding: "20px 0" }}>
+                  <div style={{ width: 48, height: 48, borderRadius: 13, backgroundColor: "#F6F5F0", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <Star style={{ width: 22, height: 22, color: "#D4D0C8" }} />
+                  </div>
+                  <p style={{ margin: 0, color: "#94a3b8", fontSize: "0.85rem" }}>Completa acciones para ganar insignias</p>
                 </div>
               ) : (
-                <div className="flex gap-3 overflow-x-auto pb-2">
+                <div style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 4 }}>
                   {insignias.map((b) => (
-                    <div
-                      key={b.id}
-                      className="flex-shrink-0 border rounded-xl p-4 text-center min-w-[100px]"
-                      style={{ borderColor: "#D4AF37", backgroundColor: "#FFFBF0" }}
-                    >
-                      <span style={{ fontSize: "1.75rem" }}>{b.icono}</span>
-                      <p className="text-slate-700 text-xs font-semibold mt-2" style={{ lineHeight: 1.3 }}>{b.nombre}</p>
-                      <p className="text-slate-400 text-xs mt-1">
+                    <div key={b.id} style={{ flexShrink: 0, minWidth: 96, border: "1px solid #D4AF37", backgroundColor: "#FFFBF0", borderRadius: 14, padding: "14px 12px", textAlign: "center" }}>
+                      <span style={{ fontSize: "1.5rem" }}>{b.icono}</span>
+                      <p style={{ margin: "7px 0 0", color: "#0d1b35", fontSize: "0.72rem", fontWeight: 700, lineHeight: 1.3 }}>{b.nombre}</p>
+                      <p style={{ margin: "3px 0 0", color: "#94a3b8", fontSize: "0.65rem" }}>
                         {new Date(b.fecha_obtencion).toLocaleDateString("es-CL", { month: "short", year: "numeric" })}
                       </p>
                     </div>
                   ))}
-                  <div className="flex-shrink-0 border-2 border-dashed border-slate-200 rounded-xl p-4 text-center min-w-[100px] flex flex-col items-center justify-center">
-                    <Star className="w-7 h-7 text-slate-200 mb-1" />
-                    <p className="text-slate-400 text-xs">Próxima</p>
+                  <div style={{ flexShrink: 0, minWidth: 96, border: "2px dashed #E8E4DC", borderRadius: 14, padding: "14px 12px", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 5 }}>
+                    <Star style={{ width: 22, height: 22, color: "#D4D0C8" }} />
+                    <p style={{ margin: 0, color: "#94a3b8", fontSize: "0.72rem" }}>Próxima</p>
                   </div>
                 </div>
               )}
             </div>
 
-            <div className="bg-white rounded-xl border border-slate-200 p-5">
-              <div className="flex items-center gap-2 mb-3">
-                <TrendingUp className="w-4 h-4 text-slate-500" />
-                <h3 className="text-slate-900 font-semibold" style={{ fontSize: "0.875rem" }}>Progreso General</h3>
-              </div>
+            {/* Progress */}
+            <div style={S.card}>
+              <CardHeading icon={TrendingUp} title="Progreso General" />
               {(() => {
                 const validated = habilidades.filter((h) => h.validado).length;
                 const total = habilidades.length || 1;
                 const pct = Math.round((validated / total) * 100);
                 return (
-                  <div className="flex items-end gap-5">
+                  <div style={{ display: "flex", alignItems: "flex-end", gap: 20 }}>
                     <div>
-                      <p className="font-extrabold" style={{ fontSize: "2.5rem", lineHeight: 1, color: "#D4AF37" }}>
+                      <p style={{ margin: 0, fontFamily: "'Playfair Display', Georgia, serif", fontWeight: 800, fontSize: "2.8rem", lineHeight: 1, color: "#D4AF37" }}>
                         {pct}%
                       </p>
-                      <p className="text-slate-500 text-xs">Habilidades validadas</p>
+                      <p style={{ margin: "4px 0 0", color: "#6B5D52", fontSize: "0.72rem" }}>Habilidades validadas</p>
                     </div>
-                    <div className="flex-1 pb-1">
-                      <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
-                        <motion.div
-                          initial={{ width: 0 }}
-                          animate={{ width: `${pct}%` }}
-                          transition={{ duration: 1 }}
-                          className="h-full rounded-full"
-                          style={{ backgroundColor: "#D4AF37" }}
-                        />
+                    <div style={{ flex: 1, paddingBottom: 6 }}>
+                      <div style={{ height: 8, backgroundColor: "#F0EDE8", borderRadius: 99, overflow: "hidden" }}>
+                        <motion.div initial={{ width: 0 }} animate={{ width: `${pct}%` }} transition={{ duration: 1.1 }}
+                          style={{ height: "100%", borderRadius: 99, backgroundColor: "#D4AF37" }} />
                       </div>
-                      <p className="text-slate-400 text-xs mt-1.5">
+                      <p style={{ margin: "5px 0 0", color: "#8C7B6B", fontSize: "0.7rem" }}>
                         {validated} de {total} habilidades validadas por docentes
                       </p>
                     </div>
@@ -784,31 +816,27 @@ export function StudentProfile() {
               })()}
             </div>
 
+            {/* Completed courses */}
             {misCursos.length > 0 && (
-              <div className="space-y-3">
-                <div className="flex items-center gap-2">
-                  <BookOpen className="w-4 h-4 text-slate-500" />
-                  <h3 className="text-slate-900 font-semibold" style={{ fontSize: "0.875rem" }}>Cursos Realizados</h3>
-                </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                <p style={{ ...S.label, marginBottom: 2 }}>Cursos Realizados</p>
                 {misCursos.map((mc) => {
                   const estadoBadge =
-                    mc.estado === "aprobado"
-                      ? { label: "Completado", cls: "bg-green-50 text-green-700 border-green-200" }
-                      : mc.estado === "rechazado"
-                      ? { label: "Rechazado", cls: "bg-red-50 text-red-600 border-red-200" }
-                      : { label: "Por Validar", cls: "bg-amber-50 text-amber-700 border-amber-200" };
+                    mc.estado === "aprobado"   ? { label: "Completado", bg: "#F0FDF4", color: "#15803d", border: "#bbf7d0" }
+                    : mc.estado === "rechazado" ? { label: "Rechazado",  bg: "#FEF2F2", color: "#b91c1c", border: "#fecaca" }
+                    :                             { label: "Por Validar", bg: "#FFFBEB", color: "#b45309", border: "#fde68a" };
                   return (
-                    <div key={mc.id} className="bg-white rounded-xl border border-slate-200 p-4 flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-lg bg-slate-100 flex items-center justify-center flex-shrink-0 text-base">
+                    <div key={mc.id} style={{ ...S.card, padding: "12px 16px", display: "flex", alignItems: "center", gap: 12 }}>
+                      <div style={{ width: 38, height: 38, borderRadius: 10, backgroundColor: "#F6F5F0", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: "1.1rem" }}>
                         {mc.curso?.plataforma === "youtube" ? "▶️" : "🎓"}
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-slate-900 text-sm font-semibold truncate">{mc.curso?.titulo}</p>
-                        {mc.curso?.especialidad && (
-                          <p className="text-slate-400 text-xs mt-0.5">{mc.curso.especialidad}</p>
-                        )}
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <p style={{ margin: 0, color: "#0d1b35", fontSize: "0.8125rem", fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                          {mc.curso?.titulo}
+                        </p>
+                        {mc.curso?.especialidad && <p style={{ margin: "2px 0 0", color: "#8C7B6B", fontSize: "0.72rem" }}>{mc.curso.especialidad}</p>}
                       </div>
-                      <span className={`text-xs px-2 py-0.5 rounded-full border font-semibold flex-shrink-0 ${estadoBadge.cls}`}>
+                      <span style={{ backgroundColor: estadoBadge.bg, color: estadoBadge.color, border: `1px solid ${estadoBadge.border}`, fontSize: "0.68rem", fontWeight: 700, padding: "3px 9px", borderRadius: 999, flexShrink: 0 }}>
                         {estadoBadge.label}
                       </span>
                     </div>
@@ -817,72 +845,45 @@ export function StudentProfile() {
               </div>
             )}
 
-            <div className="space-y-3">
-              <div className="flex items-center gap-2">
-                <BookOpen className="w-4 h-4 text-slate-500" />
-                <h3 className="text-slate-900 font-semibold" style={{ fontSize: "0.875rem" }}>Cursos Recomendados</h3>
-              </div>
+            {/* Recommended courses */}
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              <p style={{ ...S.label, marginBottom: 2 }}>Cursos Recomendados</p>
               {cursos.length === 0 ? (
-                <div className="bg-white rounded-xl border border-slate-200 p-6 text-center text-slate-400 text-sm">
+                <div style={{ ...S.card, textAlign: "center", color: "#94a3b8", fontSize: "0.875rem" }}>
                   No hay cursos disponibles en este momento.
                 </div>
               ) : (
                 cursos.map((c, i) => (
-                  <motion.div
-                    key={c.id}
-                    initial={{ opacity: 0, y: 6 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: i * 0.07 }}
-                    className="bg-white rounded-xl border border-slate-200 p-4"
-                  >
-                    <div className="flex items-start gap-3">
-                      <div className="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center flex-shrink-0">
-                        <span style={{ fontSize: "1.1rem" }}>
-                          {c.plataforma?.toLowerCase().includes("youtube") ? "▶️" : "🎓"}
-                        </span>
+                  <motion.div key={c.id} initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.06 }}
+                    style={{ ...S.card, padding: "14px 16px" }}>
+                    <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
+                      <div style={{ width: 40, height: 40, borderRadius: 11, backgroundColor: "#F6F5F0", border: "1px solid #E8E4DC", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: "1.1rem" }}>
+                        {c.plataforma?.toLowerCase().includes("youtube") ? "▶️" : "🎓"}
                       </div>
-                      <div className="flex-1">
-                        <div className="flex items-start justify-between gap-2">
-                          <h4 className="text-slate-900 text-sm font-semibold" style={{ lineHeight: 1.35 }}>{c.titulo}</h4>
-                          <span
-                            className={`flex-shrink-0 text-xs font-semibold px-2 py-0.5 rounded-full border ${
-                              c.plataforma?.toLowerCase().includes("youtube")
-                                ? "bg-red-50 text-red-600 border-red-200"
-                                : "bg-purple-50 text-purple-600 border-purple-200"
-                            }`}
-                          >
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
+                          <h4 style={{ margin: 0, color: "#0d1b35", fontSize: "0.8125rem", fontWeight: 700, lineHeight: 1.35 }}>{c.titulo}</h4>
+                          <span style={{ flexShrink: 0, fontSize: "0.65rem", fontWeight: 700, padding: "2px 8px", borderRadius: 999, border: "1px solid", ...(c.plataforma?.toLowerCase().includes("youtube") ? { backgroundColor: "#FEF2F2", color: "#b91c1c", borderColor: "#fecaca" } : { backgroundColor: "#F5F3FF", color: "#6d28d9", borderColor: "#ddd6fe" }) }}>
                             {c.plataforma}
                           </span>
                         </div>
-                        {c.duracion && (
-                          <p className="text-slate-400 text-xs mt-0.5">
-                            <Clock className="w-3 h-3 inline mr-1" />{c.duracion}
-                          </p>
-                        )}
+                        {c.duracion && <p style={{ margin: "3px 0 0", color: "#8C7B6B", fontSize: "0.72rem", display: "flex", alignItems: "center", gap: 4 }}><Clock style={{ width: 10, height: 10 }} />{c.duracion}</p>}
                         {c.inscrito && (c.progreso ?? 0) > 0 && (
-                          <div className="mt-2">
-                            <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                              <div className="h-full bg-blue-500 rounded-full" style={{ width: `${c.progreso}%` }} />
+                          <div style={{ marginTop: 8 }}>
+                            <div style={{ height: 5, backgroundColor: "#E8E4DC", borderRadius: 99, overflow: "hidden" }}>
+                              <div style={{ height: "100%", backgroundColor: "#1d4ed8", borderRadius: 99, width: `${c.progreso}%` }} />
                             </div>
-                            <p className="text-slate-500 text-xs font-semibold mt-1">{c.progreso}% completado</p>
+                            <p style={{ margin: "3px 0 0", color: "#6B5D52", fontSize: "0.7rem", fontWeight: 600 }}>{c.progreso}% completado</p>
                           </div>
                         )}
-                        <div className="flex justify-end mt-2">
+                        <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 8 }}>
                           {c.inscrito ? (
-                            <a
-                              href={c.url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="flex items-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50"
-                            >
-                              Continuar <ExternalLink className="w-3 h-3" />
+                            <a href={c.url} target="_blank" rel="noopener noreferrer" style={{ display: "flex", alignItems: "center", gap: 5, fontSize: "0.75rem", fontWeight: 700, padding: "6px 12px", borderRadius: 9, border: "1px solid #E8E4DC", color: "#0d1b35", textDecoration: "none", backgroundColor: "#F6F5F0" }}>
+                              Continuar <ExternalLink style={{ width: 11, height: 11 }} />
                             </a>
                           ) : (
-                            <button
-                              onClick={() => handleInscribirse(c.id)}
-                              className="flex items-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-lg border border-slate-900 bg-slate-900 text-white hover:bg-slate-700"
-                            >
-                              Inscribirse <ExternalLink className="w-3 h-3" />
+                            <button onClick={() => handleInscribirse(c.id)} style={{ display: "flex", alignItems: "center", gap: 5, fontSize: "0.75rem", fontWeight: 700, padding: "6px 12px", borderRadius: 9, border: "none", backgroundColor: "#0d1b35", color: "white", cursor: "pointer", fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+                              Inscribirse <ExternalLink style={{ width: 11, height: 11 }} />
                             </button>
                           )}
                         </div>
@@ -896,27 +897,21 @@ export function StudentProfile() {
         )}
       </div>
 
+      {/* Evidence detail */}
       {selectedEv && (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
-          onClick={(e) => e.target === e.currentTarget && setSelectedEv(null)}
-        >
-          <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }}
-            className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden"
-          >
-            <div className="relative">
-              <img src={selectedEv.imagen} alt={selectedEv.titulo} className="w-full object-cover max-h-64" />
-              <button onClick={() => setSelectedEv(null)}
-                className="absolute top-3 right-3 w-8 h-8 rounded-full bg-black/50 flex items-center justify-center text-white hover:bg-black/70 transition-colors">
-                <X className="w-4 h-4" />
+          style={S.modalOverlay} onClick={(e) => e.target === e.currentTarget && setSelectedEv(null)}>
+          <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} style={{ ...S.modalCard, maxWidth: 440 }}>
+            <div style={{ position: "relative" }}>
+              <img src={selectedEv.imagen} alt={selectedEv.titulo} style={{ width: "100%", objectFit: "cover", maxHeight: 256, display: "block" }} />
+              <button onClick={() => setSelectedEv(null)} style={{ position: "absolute", top: 10, right: 10, width: 32, height: 32, borderRadius: "50%", backgroundColor: "rgba(0,0,0,0.5)", color: "white", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <X style={{ width: 14, height: 14 }} />
               </button>
             </div>
-            <div className="p-5">
-              <h3 className="text-slate-900 text-base font-bold">{selectedEv.titulo}</h3>
-              {selectedEv.descripcion && (
-                <p className="text-slate-600 text-sm mt-2 leading-relaxed">{selectedEv.descripcion}</p>
-              )}
-              <p className="text-slate-400 text-xs mt-3">
+            <div style={{ padding: 20 }}>
+              <h3 style={{ margin: 0, color: "#0d1b35", fontSize: "1rem", fontWeight: 700, fontFamily: "'Playfair Display', Georgia, serif" }}>{selectedEv.titulo}</h3>
+              {selectedEv.descripcion && <p style={{ margin: "8px 0 0", color: "#4A3F35", fontSize: "0.875rem", lineHeight: 1.65 }}>{selectedEv.descripcion}</p>}
+              <p style={{ margin: "10px 0 0", color: "#94a3b8", fontSize: "0.72rem" }}>
                 {new Date(selectedEv.fecha_subida).toLocaleDateString("es-CL", { day: "numeric", month: "long", year: "numeric" })}
               </p>
             </div>
@@ -924,53 +919,45 @@ export function StudentProfile() {
         </motion.div>
       )}
 
+      {/* Add evidence */}
       {showAddEvidencia && (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
-          onClick={(e) => e.target === e.currentTarget && setShowAddEvidencia(false)}
-        >
-          <motion.div initial={{ scale: 0.96 }} animate={{ scale: 1 }}
-            className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-5"
-          >
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-slate-900 text-sm font-bold">Agregar evidencia</h3>
-              <button onClick={() => setShowAddEvidencia(false)} className="w-7 h-7 rounded-lg flex items-center justify-center hover:bg-slate-100 text-slate-400">
-                <X className="w-4 h-4" />
-              </button>
+          style={S.modalOverlay} onClick={(e) => e.target === e.currentTarget && setShowAddEvidencia(false)}>
+          <motion.div initial={{ scale: 0.96 }} animate={{ scale: 1 }} style={S.modalCard}>
+            <div style={S.modalHeader}>
+              <p style={{ margin: 0, color: "#0d1b35", fontSize: "0.9rem", fontWeight: 700, fontFamily: "'Playfair Display', Georgia, serif" }}>Agregar evidencia</p>
+              <ModalCloseBtn onClose={() => setShowAddEvidencia(false)} />
             </div>
-            <div className="space-y-3">
+            <div style={{ padding: 20, display: "flex", flexDirection: "column", gap: 14 }}>
               <div>
-                <label className="block text-slate-700 text-xs font-semibold mb-1.5">Título <span className="text-red-500">*</span></label>
+                <label style={{ ...S.label, display: "block", marginBottom: 6 }}>Título *</label>
                 <input type="text" value={evTitulo} onChange={(e) => setEvTitulo(e.target.value)}
-                  placeholder="ej. Instalación eléctrica residencial"
-                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-slate-200" />
+                  placeholder="ej. Instalación eléctrica residencial" style={S.input}
+                  onFocus={(el) => { el.currentTarget.style.borderColor = "#D4AF37"; el.currentTarget.style.backgroundColor = "#FFFFFF"; }}
+                  onBlur={(el) => { el.currentTarget.style.borderColor = "#E8E4DC"; el.currentTarget.style.backgroundColor = "#F6F5F0"; }} />
               </div>
               <div>
-                <label className="block text-slate-700 text-xs font-semibold mb-1.5">Descripción</label>
+                <label style={{ ...S.label, display: "block", marginBottom: 6 }}>Descripción</label>
                 <textarea value={evDescripcion} onChange={(e) => setEvDescripcion(e.target.value)}
                   rows={3} placeholder="Describe brevemente el proyecto o trabajo..."
-                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2.5 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-slate-200" />
+                  style={{ ...S.input, resize: "none" }}
+                  onFocus={(el) => { el.currentTarget.style.borderColor = "#D4AF37"; el.currentTarget.style.backgroundColor = "#FFFFFF"; }}
+                  onBlur={(el) => { el.currentTarget.style.borderColor = "#E8E4DC"; el.currentTarget.style.backgroundColor = "#F6F5F0"; }} />
               </div>
               <div>
-                <label className="block text-slate-700 text-xs font-semibold mb-1.5">Foto del proyecto <span className="text-red-500">*</span></label>
-                <label className={`w-full flex flex-col items-center justify-center gap-2 py-6 rounded-xl border-2 border-dashed cursor-pointer transition-colors ${evImagen ? "border-green-300 bg-green-50" : "border-slate-200 bg-slate-50 hover:border-slate-300"}`}>
-                  <input type="file" accept="image/*" className="hidden"
-                    onChange={(e) => setEvImagen(e.target.files?.[0] ?? null)} />
+                <label style={{ ...S.label, display: "block", marginBottom: 6 }}>Foto del proyecto *</label>
+                <label style={{ width: "100%", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 8, padding: "24px 0", borderRadius: 12, cursor: "pointer", border: `2px dashed ${evImagen ? "#D4AF37" : "#E8E4DC"}`, backgroundColor: evImagen ? "#FFFBF0" : "#F6F5F0", boxSizing: "border-box" as const }}>
+                  <input type="file" accept="image/*" style={{ display: "none" }} onChange={(e) => setEvImagen(e.target.files?.[0] ?? null)} />
                   {evImagen ? (
-                    <>
-                      <CheckCircle className="w-6 h-6 text-green-500" />
-                      <p className="text-green-700 text-xs font-semibold text-center">{evImagen.name}</p>
-                    </>
+                    <><CheckCircle style={{ width: 22, height: 22, color: "#D4AF37" }} />
+                    <p style={{ margin: 0, color: "#B8962E", fontSize: "0.75rem", fontWeight: 700, textAlign: "center" }}>{evImagen.name}</p></>
                   ) : (
-                    <>
-                      <PlusCircle className="w-6 h-6 text-slate-300" />
-                      <p className="text-slate-400 text-xs text-center">Haz clic para seleccionar una imagen</p>
-                    </>
+                    <><PlusCircle style={{ width: 22, height: 22, color: "#D4D0C8" }} />
+                    <p style={{ margin: 0, color: "#94a3b8", fontSize: "0.75rem" }}>Haz clic para seleccionar una imagen</p></>
                   )}
                 </label>
               </div>
-              <button onClick={handleAddEvidencia} disabled={!evTitulo.trim() || !evImagen || addingEv}
-                className={`w-full py-3 rounded-xl text-sm font-semibold transition-colors ${evTitulo.trim() && evImagen && !addingEv ? "bg-slate-900 hover:bg-slate-700 text-white" : "bg-slate-100 text-slate-400 cursor-not-allowed"}`}>
+              <button onClick={handleAddEvidencia} disabled={!evTitulo.trim() || !evImagen || addingEv} style={{ width: "100%", padding: "12px 0", borderRadius: 12, border: "none", backgroundColor: evTitulo.trim() && evImagen && !addingEv ? "#0d1b35" : "#E8E4DC", color: evTitulo.trim() && evImagen && !addingEv ? "white" : "#94a3b8", fontSize: "0.875rem", fontWeight: 700, cursor: evTitulo.trim() && evImagen && !addingEv ? "pointer" : "not-allowed", fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
                 {addingEv ? "Subiendo…" : "Guardar evidencia"}
               </button>
             </div>
@@ -978,55 +965,41 @@ export function StudentProfile() {
         </motion.div>
       )}
 
+      {/* Add skill */}
       {showAddSkill && (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
-          onClick={(e) => e.target === e.currentTarget && setShowAddSkill(false)}
-        >
-          <motion.div initial={{ scale: 0.96 }} animate={{ scale: 1 }}
-            className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-5"
-          >
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-slate-900 text-sm font-bold">
+          style={S.modalOverlay} onClick={(e) => e.target === e.currentTarget && setShowAddSkill(false)}>
+          <motion.div initial={{ scale: 0.96 }} animate={{ scale: 1 }} style={S.modalCard}>
+            <div style={S.modalHeader}>
+              <p style={{ margin: 0, color: "#0d1b35", fontSize: "0.9rem", fontWeight: 700, fontFamily: "'Playfair Display', Georgia, serif" }}>
                 Proponer habilidad {newSkillTipo === "tecnica" ? "técnica" : "blanda"}
-              </h3>
-              <button onClick={() => setShowAddSkill(false)} className="w-7 h-7 rounded-lg flex items-center justify-center hover:bg-slate-100 text-slate-400">
-                <X className="w-4 h-4" />
-              </button>
+              </p>
+              <ModalCloseBtn onClose={() => setShowAddSkill(false)} />
             </div>
-            <p className="text-slate-500 text-xs mb-4">
-              La habilidad quedará en estado <strong>Pendiente</strong> hasta que un docente la valide.
-            </p>
-            <div className="space-y-3">
+            <div style={{ padding: 20, display: "flex", flexDirection: "column", gap: 14 }}>
+              <p style={{ margin: 0, color: "#6B5D52", fontSize: "0.78rem", lineHeight: 1.6 }}>
+                La habilidad quedará en estado <strong>Pendiente</strong> hasta que un docente la valide.
+              </p>
               <div>
-                <label className="block text-slate-700 text-xs font-semibold mb-1.5">Nombre de la habilidad</label>
-                <input
-                  type="text"
-                  value={newSkillNombre}
-                  onChange={(e) => setNewSkillNombre(e.target.value)}
+                <label style={{ ...S.label, display: "block", marginBottom: 6 }}>Nombre de la habilidad</label>
+                <input type="text" value={newSkillNombre} onChange={(e) => setNewSkillNombre(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && handleAddSkill()}
                   placeholder={newSkillTipo === "tecnica" ? "ej. Programación en Python" : "ej. Trabajo en equipo"}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-slate-200"
-                  autoFocus
-                />
+                  style={S.input} autoFocus
+                  onFocus={(el) => { el.currentTarget.style.borderColor = "#D4AF37"; el.currentTarget.style.backgroundColor = "#FFFFFF"; }}
+                  onBlur={(el) => { el.currentTarget.style.borderColor = "#E8E4DC"; el.currentTarget.style.backgroundColor = "#F6F5F0"; }} />
               </div>
               <div>
-                <label className="block text-slate-700 text-xs font-semibold mb-1.5">Tipo</label>
-                <div className="flex gap-2">
+                <label style={{ ...S.label, display: "block", marginBottom: 6 }}>Tipo</label>
+                <div style={{ display: "flex", gap: 8 }}>
                   {(["tecnica", "blanda"] as const).map((t) => (
-                    <button key={t} onClick={() => setNewSkillTipo(t)}
-                      className={`flex-1 py-2 rounded-lg text-xs font-semibold border transition-all ${newSkillTipo === t ? "bg-slate-900 text-white border-slate-900" : "border-slate-200 text-slate-600 hover:bg-slate-50"}`}
-                    >
+                    <button key={t} onClick={() => setNewSkillTipo(t)} style={{ flex: 1, padding: "9px 0", borderRadius: 10, fontSize: "0.8rem", fontWeight: 700, border: "1.5px solid", borderColor: newSkillTipo === t ? "#0d1b35" : "#E8E4DC", backgroundColor: newSkillTipo === t ? "#0d1b35" : "white", color: newSkillTipo === t ? "white" : "#6B5D52", cursor: "pointer", fontFamily: "'Plus Jakarta Sans', sans-serif", transition: "all 0.15s" }}>
                       {t === "tecnica" ? "Técnica" : "Blanda"}
                     </button>
                   ))}
                 </div>
               </div>
-              <button
-                onClick={handleAddSkill}
-                disabled={!newSkillNombre.trim() || addingSkill}
-                className={`w-full py-3 rounded-xl text-sm font-semibold transition-colors ${newSkillNombre.trim() && !addingSkill ? "bg-slate-900 hover:bg-slate-700 text-white" : "bg-slate-100 text-slate-400 cursor-not-allowed"}`}
-              >
+              <button onClick={handleAddSkill} disabled={!newSkillNombre.trim() || addingSkill} style={{ width: "100%", padding: "12px 0", borderRadius: 12, border: "none", backgroundColor: newSkillNombre.trim() && !addingSkill ? "#0d1b35" : "#E8E4DC", color: newSkillNombre.trim() && !addingSkill ? "white" : "#94a3b8", fontSize: "0.875rem", fontWeight: 700, cursor: newSkillNombre.trim() && !addingSkill ? "pointer" : "not-allowed", fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
                 {addingSkill ? "Enviando…" : "Enviar para validación"}
               </button>
             </div>
@@ -1034,74 +1007,52 @@ export function StudentProfile() {
         </motion.div>
       )}
 
+      {/* QR Panel */}
       {showQR && (
-        <QRPanel
-          profileUrl={profileUrl}
-          nombre={nombre}
-          especialidad={especialidad}
-          onClose={() => setShowQR(false)}
-        />
+        <AnimatePresence>
+          <QRPanel profileUrl={profileUrl} nombre={nombre} especialidad={especialidad} onClose={() => setShowQR(false)} />
+        </AnimatePresence>
       )}
 
+      {/* Job celebration */}
       <AnimatePresence>
         {empleoConseguido && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center px-4"
-            style={{ backgroundColor: "rgba(0,0,0,0.5)" }}
-          >
-            <motion.div
-              initial={{ scale: 0.85, opacity: 0, y: 20 }}
-              animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.9, opacity: 0 }}
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            style={{ ...S.modalOverlay, backgroundColor: "rgba(0,0,0,0.55)" }}>
+            <motion.div initial={{ scale: 0.85, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.9, opacity: 0 }}
               transition={{ type: "spring", damping: 22, stiffness: 260 }}
-              className="bg-white rounded-2xl shadow-2xl max-w-sm w-full overflow-hidden"
-            >
-              <div className="relative px-6 pt-8 pb-6 text-center"
-                style={{ background: "linear-gradient(135deg, #D4AF37 0%, #F0D060 50%, #D4AF37 100%)" }}>
-                <div className="text-5xl mb-2">🎉</div>
-                <p className="text-white text-xl font-extrabold" style={{ textShadow: "0 1px 3px rgba(0,0,0,0.2)" }}>
+              style={{ ...S.modalCard, maxWidth: 360 }}>
+              <div style={{ padding: "32px 24px 24px", textAlign: "center", background: "linear-gradient(135deg, #D4AF37 0%, #F0D060 50%, #D4AF37 100%)" }}>
+                <div style={{ fontSize: "2.75rem", marginBottom: 6 }}>🎉</div>
+                <p style={{ margin: 0, color: "white", fontSize: "1.3rem", fontWeight: 800, fontFamily: "'Playfair Display', Georgia, serif", textShadow: "0 1px 4px rgba(0,0,0,0.2)" }}>
                   ¡Felicitaciones!
                 </p>
-                <p className="text-white/90 text-sm font-medium mt-1">
-                  Has conseguido empleo
-                </p>
+                <p style={{ margin: "4px 0 0", color: "rgba(255,255,255,0.9)", fontSize: "0.875rem", fontWeight: 500 }}>Has conseguido empleo</p>
               </div>
-
-              <div className="px-6 py-5 text-center">
-                <p className="text-slate-700 text-sm leading-relaxed mb-1">
-                  Tu postulación a
-                </p>
-                <p className="text-slate-900 text-base font-bold mb-1">
+              <div style={{ padding: "20px 24px", textAlign: "center" }}>
+                <p style={{ margin: 0, color: "#6B5D52", fontSize: "0.875rem" }}>Tu postulación a</p>
+                <p style={{ margin: "4px 0 0", color: "#0d1b35", fontSize: "1rem", fontWeight: 700, fontFamily: "'Playfair Display', Georgia, serif" }}>
                   {empleoConseguido.oferta_titulo || "la oferta"}
                 </p>
                 {empleoConseguido.oferta_empresa_nombre && (
-                  <p className="text-slate-500 text-sm mb-4">
-                    en <span className="font-semibold">{empleoConseguido.oferta_empresa_nombre}</span> fue aceptada.
+                  <p style={{ margin: "2px 0 0", color: "#6B5D52", fontSize: "0.875rem" }}>
+                    en <strong>{empleoConseguido.oferta_empresa_nombre}</strong> fue aceptada.
                   </p>
                 )}
-
-                <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 mb-5">
-                  <p className="text-amber-800 text-xs font-medium leading-relaxed">
-                    ¡Tu esfuerzo y dedicación dieron frutos! Esta es una nueva etapa en tu carrera profesional. ¡Mucho éxito!
+                <div style={{ backgroundColor: "#FFFBF0", border: "1px solid #D4AF37", borderRadius: 12, padding: "10px 16px", margin: "16px 0" }}>
+                  <p style={{ margin: 0, color: "#8C7B6B", fontSize: "0.775rem", lineHeight: 1.6 }}>
+                    ¡Tu esfuerzo y dedicación dieron frutos! Esta es una nueva etapa en tu carrera profesional.
                   </p>
                 </div>
-
-                <button
-                  onClick={() => {
-                    if (empleoConseguido?.id != null) {
-                      const celebradas = JSON.parse(localStorage.getItem("postulaciones_celebradas") ?? "[]") as number[];
-                      if (!celebradas.includes(empleoConseguido.id)) {
-                        localStorage.setItem("postulaciones_celebradas", JSON.stringify([...celebradas, empleoConseguido.id]));
-                      }
+                <button onClick={() => {
+                  if (empleoConseguido?.id != null) {
+                    const celebradas = JSON.parse(localStorage.getItem("postulaciones_celebradas") ?? "[]") as number[];
+                    if (!celebradas.includes(empleoConseguido.id)) {
+                      localStorage.setItem("postulaciones_celebradas", JSON.stringify([...celebradas, empleoConseguido.id]));
                     }
-                    setEmpleoConseguido(null);
-                  }}
-                  className="w-full py-3 rounded-xl text-white text-sm font-bold transition-colors"
-                  style={{ background: "linear-gradient(135deg, #D4AF37, #B8962E)" }}
-                >
+                  }
+                  setEmpleoConseguido(null);
+                }} style={{ width: "100%", padding: "12px 0", borderRadius: 12, border: "none", background: "linear-gradient(135deg, #D4AF37, #B8962E)", color: "white", fontSize: "0.875rem", fontWeight: 800, cursor: "pointer", fontFamily: "'Playfair Display', Georgia, serif" }}>
                   ¡Entendido, gracias! 🚀
                 </button>
               </div>
@@ -1110,5 +1061,15 @@ export function StudentProfile() {
         )}
       </AnimatePresence>
     </div>
+  );
+}
+
+// Inline loader to avoid extra import
+function Loader({ style, className }: { style?: React.CSSProperties; className?: string }) {
+  return (
+    <svg style={style} className={className} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+      <circle style={{ opacity: 0.25 }} cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+      <path style={{ opacity: 0.75 }} fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+    </svg>
   );
 }

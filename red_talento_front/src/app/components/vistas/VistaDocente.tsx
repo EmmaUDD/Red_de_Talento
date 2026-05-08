@@ -10,6 +10,14 @@ import type { DocenteResult, FeedPost } from "@/app/types";
 import { PostList } from "./PostList";
 
 const BASE_URL = import.meta.env.VITE_API_URL ?? "http://127.0.0.1:8000";
+const FONT_URL = "https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap";
+
+const nivelLabel: Record<string, string> = {
+  junior: "Junior",
+  intermedio: "Intermedio",
+  senior: "Senior",
+  experto: "Experto",
+};
 
 export function VistaDocente() {
   const { id } = useParams<{ id: string }>();
@@ -18,6 +26,15 @@ export function VistaDocente() {
   const [posts, setPosts] = useState<FeedPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<"publicaciones" | "perfil" | "info">("publicaciones");
+
+  useEffect(() => {
+    if (!document.querySelector(`link[href="${FONT_URL}"]`)) {
+      const link = document.createElement("link");
+      link.rel = "stylesheet";
+      link.href = FONT_URL;
+      document.head.appendChild(link);
+    }
+  }, []);
 
   useEffect(() => {
     if (!id) return;
@@ -34,18 +51,21 @@ export function VistaDocente() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#F9FAFB] flex items-center justify-center">
-        <Loader2 className="w-7 h-7 animate-spin text-slate-400" />
+      <div style={{ minHeight: "100vh", backgroundColor: "#F6F5F0", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <Loader2 className="animate-spin" style={{ width: 28, height: 28, color: "#D4AF37" }} />
       </div>
     );
   }
 
   if (!perfil) {
     return (
-      <div className="min-h-screen bg-[#F9FAFB] flex flex-col items-center justify-center gap-3">
-        <p className="text-slate-500 text-sm">Perfil no encontrado.</p>
-        <button onClick={() => navigate(-1)} className="text-xs text-slate-400 hover:text-slate-600 flex items-center gap-1">
-          <ArrowLeft className="w-3.5 h-3.5" /> Volver
+      <div style={{ minHeight: "100vh", backgroundColor: "#F6F5F0", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 12 }}>
+        <p style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: "0.9rem", color: "#8C7B6B" }}>Perfil no encontrado.</p>
+        <button
+          onClick={() => navigate(-1)}
+          style={{ display: "flex", alignItems: "center", gap: 6, fontSize: "0.82rem", color: "#A8998A", background: "none", border: "none", cursor: "pointer", fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+        >
+          <ArrowLeft style={{ width: 14, height: 14 }} /> Volver
         </button>
       </div>
     );
@@ -54,92 +74,161 @@ export function VistaDocente() {
   const foto = perfil.foto_url ?? perfil.foto_perfil;
   const fotoSrc = foto ? (foto.startsWith("http") ? foto : `${BASE_URL}${foto}`) : null;
 
-  const nivelLabel: Record<string, string> = {
-    junior: "Junior",
-    intermedio: "Intermedio",
-    senior: "Senior",
-    experto: "Experto",
-  };
+  const tabs: { id: "publicaciones" | "perfil" | "info"; label: string }[] = [
+    { id: "publicaciones", label: "Publicaciones" },
+    { id: "perfil", label: "Perfil" },
+    { id: "info", label: "Información" },
+  ];
+
+  const kpis = [
+    { label: "Nivel", value: perfil.nivel ? (nivelLabel[perfil.nivel] ?? perfil.nivel) : "—" },
+    { label: "Institución", value: "Liceo Caro" },
+    { label: "Comuna", value: "Lo Espejo" },
+  ];
 
   return (
-    <div className="min-h-screen bg-[#F9FAFB]">
-      <div className="bg-white border-b border-slate-200">
-        {/* Cover */}
-        <div className="relative h-36 md:h-44 overflow-hidden">
-          <img
-            src="https://images.unsplash.com/photo-1758685734511-4f49ce9a382b?w=1200&h=300&fit=crop&auto=format"
-            className="w-full h-full object-cover"
-            alt="cover docente"
-          />
-          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-slate-900/30 to-slate-900/60" />
-          <button
-            onClick={() => navigate(-1)}
-            className="absolute top-3 left-4 flex items-center gap-1.5 bg-white/90 backdrop-blur-sm rounded-full px-3 py-1.5 text-slate-700 hover:bg-white transition-colors"
-          >
-            <ArrowLeft className="w-3.5 h-3.5" />
-            <span className="text-xs font-semibold">Volver</span>
-          </button>
-          <div className="absolute top-3 right-4 flex items-center gap-1.5 bg-white/90 backdrop-blur-sm rounded-full px-3 py-1.5">
-            <ShieldCheck className="w-3.5 h-3.5 text-green-600" />
-            <span className="text-slate-900 text-xs font-semibold">Docente Verificado</span>
-          </div>
-        </div>
+    <div style={{ minHeight: "100vh", backgroundColor: "#F6F5F0", fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
 
-        <div className="max-w-3xl mx-auto px-4 pb-0">
-          <div className="flex items-end gap-4 -mt-10 mb-4 relative z-10">
-            {/* Avatar */}
-            <div className="relative flex-shrink-0">
-              <div className="w-20 h-20 rounded-2xl border-4 border-white shadow-md overflow-hidden bg-slate-700 flex items-center justify-center">
+<div style={{ backgroundColor: "#FFFFFF", borderBottom: "1px solid #E8E4DC" }}>
+
+        {/* Cover — full width, no maxWidth */}
+        <div style={{
+            height: 160,
+            backgroundColor: "#0d1b35",
+            backgroundImage: "radial-gradient(circle, rgba(255,255,255,0.08) 1px, transparent 1px)",
+            backgroundSize: "18px 18px",
+            position: "relative",
+          }}>
+            {/* Back button */}
+            <button
+              onClick={() => navigate(-1)}
+              style={{
+                position: "absolute",
+                top: 14,
+                left: 16,
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+                fontSize: "0.82rem",
+                color: "rgba(255,255,255,0.75)",
+                backgroundColor: "rgba(255,255,255,0.1)",
+                border: "1px solid rgba(255,255,255,0.15)",
+                borderRadius: 8,
+                padding: "5px 12px",
+                cursor: "pointer",
+                fontFamily: "'Plus Jakarta Sans', sans-serif",
+              }}
+            >
+              <ArrowLeft style={{ width: 13, height: 13 }} /> Volver
+            </button>
+
+            {/* Verified badge */}
+            <div style={{
+              position: "absolute",
+              top: 14,
+              right: 16,
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 5,
+              backgroundColor: "rgba(212,175,55,0.15)",
+              border: "1px solid rgba(212,175,55,0.4)",
+              borderRadius: 20,
+              padding: "4px 12px",
+            }}>
+              <ShieldCheck style={{ width: 13, height: 13, color: "#D4AF37" }} />
+              <span style={{ fontSize: 11, fontWeight: 700, color: "#D4AF37" }}>Docente Verificado</span>
+            </div>
+          </div>
+
+        {/* Identity + tabs — maxWidth centered container */}
+        <div style={{ maxWidth: 1100, margin: "0 auto", padding: "0 24px" }}>
+
+          {/* Avatar + identity — overlaps cover */}
+          <div style={{ display: "flex", alignItems: "flex-end", gap: 18, marginTop: -44 }}>
+            <div style={{ position: "relative", flexShrink: 0 }}>
+              <div style={{
+                width: 96, height: 96, borderRadius: 18,
+                border: "4px solid #FFFFFF", overflow: "hidden",
+                backgroundColor: "#0d1b35",
+                display: "flex", alignItems: "center", justifyContent: "center",
+              }}>
                 {fotoSrc ? (
-                  <img src={fotoSrc} className="w-full h-full object-cover" alt={perfil.nombre} />
+                  <img src={fotoSrc} alt={perfil.nombre} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
                 ) : (
-                  <span className="text-white text-2xl font-bold">{perfil.nombre.charAt(0).toUpperCase()}</span>
+                  <span style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: "2.2rem", fontWeight: 700, color: "#D4AF37" }}>
+                    {perfil.nombre.charAt(0).toUpperCase()}
+                  </span>
                 )}
               </div>
-              <div className="absolute -bottom-2 -right-2 w-7 h-7 rounded-xl flex items-center justify-center border-2 border-white shadow z-10" style={{ backgroundColor: "#D4AF37" }}>
-                <Award className="w-3.5 h-3.5 text-white" />
+              <div style={{
+                position: "absolute", bottom: -4, right: -4,
+                width: 26, height: 26, borderRadius: 8,
+                backgroundColor: "#D4AF37", border: "3px solid #FFFFFF",
+                display: "flex", alignItems: "center", justifyContent: "center", zIndex: 10,
+              }}>
+                <Award style={{ width: 14, height: 14, color: "#FFFFFF" }} />
               </div>
             </div>
 
-            <div className="flex-1 pb-1">
-              <h1 className="text-slate-900" style={{ fontWeight: 800, fontSize: "1.2rem", lineHeight: 1.2 }}>
+            <div style={{ flex: 1, minWidth: 0, paddingBottom: 12, paddingTop: 48 }}>
+              <h1 style={{
+                fontFamily: "'Playfair Display', Georgia, serif",
+                fontSize: "1.5rem", fontWeight: 700, color: "#0d1b35",
+                margin: 0, lineHeight: 1.2,
+              }}>
                 Prof. {perfil.nombre}
               </h1>
               {perfil.departamento && (
-                <p className="text-slate-600 text-sm mt-0.5 flex items-center gap-1" style={{ fontWeight: 500 }}>
-                  <BookOpen className="w-3.5 h-3.5" /> {perfil.departamento}
+                <p style={{ display: "flex", alignItems: "center", gap: 5, fontSize: "0.92rem", color: "#6B5D52", fontWeight: 600, margin: "3px 0 0" }}>
+                  <BookOpen style={{ width: 13, height: 13 }} />
+                  {perfil.departamento}
                 </p>
               )}
-              <p className="text-slate-400 text-xs mt-0.5 flex items-center gap-1">
-                <MapPin className="w-3 h-3" /> Liceo Cardenal Caro · Lo Espejo
+              <p style={{ display: "flex", alignItems: "center", gap: 4, fontSize: "0.82rem", color: "#A8998A", margin: "2px 0 0" }}>
+                <MapPin style={{ width: 12, height: 12 }} />
+                Liceo Cardenal Caro · Lo Espejo
               </p>
             </div>
           </div>
 
-          {/* KPIs */}
-          <div className="grid grid-cols-3 gap-2 mb-4">
-            {[
-              { label: "Nivel", value: perfil.nivel ? (nivelLabel[perfil.nivel] ?? perfil.nivel) : "—" },
-              { label: "Institución", value: "Liceo Caro" },
-              { label: "Lo Espejo", value: "📍" },
-            ].map((k) => (
-              <div key={k.label} className="text-center py-2">
-                <p className="text-slate-900 font-bold text-base leading-tight">{k.value}</p>
-                <p className="text-slate-400 text-xs mt-0.5">{k.label}</p>
+          {/* KPI row */}
+          <div style={{
+            display: "grid", gridTemplateColumns: "repeat(3, 1fr)",
+            margin: "16px 0 0",
+            backgroundColor: "#F6F5F0", border: "1px solid #E8E4DC", borderRadius: 12,
+          }}>
+            {kpis.map((k, i) => (
+              <div key={k.label} style={{
+                textAlign: "center", padding: "12px 8px",
+                borderRight: i < 2 ? "1px solid #E8E4DC" : "none",
+              }}>
+                <p style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: "0.92rem", fontWeight: 700, color: "#0d1b35", margin: 0, lineHeight: 1.2 }}>
+                  {k.value}
+                </p>
+                <p style={{ fontSize: "0.72rem", color: "#8C7B6B", margin: "3px 0 0", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                  {k.label}
+                </p>
               </div>
             ))}
           </div>
 
           {/* Tabs */}
-          <div className="flex border-b border-slate-200 -mx-4 px-4">
-            {([
-              { id: "publicaciones", label: "Publicaciones" },
-              { id: "perfil", label: "Perfil" },
-              { id: "info", label: "Información" },
-            ] as { id: "publicaciones" | "perfil" | "info"; label: string }[]).map((t) => (
-              <button key={t.id} onClick={() => setTab(t.id)}
-                className={`flex-1 py-3 text-sm border-b-2 -mb-px transition-all ${tab === t.id ? "border-slate-900 text-slate-900" : "border-transparent text-slate-500 hover:text-slate-700"}`}
-                style={{ fontWeight: tab === t.id ? 700 : 500 }}>
+          <div style={{ display: "flex", borderBottom: "2px solid #E8E4DC", marginTop: 16 }}>
+            {tabs.map((t) => (
+              <button
+                key={t.id}
+                onClick={() => setTab(t.id)}
+                style={{
+                  flex: 1, padding: "10px 4px",
+                  background: "none", border: "none", cursor: "pointer",
+                  fontSize: "0.82rem", fontWeight: 600,
+                  color: tab === t.id ? "#0d1b35" : "#94a3b8",
+                  borderBottom: tab === t.id ? "2px solid #D4AF37" : "2px solid transparent",
+                  marginBottom: -2,
+                  transition: "color 0.15s",
+                  fontFamily: "'Plus Jakarta Sans', sans-serif",
+                }}
+              >
                 {t.label}
               </button>
             ))}
@@ -147,78 +236,111 @@ export function VistaDocente() {
         </div>
       </div>
 
-      <div className="max-w-3xl mx-auto px-4 py-5">
-        {tab === "perfil" && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
-            <div className="bg-white rounded-xl border border-slate-200 p-5">
-              <h3 className="text-slate-900 text-sm font-bold mb-3">Sobre el docente</h3>
-              <p className="text-slate-600 text-sm leading-relaxed">
-                {perfil.bio || "Docente con amplia experiencia en formación técnico-profesional. Comprometido con la empleabilidad real de los estudiantes del Liceo Cardenal Caro."}
-              </p>
-              {perfil.departamento && (
-                <div className="flex flex-wrap gap-2 mt-4">
-                  <span className="text-xs bg-slate-100 text-slate-700 px-3 py-1 rounded-full border border-slate-200">
-                    {perfil.departamento}
-                  </span>
-                  <span className="text-xs bg-green-50 text-green-700 px-3 py-1 rounded-full border border-green-200">
-                    Docente Verificado
-                  </span>
-                </div>
-              )}
-            </div>
-          </motion.div>
-        )}
+      {/* Tab content */}
+      <div style={{ maxWidth: 768, margin: "0 auto", padding: "20px 16px" }}>
 
+        {/* Publicaciones */}
         {tab === "publicaciones" && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
             <PostList posts={posts} nombre={`Prof. ${perfil.nombre}`} fotoSrc={fotoSrc} />
           </motion.div>
         )}
 
+        {/* Perfil */}
+        {tab === "perfil" && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+            <div style={{ backgroundColor: "#FFFFFF", border: "1px solid #E8E4DC", borderRadius: 14, padding: 20 }}>
+              <p style={{ fontSize: "0.68rem", fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 12 }}>
+                Sobre el docente
+              </p>
+              <p style={{ fontSize: "0.92rem", color: "#4A3F35", lineHeight: 1.7, margin: 0 }}>
+                {perfil.bio || "Docente con amplia experiencia en formación técnico-profesional. Comprometido con la empleabilidad real de los estudiantes del Liceo Cardenal Caro."}
+              </p>
+            </div>
+
+            {perfil.departamento && (
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                <span style={{
+                  fontSize: 12,
+                  fontWeight: 700,
+                  padding: "5px 14px",
+                  borderRadius: 20,
+                  backgroundColor: "#F0EDE8",
+                  border: "1px solid #E8E4DC",
+                  color: "#4A3F35",
+                }}>
+                  {perfil.departamento}
+                </span>
+                <span style={{
+                  fontSize: 12,
+                  fontWeight: 700,
+                  padding: "5px 14px",
+                  borderRadius: 20,
+                  backgroundColor: "#FFFBF0",
+                  border: "1px solid #D4AF37",
+                  color: "#B8962E",
+                }}>
+                  ✓ Docente Verificado
+                </span>
+              </div>
+            )}
+          </motion.div>
+        )}
+
+        {/* Información */}
         {tab === "info" && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
-            <div className="bg-white rounded-xl border border-slate-200 p-5">
-              <h3 className="text-slate-900 text-sm font-bold mb-4">Información institucional</h3>
-              <div className="space-y-3">
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+            <div style={{ backgroundColor: "#FFFFFF", border: "1px solid #E8E4DC", borderRadius: 14, padding: 20 }}>
+              <p style={{ fontSize: "0.68rem", fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 16 }}>
+                Información institucional
+              </p>
+              <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                 {perfil.departamento && (
-                  <div className="flex items-center gap-3 text-sm text-slate-600">
-                    <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center flex-shrink-0">
-                      <GraduationCap className="w-3.5 h-3.5 text-slate-500" />
-                    </div>
-                    <span>{perfil.departamento}</span>
-                  </div>
+                  <InfoRow icon={GraduationCap} text={perfil.departamento} />
                 )}
-                <div className="flex items-center gap-3 text-sm text-slate-600">
-                  <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center flex-shrink-0">
-                    <MapPin className="w-3.5 h-3.5 text-slate-500" />
-                  </div>
-                  <span>Liceo Cardenal Caro, Lo Espejo, RM</span>
-                </div>
-                <div className="flex items-center gap-3 text-sm text-slate-600">
-                  <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center flex-shrink-0">
-                    <Clock className="w-3.5 h-3.5 text-slate-500" />
-                  </div>
-                  <span>Disponible: Lun–Vie · 08:00–18:00 hrs</span>
-                </div>
-                <div className="flex items-center gap-3 text-sm text-slate-600">
-                  <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center flex-shrink-0">
-                    <Mail className="w-3.5 h-3.5 text-slate-500" />
-                  </div>
-                  <span>docente@liceocaro.cl</span>
-                </div>
+                <InfoRow icon={MapPin} text="Liceo Cardenal Caro, Lo Espejo, RM" />
+                <InfoRow icon={Clock} text="Disponible: Lun–Vie · 08:00–18:00 hrs" />
+                <InfoRow icon={Mail} text="docente@liceocaro.cl" />
                 {perfil.nivel && (
-                  <div className="flex items-center gap-3 text-sm text-slate-600">
-                    <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center flex-shrink-0">
-                      <ShieldCheck className="w-3.5 h-3.5 text-slate-500" />
+                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <div style={{
+                      width: 30,
+                      height: 30,
+                      borderRadius: 8,
+                      backgroundColor: "#FFFBF0",
+                      border: "1px solid #F5E6C0",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      flexShrink: 0,
+                    }}>
+                      <ShieldCheck style={{ width: 14, height: 14, color: "#D4AF37" }} />
                     </div>
-                    <span>Nivel: <strong>{nivelLabel[perfil.nivel] ?? perfil.nivel}</strong></span>
+                    <span style={{ fontSize: "0.9rem", color: "#4A3F35" }}>
+                      Nivel:{" "}
+                      <span style={{ fontWeight: 700, color: "#0d1b35" }}>
+                        {nivelLabel[perfil.nivel] ?? perfil.nivel}
+                      </span>
+                    </span>
                   </div>
                 )}
               </div>
             </div>
           </motion.div>
         )}
+
       </div>
+    </div>
+  );
+}
+
+function InfoRow({ icon: Icon, text }: { icon: React.ElementType; text: string }) {
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+      <div style={{ width: 30, height: 30, borderRadius: 8, backgroundColor: "#F0EDE8", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+        <Icon style={{ width: 14, height: 14, color: "#8C7B6B" }} />
+      </div>
+      <span style={{ fontSize: "0.9rem", color: "#4A3F35" }}>{text}</span>
     </div>
   );
 }

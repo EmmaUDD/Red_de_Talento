@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useSearchParams } from "react-router";
 import {
   Search, Award, Building2, BookOpen, Loader2, MapPin, Briefcase,
-  CheckCircle, GraduationCap, Users, BookMarked, Clock,
+  CheckCircle, GraduationCap, Users, BookMarked, Clock, ExternalLink,
 } from "lucide-react";
 import { perfilApi, cursosApi, ofertasApi } from "@/api/api";
 import { usePerfil } from "@/app/context/PerfilContext";
@@ -12,82 +12,158 @@ import type { EstudiantePerfil, EmpresaResult, DocenteResult, OfertaLaboral } fr
 type Categoria = "personas" | "cursos" | "empleos";
 
 const BASE_URL = import.meta.env.VITE_API_URL ?? "http://127.0.0.1:8000";
+const FONT_URL = "https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap";
 
-// ─── Cards de personas ────────────────────────────────────────────────────────
+const tipoStyle: Record<string, React.CSSProperties> = {
+  "Full-time":  { backgroundColor: "#F0FDF4", color: "#166534", border: "1px solid #BBF7D0" },
+  "Part-time":  { backgroundColor: "#EFF6FF", color: "#1D4ED8", border: "1px solid #BFDBFE" },
+  "Práctica":   { backgroundColor: "#F5F3FF", color: "#6D28D9", border: "1px solid #DDD6FE" },
+};
+const modalidadStyle: Record<string, React.CSSProperties> = {
+  "Presencial": { backgroundColor: "#F6F5F0", color: "#4A3F35", border: "1px solid #E8E4DC" },
+  "Híbrido":    { backgroundColor: "#FFF7ED", color: "#C2410C", border: "1px solid #FED7AA" },
+  "Remoto":     { backgroundColor: "#F0FDF4", color: "#166534", border: "1px solid #BBF7D0" },
+};
+
 function EstudianteCard({ e, onClick }: { e: EstudiantePerfil; onClick: () => void }) {
+  const foto = e.foto_perfil ?? e.foto;
+  const fotoSrc = foto ? (foto.startsWith("http") ? foto : `${BASE_URL}${foto}`) : null;
+
   return (
-    <button onClick={onClick} className="w-full text-left bg-white rounded-xl border border-slate-200 p-4 flex items-start gap-3 hover:border-slate-400 hover:shadow-sm transition-all">
-      {(e.foto_perfil ?? e.foto) ? (
-        <img src={e.foto_perfil ?? e.foto} alt={e.nombre} className="w-10 h-10 rounded-lg object-cover flex-shrink-0 border border-slate-100" />
-      ) : (
-        <div className="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center flex-shrink-0">
-          <Award className="w-5 h-5 text-slate-400" />
-        </div>
-      )}
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 flex-wrap">
-          <p className="text-slate-900 text-sm font-semibold truncate">{e.nombre}</p>
+    <button
+      onClick={onClick}
+      style={{
+        width: "100%", textAlign: "left",
+        backgroundColor: "#FFFFFF", border: "1px solid #E8E4DC", borderRadius: 14,
+        padding: "14px 16px",
+        display: "flex", alignItems: "flex-start", gap: 12,
+        cursor: "pointer", transition: "border-color 0.15s, box-shadow 0.15s",
+        fontFamily: "'Plus Jakarta Sans', sans-serif",
+      }}
+      onMouseEnter={(el) => { el.currentTarget.style.borderColor = "#D4AF37"; el.currentTarget.style.boxShadow = "0 2px 8px rgba(212,175,55,0.12)"; }}
+      onMouseLeave={(el) => { el.currentTarget.style.borderColor = "#E8E4DC"; el.currentTarget.style.boxShadow = "none"; }}
+    >
+      <div style={{ width: 44, height: 44, borderRadius: 12, overflow: "hidden", flexShrink: 0, backgroundColor: "#0d1b35", border: "2px solid #F0EDE8", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        {fotoSrc ? (
+          <img src={fotoSrc} alt={e.nombre} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+        ) : (
+          <span style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: "1.1rem", fontWeight: 700, color: "#D4AF37" }}>
+            {e.nombre.charAt(0).toUpperCase()}
+          </span>
+        )}
+      </div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 7, flexWrap: "wrap" }}>
+          <p style={{ fontSize: "0.88rem", fontWeight: 700, color: "#0d1b35", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{e.nombre}</p>
           {e.validado && (
-            <span className="text-xs px-1.5 py-0.5 rounded-full font-semibold flex items-center gap-0.5"
-              style={{ backgroundColor: "#FFFBF0", color: "#B8962E", border: "1px solid #D4AF37" }}>
-              <CheckCircle className="w-2.5 h-2.5" /> Validado
+            <span style={{ fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 20, backgroundColor: "#FFFBF0", color: "#B8962E", border: "1px solid #D4AF37", display: "inline-flex", alignItems: "center", gap: 3, flexShrink: 0 }}>
+              <CheckCircle style={{ width: 10, height: 10 }} /> Validado
             </span>
           )}
         </div>
-        <p className="text-slate-500 text-xs mt-0.5">{e.especialidad}{e.curso ? ` · ${e.curso}` : ""}</p>
-        {e.comuna && <p className="text-slate-400 text-xs mt-0.5 flex items-center gap-1"><MapPin className="w-3 h-3" />{e.comuna}</p>}
+        <p style={{ fontSize: "0.78rem", color: "#6B5D52", margin: "2px 0 0" }}>{e.especialidad}{e.curso ? ` · ${e.curso}` : ""}</p>
+        {e.comuna && (
+          <p style={{ fontSize: "0.75rem", color: "#94a3b8", margin: "2px 0 0", display: "flex", alignItems: "center", gap: 3 }}>
+            <MapPin style={{ width: 11, height: 11 }} />{e.comuna}
+          </p>
+        )}
         {e.disponibilidad && (
-          <span className="inline-block mt-1.5 text-xs px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 font-medium">{e.disponibilidad}</span>
+          <span style={{ display: "inline-block", marginTop: 5, fontSize: 11, fontWeight: 600, padding: "2px 10px", borderRadius: 20, backgroundColor: "#EFF6FF", color: "#1D4ED8", border: "1px solid #BFDBFE" }}>
+            {e.disponibilidad}
+          </span>
         )}
       </div>
-      <span className="text-xs px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 font-semibold flex-shrink-0">Estudiante</span>
+      <span style={{ fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 20, backgroundColor: "#FFFBF0", color: "#B8962E", border: "1px solid #D4AF37", flexShrink: 0, marginTop: 1 }}>
+        Estudiante
+      </span>
     </button>
   );
 }
 
 function EmpresaCard({ e, onClick }: { e: EmpresaResult; onClick: () => void }) {
   const foto = e.foto_url ?? e.foto_perfil;
+  const fotoSrc = foto ? (foto.startsWith("http") ? foto : `${BASE_URL}${foto}`) : null;
+
   return (
-    <button onClick={onClick} className="w-full text-left bg-white rounded-xl border border-slate-200 p-4 flex items-start gap-3 hover:border-slate-400 hover:shadow-sm transition-all">
-      {foto ? (
-        <img src={foto} alt={e.nombre_empresa} className="w-10 h-10 rounded-lg object-cover flex-shrink-0 border border-slate-100" />
-      ) : (
-        <div className="w-10 h-10 rounded-lg bg-amber-50 flex items-center justify-center flex-shrink-0">
-          <Building2 className="w-5 h-5 text-amber-400" />
-        </div>
-      )}
-      <div className="flex-1 min-w-0">
-        <p className="text-slate-900 text-sm font-semibold truncate">{e.nombre_empresa}</p>
-        <p className="text-slate-500 text-xs mt-0.5 flex items-center gap-1"><Briefcase className="w-3 h-3" />{e.industria}</p>
-        {e.descripcion && <p className="text-slate-400 text-xs mt-1 line-clamp-1">{e.descripcion}</p>}
+    <button
+      onClick={onClick}
+      style={{
+        width: "100%", textAlign: "left",
+        backgroundColor: "#FFFFFF", border: "1px solid #E8E4DC", borderRadius: 14,
+        padding: "14px 16px",
+        display: "flex", alignItems: "flex-start", gap: 12,
+        cursor: "pointer", transition: "border-color 0.15s, box-shadow 0.15s",
+        fontFamily: "'Plus Jakarta Sans', sans-serif",
+      }}
+      onMouseEnter={(el) => { el.currentTarget.style.borderColor = "#D4AF37"; el.currentTarget.style.boxShadow = "0 2px 8px rgba(212,175,55,0.12)"; }}
+      onMouseLeave={(el) => { el.currentTarget.style.borderColor = "#E8E4DC"; el.currentTarget.style.boxShadow = "none"; }}
+    >
+      <div style={{ width: 44, height: 44, borderRadius: 12, overflow: "hidden", flexShrink: 0, backgroundColor: "#FFFBF0", border: "2px solid #F5E6C0", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        {fotoSrc ? (
+          <img src={fotoSrc} alt={e.nombre_empresa} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+        ) : (
+          <Building2 style={{ width: 20, height: 20, color: "#D4AF37" }} />
+        )}
       </div>
-      <span className="text-xs px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 font-semibold flex-shrink-0">Empresa</span>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <p style={{ fontSize: "0.88rem", fontWeight: 700, color: "#0d1b35", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{e.nombre_empresa}</p>
+        <p style={{ fontSize: "0.78rem", color: "#6B5D52", margin: "2px 0 0", display: "flex", alignItems: "center", gap: 3 }}>
+          <Briefcase style={{ width: 11, height: 11 }} />{e.industria}
+        </p>
+        {e.descripcion && (
+          <p style={{ fontSize: "0.75rem", color: "#94a3b8", margin: "3px 0 0", overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 1, WebkitBoxOrient: "vertical" }}>
+            {e.descripcion}
+          </p>
+        )}
+      </div>
+      <span style={{ fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 20, backgroundColor: "#F6F5F0", color: "#4A3F35", border: "1px solid #E8E4DC", flexShrink: 0, marginTop: 1 }}>
+        Empresa
+      </span>
     </button>
   );
 }
 
 function DocenteCard({ d, onClick }: { d: DocenteResult; onClick: () => void }) {
   const foto = d.foto_url ?? d.foto_perfil;
+  const fotoSrc = foto ? (foto.startsWith("http") ? foto : `${BASE_URL}${foto}`) : null;
+
   return (
-    <button onClick={onClick} className="w-full text-left bg-white rounded-xl border border-slate-200 p-4 flex items-start gap-3 hover:border-slate-400 hover:shadow-sm transition-all">
-      {foto ? (
-        <img src={foto} alt={d.nombre} className="w-10 h-10 rounded-lg object-cover flex-shrink-0 border border-slate-100" />
-      ) : (
-        <div className="w-10 h-10 rounded-lg bg-green-50 flex items-center justify-center flex-shrink-0">
-          <BookOpen className="w-5 h-5 text-green-400" />
-        </div>
-      )}
-      <div className="flex-1 min-w-0">
-        <p className="text-slate-900 text-sm font-semibold truncate">{d.nombre}</p>
-        {d.departamento && <p className="text-slate-500 text-xs mt-0.5">{d.departamento}</p>}
-        {d.bio && <p className="text-slate-400 text-xs mt-1 line-clamp-1">{d.bio}</p>}
+    <button
+      onClick={onClick}
+      style={{
+        width: "100%", textAlign: "left",
+        backgroundColor: "#FFFFFF", border: "1px solid #E8E4DC", borderRadius: 14,
+        padding: "14px 16px",
+        display: "flex", alignItems: "flex-start", gap: 12,
+        cursor: "pointer", transition: "border-color 0.15s, box-shadow 0.15s",
+        fontFamily: "'Plus Jakarta Sans', sans-serif",
+      }}
+      onMouseEnter={(el) => { el.currentTarget.style.borderColor = "#D4AF37"; el.currentTarget.style.boxShadow = "0 2px 8px rgba(212,175,55,0.12)"; }}
+      onMouseLeave={(el) => { el.currentTarget.style.borderColor = "#E8E4DC"; el.currentTarget.style.boxShadow = "none"; }}
+    >
+      <div style={{ width: 44, height: 44, borderRadius: 12, overflow: "hidden", flexShrink: 0, backgroundColor: "#F0EDE8", border: "2px solid #E8E4DC", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        {fotoSrc ? (
+          <img src={fotoSrc} alt={d.nombre} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+        ) : (
+          <BookOpen style={{ width: 20, height: 20, color: "#8C7B6B" }} />
+        )}
       </div>
-      <span className="text-xs px-2 py-0.5 rounded-full bg-green-50 text-green-700 font-semibold flex-shrink-0">Docente</span>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <p style={{ fontSize: "0.88rem", fontWeight: 700, color: "#0d1b35", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>Prof. {d.nombre}</p>
+        {d.departamento && <p style={{ fontSize: "0.78rem", color: "#6B5D52", margin: "2px 0 0" }}>{d.departamento}</p>}
+        {d.bio && (
+          <p style={{ fontSize: "0.75rem", color: "#94a3b8", margin: "3px 0 0", overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 1, WebkitBoxOrient: "vertical" }}>
+            {d.bio}
+          </p>
+        )}
+      </div>
+      <span style={{ fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 20, backgroundColor: "#F0FDF4", color: "#166534", border: "1px solid #BBF7D0", flexShrink: 0, marginTop: 1 }}>
+        Docente
+      </span>
     </button>
   );
 }
 
-// ─── Card de curso ────────────────────────────────────────────────────────────
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function CursoCard({ curso, esEstudiante, onInscribirse }: { curso: any; esEstudiante: boolean; onInscribirse: (id: number) => void }) {
   const [inscribiendo, setInscribiendo] = useState(false);
@@ -103,65 +179,71 @@ function CursoCard({ curso, esEstudiante, onInscribirse }: { curso: any; esEstud
     }
   };
 
-  const nivelColors: Record<string, string> = {
-    basico: "bg-green-50 text-green-700 border-green-200",
-    intermedio: "bg-amber-50 text-amber-700 border-amber-200",
-    avanzado: "bg-red-50 text-red-700 border-red-200",
+  const nivelStyle: Record<string, React.CSSProperties> = {
+    basico:      { backgroundColor: "#F0FDF4", color: "#166534", border: "1px solid #BBF7D0" },
+    intermedio:  { backgroundColor: "#FFFBF0", color: "#B8962E", border: "1px solid #D4AF37" },
+    avanzado:    { backgroundColor: "#FFF1F0", color: "#BE123C", border: "1px solid #FECDD3" },
   };
 
+  const plataformaIcon = curso.plataforma === "youtube" ? "▶" : curso.plataforma === "udemy" ? "🎓" : "📘";
+
   return (
-    <div className="bg-white rounded-xl border border-slate-200 p-4">
-      <div className="flex items-start gap-3">
-        <div className="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center flex-shrink-0 text-lg">
-          {curso.plataforma === "youtube" ? "▶️" : curso.plataforma === "udemy" ? "🎓" : "📘"}
+    <div style={{ backgroundColor: "#FFFFFF", border: "1px solid #E8E4DC", borderRadius: 14, padding: "16px", fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+      <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
+        <div style={{ width: 44, height: 44, borderRadius: 12, backgroundColor: "#F6F5F0", border: "1px solid #E8E4DC", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: "1.2rem" }}>
+          {plataformaIcon}
         </div>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-start justify-between gap-2 flex-wrap">
-            <p className="text-slate-900 text-sm font-semibold">{curso.titulo}</p>
-            <span className={`text-xs px-2 py-0.5 rounded-full border font-medium flex-shrink-0 ${nivelColors[curso.nivel] ?? "bg-slate-50 text-slate-600 border-slate-200"}`}>
-              {curso.nivel}
-            </span>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8, flexWrap: "wrap" }}>
+            <p style={{ fontSize: "0.88rem", fontWeight: 700, color: "#0d1b35", margin: 0 }}>{curso.titulo}</p>
+            {curso.nivel && (
+              <span style={{ fontSize: 11, fontWeight: 600, padding: "2px 10px", borderRadius: 20, flexShrink: 0, ...(nivelStyle[curso.nivel] ?? { backgroundColor: "#F6F5F0", color: "#4A3F35", border: "1px solid #E8E4DC" }) }}>
+                {curso.nivel}
+              </span>
+            )}
           </div>
-          {curso.especialidad && (
-            <p className="text-slate-500 text-xs mt-0.5">{curso.especialidad}</p>
-          )}
+          {curso.especialidad && <p style={{ fontSize: "0.78rem", color: "#6B5D52", margin: "2px 0 0" }}>{curso.especialidad}</p>}
           {curso.descripcion && (
-            <p className="text-slate-400 text-xs mt-1 line-clamp-2">{curso.descripcion}</p>
+            <p style={{ fontSize: "0.75rem", color: "#94a3b8", margin: "4px 0 0", overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>
+              {curso.descripcion}
+            </p>
           )}
-          <div className="flex items-center justify-between mt-3 flex-wrap gap-2">
-            <div className="flex items-center gap-2 flex-wrap">
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 12, flexWrap: "wrap", gap: 8 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
               {curso.publicado_por_nombre && (
-                <span className="text-xs text-slate-400 flex items-center gap-1">
-                  <BookOpen className="w-3 h-3" /> {curso.publicado_por_nombre}
+                <span style={{ fontSize: "0.72rem", color: "#8C7B6B", display: "flex", alignItems: "center", gap: 3 }}>
+                  <BookOpen style={{ width: 11, height: 11 }} /> {curso.publicado_por_nombre}
                 </span>
               )}
               {curso.plataforma && (
-                <span className="text-xs px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">{curso.plataforma}</span>
+                <span style={{ fontSize: 11, fontWeight: 600, padding: "2px 9px", borderRadius: 20, backgroundColor: "#F6F5F0", color: "#4A3F35", border: "1px solid #E8E4DC" }}>
+                  {curso.plataforma}
+                </span>
               )}
             </div>
-            <div className="flex items-center gap-2">
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
               {curso.url && (
                 <a
                   href={curso.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-xs px-3 py-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 transition-colors font-medium"
+                  style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: "0.75rem", fontWeight: 600, padding: "5px 12px", borderRadius: 8, border: "1px solid #E8E4DC", color: "#4A3F35", backgroundColor: "#F6F5F0", textDecoration: "none", fontFamily: "'Plus Jakarta Sans', sans-serif" }}
                 >
-                  Ver curso
+                  Ver curso <ExternalLink style={{ width: 11, height: 11 }} />
                 </a>
               )}
               {esEstudiante && (
                 inscrito ? (
-                  <span className="text-xs px-3 py-1.5 rounded-lg bg-green-50 text-green-700 border border-green-200 font-medium flex items-center gap-1">
-                    <CheckCircle className="w-3 h-3" /> Inscrito
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: "0.75rem", fontWeight: 600, padding: "5px 12px", borderRadius: 8, backgroundColor: "#F0FDF4", color: "#166534", border: "1px solid #BBF7D0" }}>
+                    <CheckCircle style={{ width: 11, height: 11 }} /> Inscrito
                   </span>
                 ) : (
                   <button
                     onClick={handleInscribirse}
                     disabled={inscribiendo}
-                    className="text-xs px-3 py-1.5 rounded-lg bg-slate-900 text-white hover:bg-slate-700 disabled:bg-slate-300 transition-colors font-medium flex items-center gap-1"
+                    style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: "0.75rem", fontWeight: 700, padding: "5px 14px", borderRadius: 8, backgroundColor: inscribiendo ? "#E8E4DC" : "#0d1b35", color: inscribiendo ? "#8C7B6B" : "#FFFFFF", border: "none", cursor: inscribiendo ? "default" : "pointer", fontFamily: "'Plus Jakarta Sans', sans-serif", transition: "background-color 0.15s" }}
                   >
-                    {inscribiendo ? <Loader2 className="w-3 h-3 animate-spin" /> : null}
+                    {inscribiendo ? <Loader2 style={{ width: 11, height: 11 }} className="animate-spin" /> : null}
                     Inscribirse
                   </button>
                 )
@@ -174,31 +256,48 @@ function CursoCard({ curso, esEstudiante, onInscribirse }: { curso: any; esEstud
   );
 }
 
-// ─── Card de empleo ───────────────────────────────────────────────────────────
 function EmpleoCard({ o }: { o: OfertaLaboral }) {
-  const fotoSrc = o.empresa_foto
-    ? o.empresa_foto.startsWith("http") ? o.empresa_foto : `${BASE_URL}${o.empresa_foto}`
-    : null;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const raw = o as any;
+  const fotoRaw = raw.empresa_foto ?? o.logo_empresa;
+  const fotoSrc = fotoRaw ? (fotoRaw.startsWith("http") ? fotoRaw : `${BASE_URL}${fotoRaw}`) : null;
+  const empresaNombre = raw.empresa_nombre ?? o.empresa;
 
   return (
-    <div className="bg-white rounded-xl border border-slate-200 p-4">
-      <div className="flex items-start gap-3">
-        {fotoSrc ? (
-          <img src={fotoSrc} alt={o.empresa_nombre} className="w-10 h-10 rounded-lg object-cover flex-shrink-0 border border-slate-100" />
-        ) : (
-          <div className="w-10 h-10 rounded-lg bg-amber-50 flex items-center justify-center flex-shrink-0">
-            <Building2 className="w-5 h-5 text-amber-400" />
+    <div style={{ backgroundColor: "#FFFFFF", border: "1px solid #E8E4DC", borderLeft: `3.5px solid ${tipoStyle[o.tipo]?.color ?? "#D4AF37"}`, borderRadius: 14, padding: "16px", fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+      <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
+        <div style={{ width: 44, height: 44, borderRadius: 12, overflow: "hidden", flexShrink: 0, backgroundColor: "#FFFBF0", border: "1px solid #F5E6C0", display: "flex", alignItems: "center", justifyContent: "center" }}>
+          {fotoSrc ? (
+            <img src={fotoSrc} alt={empresaNombre} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+          ) : (
+            <Building2 style={{ width: 20, height: 20, color: "#D4AF37" }} />
+          )}
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <p style={{ fontSize: "0.88rem", fontWeight: 700, color: "#0d1b35", margin: 0 }}>{o.titulo}</p>
+          <p style={{ fontSize: "0.78rem", color: "#6B5D52", margin: "2px 0 0" }}>{empresaNombre}</p>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 8 }}>
+            {o.tipo && (
+              <span style={{ fontSize: 11, fontWeight: 600, padding: "2px 10px", borderRadius: 20, ...tipoStyle[o.tipo] }}>
+                {o.tipo}
+              </span>
+            )}
+            {o.modalidad && (
+              <span style={{ fontSize: 11, fontWeight: 600, padding: "2px 10px", borderRadius: 20, ...modalidadStyle[o.modalidad] }}>
+                {o.modalidad}
+              </span>
+            )}
+            {o.ubicacion && (
+              <span style={{ fontSize: 11, color: "#8C7B6B", display: "flex", alignItems: "center", gap: 3 }}>
+                <MapPin style={{ width: 11, height: 11 }} />{o.ubicacion}
+              </span>
+            )}
           </div>
-        )}
-        <div className="flex-1 min-w-0">
-          <p className="text-slate-900 text-sm font-semibold">{o.titulo}</p>
-          <p className="text-slate-500 text-xs mt-0.5">{o.empresa_nombre}</p>
-          <div className="flex flex-wrap gap-1.5 mt-2">
-            {o.tipo && <span className="text-xs bg-blue-50 text-blue-700 border border-blue-200 px-2 py-0.5 rounded-full font-medium">{o.tipo}</span>}
-            {o.modalidad && <span className="text-xs bg-slate-100 text-slate-600 border border-slate-200 px-2 py-0.5 rounded-full">{o.modalidad}</span>}
-            {o.ubicacion && <span className="text-xs text-slate-400 flex items-center gap-0.5"><MapPin className="w-3 h-3" />{o.ubicacion}</span>}
-          </div>
-          {o.descripcion && <p className="text-slate-400 text-xs mt-2 line-clamp-2">{o.descripcion}</p>}
+          {o.descripcion && (
+            <p style={{ fontSize: "0.75rem", color: "#94a3b8", margin: "6px 0 0", overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>
+              {o.descripcion}
+            </p>
+          )}
         </div>
       </div>
     </div>
@@ -209,33 +308,30 @@ function SeccionResultados({ titulo, count, children }: { titulo: string; count:
   if (count === 0) return null;
   return (
     <div>
-      <div className="flex items-center gap-2 mb-3">
-        <h2 className="text-slate-700 text-sm font-semibold">{titulo}</h2>
-        <span className="text-xs px-2 py-0.5 rounded-full bg-slate-100 text-slate-500 font-medium">{count}</span>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+        <p style={{ fontSize: "0.68rem", fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.08em", margin: 0 }}>
+          {titulo}
+        </p>
+        <span style={{ fontSize: 11, fontWeight: 700, padding: "1px 8px", borderRadius: 20, backgroundColor: "#F6F5F0", color: "#4A3F35", border: "1px solid #E8E4DC" }}>
+          {count}
+        </span>
       </div>
-      <div className="space-y-2">{children}</div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>{children}</div>
     </div>
   );
 }
 
-// ─── Componente principal ─────────────────────────────────────────────────────
 export function BusquedaGlobal() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [query, setQuery] = useState(searchParams.get("q") ?? "");
   const [categoria, setCategoria] = useState<Categoria>("personas");
 
-  // Personas
   const [estudiantes, setEstudiantes] = useState<EstudiantePerfil[]>([]);
   const [empresas, setEmpresas] = useState<EmpresaResult[]>([]);
   const [docentes, setDocentes] = useState<DocenteResult[]>([]);
-
-  // Cursos
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [cursos, setCursos] = useState<any[]>([]);
-
-  // Empleos
   const [empleos, setEmpleos] = useState<OfertaLaboral[]>([]);
-
   const [loading, setLoading] = useState(false);
   const [buscado, setBuscado] = useState(false);
   const [errorInscripcion, setErrorInscripcion] = useState<string | null>(null);
@@ -243,6 +339,15 @@ export function BusquedaGlobal() {
   const { openPerfil } = usePerfil();
   const { user } = useAuth();
   const esEstudiante = user?.role === "student";
+
+  useEffect(() => {
+    if (!document.querySelector(`link[href="${FONT_URL}"]`)) {
+      const link = document.createElement("link");
+      link.rel = "stylesheet";
+      link.href = FONT_URL;
+      document.head.appendChild(link);
+    }
+  }, []);
 
   const buscar = useCallback(async (q: string, cat: Categoria) => {
     setLoading(true);
@@ -270,7 +375,6 @@ export function BusquedaGlobal() {
     }
   }, []);
 
-  // Sincronizar con URL query param
   useEffect(() => {
     const q = searchParams.get("q") ?? "";
     setQuery(q);
@@ -278,7 +382,6 @@ export function BusquedaGlobal() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
 
-  // Debounce del query
   useEffect(() => {
     const t = setTimeout(() => {
       setSearchParams(query.trim() ? { q: query.trim() } : {}, { replace: true });
@@ -286,7 +389,6 @@ export function BusquedaGlobal() {
     return () => clearTimeout(t);
   }, [query, setSearchParams]);
 
-  // Re-buscar al cambiar categoría
   useEffect(() => {
     buscar(query, categoria);
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -305,48 +407,71 @@ export function BusquedaGlobal() {
   const total = categoria === "personas" ? totalPersonas : categoria === "cursos" ? cursos.length : empleos.length;
 
   const tabs: { id: Categoria; label: string; icon: React.ReactNode }[] = [
-    { id: "personas", label: "Personas", icon: <Users className="w-3.5 h-3.5" /> },
-    { id: "cursos", label: "Cursos", icon: <BookMarked className="w-3.5 h-3.5" /> },
-    { id: "empleos", label: "Empleos", icon: <Briefcase className="w-3.5 h-3.5" /> },
+    { id: "personas", label: "Personas", icon: <Users style={{ width: 13, height: 13 }} /> },
+    { id: "cursos",   label: "Cursos",   icon: <BookMarked style={{ width: 13, height: 13 }} /> },
+    { id: "empleos",  label: "Empleos",  icon: <Briefcase style={{ width: 13, height: 13 }} /> },
   ];
 
   const placeholders: Record<Categoria, string> = {
     personas: "Buscar estudiantes, empresas o docentes...",
-    cursos: "Buscar cursos por nombre, especialidad...",
-    empleos: "Buscar ofertas laborales...",
+    cursos:   "Buscar cursos por nombre o especialidad...",
+    empleos:  "Buscar ofertas laborales...",
   };
 
   return (
-    <div className="min-h-screen bg-[#F9FAFB]">
-      {/* Header */}
-      <div className="bg-white border-b border-slate-200 px-4 py-5">
-        <div className="max-w-3xl mx-auto">
-          <h1 className="text-slate-900 font-bold text-lg">Búsqueda</h1>
-          <p className="text-slate-500 text-sm mt-0.5">Encuentra personas, cursos y empleos</p>
+    <div style={{ minHeight: "100vh", backgroundColor: "#F6F5F0", fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
 
-          {/* Barra de búsqueda */}
-          <div className="relative mt-4">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+<div style={{ backgroundColor: "#FFFFFF", borderBottom: "1px solid #E8E4DC" }}>
+        <div style={{ maxWidth: 720, margin: "0 auto", padding: "20px 20px 0" }}>
+
+          {/* Title */}
+          <div style={{ marginBottom: 16 }}>
+            <h1 style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: "1.4rem", fontWeight: 700, color: "#0d1b35", margin: 0, lineHeight: 1.2 }}>
+              Búsqueda
+            </h1>
+            <p style={{ fontSize: "0.82rem", color: "#8C7B6B", margin: "3px 0 0" }}>
+              Encuentra personas, cursos y empleos
+            </p>
+          </div>
+
+          {/* Search bar */}
+          <div style={{ position: "relative" }}>
+            <Search style={{ position: "absolute", left: 13, top: "50%", transform: "translateY(-50%)", width: 15, height: 15, color: "#8C7B6B" }} />
             <input
               autoFocus
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder={placeholders[categoria]}
-              className="w-full bg-slate-100 border border-transparent rounded-lg pl-9 pr-4 py-2.5 text-sm text-slate-900 focus:outline-none focus:bg-white focus:border-slate-300 transition-all"
+              style={{
+                width: "100%", boxSizing: "border-box",
+                backgroundColor: "#F6F5F0", border: "1px solid #E8E4DC",
+                borderRadius: 10, paddingLeft: 38, paddingRight: 16, paddingTop: 10, paddingBottom: 10,
+                fontSize: "0.88rem", color: "#0d1b35",
+                fontFamily: "'Plus Jakarta Sans', sans-serif",
+                outline: "none", transition: "border-color 0.15s, background-color 0.15s",
+              }}
+              onFocus={(el) => { el.currentTarget.style.backgroundColor = "#FFFFFF"; el.currentTarget.style.borderColor = "#D4AF37"; }}
+              onBlur={(el) => { el.currentTarget.style.backgroundColor = "#F6F5F0"; el.currentTarget.style.borderColor = "#E8E4DC"; }}
             />
           </div>
 
-          {/* Tabs de categoría */}
-          <div className="flex gap-2 mt-3">
+          {/* Category tabs */}
+          <div style={{ display: "flex", marginTop: 14, borderBottom: "2px solid #E8E4DC" }}>
             {tabs.map((t) => (
               <button
                 key={t.id}
                 onClick={() => setCategoria(t.id)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                  categoria === t.id
-                    ? "bg-slate-900 text-white"
-                    : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-                }`}
+                style={{
+                  flex: 1, padding: "10px 4px",
+                  background: "none", border: "none", cursor: "pointer",
+                  fontSize: "0.82rem", fontWeight: 600,
+                  color: categoria === t.id ? "#0d1b35" : "#94a3b8",
+                  borderBottom: categoria === t.id ? "2px solid #D4AF37" : "2px solid transparent",
+                  marginBottom: -2,
+                  transition: "color 0.15s",
+                  fontFamily: "'Plus Jakarta Sans', sans-serif",
+                  display: "flex", alignItems: "center", justifyContent: "center", gap: 5,
+                }}
               >
                 {t.icon} {t.label}
               </button>
@@ -355,35 +480,43 @@ export function BusquedaGlobal() {
         </div>
       </div>
 
-      {/* Resultados */}
-      <div className="max-w-3xl mx-auto px-4 py-6 space-y-6">
+      {/* Results */}
+      <div style={{ maxWidth: 720, margin: "0 auto", padding: "20px 20px", display: "flex", flexDirection: "column", gap: 20 }}>
+
         {errorInscripcion && (
-          <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3">
-            <p className="text-red-600 text-xs font-medium">{errorInscripcion}</p>
+          <div style={{ backgroundColor: "#FFF1F0", border: "1px solid #FECDD3", borderRadius: 12, padding: "10px 14px" }}>
+            <p style={{ fontSize: "0.82rem", fontWeight: 600, color: "#BE123C", margin: 0 }}>{errorInscripcion}</p>
           </div>
         )}
 
         {loading ? (
-          <div className="flex items-center justify-center py-16">
-            <Loader2 className="w-6 h-6 animate-spin text-slate-400" />
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", paddingTop: 64, paddingBottom: 64 }}>
+            <Loader2 className="animate-spin" style={{ width: 24, height: 24, color: "#D4AF37" }} />
           </div>
+
         ) : buscado && total === 0 && (categoria !== "personas" || query.trim()) ? (
-          <div className="text-center py-16">
-            <p className="text-slate-400 text-sm">
+          <div style={{ textAlign: "center", paddingTop: 64, paddingBottom: 64 }}>
+            <div style={{ width: 52, height: 52, borderRadius: 14, backgroundColor: "#F0EDE8", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 12px" }}>
+              <Search style={{ width: 22, height: 22, color: "#8C7B6B" }} />
+            </div>
+            <p style={{ fontSize: "0.88rem", color: "#6B5D52", margin: 0 }}>
               No se encontraron {categoria === "personas" ? "personas" : categoria === "cursos" ? "cursos" : "empleos"}
-              {query.trim() ? <> para <strong>"{query}"</strong></> : null}
+              {query.trim() ? <> para <strong style={{ color: "#0d1b35" }}>"{query}"</strong></> : null}
             </p>
           </div>
+
         ) : !buscado || (categoria === "personas" && !query.trim()) ? (
           categoria === "personas" ? (
-            <div className="text-center py-16">
-              <Search className="w-8 h-8 text-slate-300 mx-auto mb-3" />
-              <p className="text-slate-400 text-sm">Escribe un nombre para buscar personas</p>
+            <div style={{ textAlign: "center", paddingTop: 64, paddingBottom: 64 }}>
+              <div style={{ width: 52, height: 52, borderRadius: 14, backgroundColor: "#F0EDE8", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 12px" }}>
+                <Search style={{ width: 22, height: 22, color: "#8C7B6B" }} />
+              </div>
+              <p style={{ fontSize: "0.88rem", color: "#6B5D52", margin: 0 }}>Escribe un nombre para buscar personas</p>
             </div>
           ) : null
+
         ) : (
           <>
-            {/* Personas */}
             {categoria === "personas" && (
               <>
                 <SeccionResultados titulo="Estudiantes" count={estudiantes.length}>
@@ -402,48 +535,54 @@ export function BusquedaGlobal() {
                   ))}
                 </SeccionResultados>
                 {totalPersonas === 0 && query.trim() && (
-                  <div className="text-center py-16">
-                    <p className="text-slate-400 text-sm">No se encontraron resultados para <strong>"{query}"</strong></p>
+                  <div style={{ textAlign: "center", paddingTop: 48, paddingBottom: 48 }}>
+                    <p style={{ fontSize: "0.88rem", color: "#6B5D52", margin: 0 }}>
+                      No se encontraron resultados para <strong style={{ color: "#0d1b35" }}>"{query}"</strong>
+                    </p>
                   </div>
                 )}
               </>
             )}
 
-            {/* Cursos */}
             {categoria === "cursos" && (
-              <div className="space-y-3">
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                 {cursos.length === 0 ? (
-                  <div className="text-center py-16">
-                    <GraduationCap className="w-8 h-8 text-slate-300 mx-auto mb-3" />
-                    <p className="text-slate-400 text-sm">No hay cursos disponibles{query.trim() ? ` para "${query}"` : ""}</p>
+                  <div style={{ textAlign: "center", paddingTop: 64, paddingBottom: 64 }}>
+                    <div style={{ width: 52, height: 52, borderRadius: 14, backgroundColor: "#F0EDE8", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 12px" }}>
+                      <GraduationCap style={{ width: 22, height: 22, color: "#8C7B6B" }} />
+                    </div>
+                    <p style={{ fontSize: "0.88rem", color: "#6B5D52", margin: 0 }}>
+                      No hay cursos disponibles{query.trim() ? ` para "${query}"` : ""}
+                    </p>
                   </div>
                 ) : (
                   <>
                     {esEstudiante && (
-                      <p className="text-slate-400 text-xs mb-2 flex items-center gap-1">
-                        <Clock className="w-3 h-3" /> Al inscribirte, el curso aparecerá en tu perfil como "Por validar" hasta que el docente lo apruebe.
-                      </p>
+                      <div style={{ display: "flex", alignItems: "flex-start", gap: 7, backgroundColor: "#FFFBF0", border: "1px solid #F5E6C0", borderRadius: 10, padding: "9px 12px", marginBottom: 4 }}>
+                        <Clock style={{ width: 13, height: 13, color: "#B8962E", flexShrink: 0, marginTop: 1 }} />
+                        <p style={{ fontSize: "0.75rem", color: "#8C7B6B", margin: 0, lineHeight: 1.5 }}>
+                          Al inscribirte, el curso aparecerá en tu perfil como "Por validar" hasta que el docente lo apruebe.
+                        </p>
+                      </div>
                     )}
                     {cursos.map((c) => (
-                      <CursoCard
-                        key={c.id}
-                        curso={c}
-                        esEstudiante={esEstudiante}
-                        onInscribirse={handleInscribirse}
-                      />
+                      <CursoCard key={c.id} curso={c} esEstudiante={esEstudiante} onInscribirse={handleInscribirse} />
                     ))}
                   </>
                 )}
               </div>
             )}
 
-            {/* Empleos */}
             {categoria === "empleos" && (
-              <div className="space-y-3">
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                 {empleos.length === 0 ? (
-                  <div className="text-center py-16">
-                    <Briefcase className="w-8 h-8 text-slate-300 mx-auto mb-3" />
-                    <p className="text-slate-400 text-sm">No hay empleos disponibles{query.trim() ? ` para "${query}"` : ""}</p>
+                  <div style={{ textAlign: "center", paddingTop: 64, paddingBottom: 64 }}>
+                    <div style={{ width: 52, height: 52, borderRadius: 14, backgroundColor: "#F0EDE8", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 12px" }}>
+                      <Briefcase style={{ width: 22, height: 22, color: "#8C7B6B" }} />
+                    </div>
+                    <p style={{ fontSize: "0.88rem", color: "#6B5D52", margin: 0 }}>
+                      No hay empleos disponibles{query.trim() ? ` para "${query}"` : ""}
+                    </p>
                   </div>
                 ) : (
                   empleos.map((o) => <EmpleoCard key={o.id} o={o} />)

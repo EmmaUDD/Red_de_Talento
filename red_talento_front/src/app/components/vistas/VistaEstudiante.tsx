@@ -3,19 +3,19 @@ import { useParams, useNavigate } from "react-router";
 import { motion } from "motion/react";
 import {
   CheckCircle, Award, Wrench, Zap, Clock, ArrowLeft,
-  MapPin, Shield, Image as ImageIcon, Loader2,
+  MapPin, Shield, Image as ImageIcon, Loader2, Play, ExternalLink,
 } from "lucide-react";
 import { perfilApi, feedApi } from "@/api/api";
 import type { EstudiantePerfil, Habilidad, FeedPost } from "@/app/types";
 import { PostList } from "./PostList";
 
 const BASE_URL = import.meta.env.VITE_API_URL ?? "http://127.0.0.1:8000";
+const FONT_URL = "https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap";
 
-function nivelColor(nivel: string) {
-  if (nivel === "Alto") return "bg-green-50 text-green-700 border-green-200";
-  if (nivel === "Medio") return "bg-amber-50 text-amber-700 border-amber-200";
-  return "bg-slate-50 text-slate-600 border-slate-200";
-}
+const disponibilidadLabel: Record<string, string> = {
+  part_time: "Part-time", full_time: "Full-time",
+  fines_de_semana: "Fines de semana", practicas: "Práctica laboral",
+};
 
 function nivelPct(nivel: string) {
   if (nivel === "Alto") return 88;
@@ -29,27 +29,35 @@ function nivelBar(nivel: string) {
   return "#ef4444";
 }
 
-function HabilidadRow({ h }: { h: Habilidad }) {
+const nivelStyle: Record<string, React.CSSProperties> = {
+  Alto: { backgroundColor: "#f0fdf4", color: "#15803d", border: "1px solid #bbf7d0", borderRadius: 20, fontSize: 11, padding: "2px 8px", fontWeight: 700 },
+  Medio: { backgroundColor: "#fffbeb", color: "#b45309", border: "1px solid #fde68a", borderRadius: 20, fontSize: 11, padding: "2px 8px", fontWeight: 700 },
+  Bajo: { backgroundColor: "#fef2f2", color: "#b91c1c", border: "1px solid #fecaca", borderRadius: 20, fontSize: 11, padding: "2px 8px", fontWeight: 700 },
+};
+
+function HabilidadRow({ h, delay }: { h: Habilidad; delay: number }) {
   return (
-    <div className="flex items-center justify-between gap-3">
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center justify-between mb-1">
-          <span className="text-slate-800 text-sm truncate" style={{ fontWeight: 600 }}>{h.nombre}</span>
-          <span className={`text-xs px-2 py-0.5 rounded-full border ml-2 flex-shrink-0 ${nivelColor(h.nivel ?? "")}`} style={{ fontWeight: 600 }}>
-            {h.nivel}
-          </span>
-        </div>
-        <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
-          <motion.div
-            initial={{ width: 0 }}
-            animate={{ width: `${nivelPct(h.nivel ?? "")}%` }}
-            transition={{ duration: 0.7, ease: "easeOut" }}
-            className="h-full rounded-full"
-            style={{ backgroundColor: nivelBar(h.nivel ?? "") }}
-          />
-        </div>
+    <motion.div
+      initial={{ opacity: 0, x: -8 }}
+      animate={{ opacity: 1, x: 0 }}
+      transition={{ delay, duration: 0.4 }}
+      style={{ display: "flex", flexDirection: "column", gap: 6 }}
+    >
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <span style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: "0.9rem", fontWeight: 600, color: "#0d1b35" }}>
+          {h.nombre}
+        </span>
+        <span style={nivelStyle[h.nivel ?? "Bajo"] ?? nivelStyle.Bajo}>{h.nivel}</span>
       </div>
-    </div>
+      <div style={{ width: "100%", height: 5, backgroundColor: "#F0EDE8", borderRadius: 4, overflow: "hidden" }}>
+        <motion.div
+          initial={{ width: 0 }}
+          animate={{ width: `${nivelPct(h.nivel ?? "")}%` }}
+          transition={{ duration: 0.8, ease: "easeOut", delay: delay + 0.1 }}
+          style={{ height: "100%", borderRadius: 4, backgroundColor: nivelBar(h.nivel ?? "") }}
+        />
+      </div>
+    </motion.div>
   );
 }
 
@@ -60,6 +68,15 @@ export function VistaEstudiante() {
   const [posts, setPosts] = useState<FeedPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<"publicaciones" | "perfil" | "competencias" | "evidencias">("publicaciones");
+
+  useEffect(() => {
+    if (!document.querySelector(`link[href="${FONT_URL}"]`)) {
+      const link = document.createElement("link");
+      link.rel = "stylesheet";
+      link.href = FONT_URL;
+      document.head.appendChild(link);
+    }
+  }, []);
 
   useEffect(() => {
     if (!id) return;
@@ -76,18 +93,21 @@ export function VistaEstudiante() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#F9FAFB] flex items-center justify-center">
-        <Loader2 className="w-7 h-7 animate-spin text-slate-400" />
+      <div style={{ minHeight: "100vh", backgroundColor: "#F6F5F0", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <Loader2 className="animate-spin" style={{ width: 28, height: 28, color: "#D4AF37" }} />
       </div>
     );
   }
 
   if (!perfil) {
     return (
-      <div className="min-h-screen bg-[#F9FAFB] flex flex-col items-center justify-center gap-3">
-        <p className="text-slate-500 text-sm">Perfil no encontrado.</p>
-        <button onClick={() => navigate(-1)} className="text-xs text-slate-400 hover:text-slate-600 flex items-center gap-1">
-          <ArrowLeft className="w-3.5 h-3.5" /> Volver
+      <div style={{ minHeight: "100vh", backgroundColor: "#F6F5F0", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 12 }}>
+        <p style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: "0.9rem", color: "#8C7B6B" }}>Perfil no encontrado.</p>
+        <button
+          onClick={() => navigate(-1)}
+          style={{ display: "flex", alignItems: "center", gap: 6, fontSize: "0.82rem", color: "#A8998A", background: "none", border: "none", cursor: "pointer", fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+        >
+          <ArrowLeft style={{ width: 14, height: 14 }} /> Volver
         </button>
       </div>
     );
@@ -99,95 +119,167 @@ export function VistaEstudiante() {
   const softSkills = perfil.habilidades.filter((h) => h.tipo === "blanda");
 
   const tabs = [
-    { id: "publicaciones" as const, label: `Publicaciones` },
+    { id: "publicaciones" as const, label: "Publicaciones" },
     { id: "perfil" as const, label: "Perfil" },
     { id: "competencias" as const, label: "Competencias" },
     { id: "evidencias" as const, label: "Evidencias" },
   ];
 
-  const disponibilidadLabel: Record<string, string> = {
-    part_time: "Part-time", full_time: "Full-time",
-    fines_de_semana: "Fines de semana", practicas: "Práctica laboral",
-  };
-
   return (
-    <div className="min-h-screen bg-[#F9FAFB]">
-      {/* Header */}
-      <div className="bg-white border-b border-slate-200">
-        <div className="max-w-2xl mx-auto px-4 pt-5 pb-0">
-          {/* Volver */}
+    <div style={{ minHeight: "100vh", backgroundColor: "#F6F5F0", fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+
+      <div style={{ backgroundColor: "#FFFFFF", borderBottom: "1px solid #E8E4DC" }}>
+
+        {/* Cover — full width, no maxWidth wrapper */}
+        <div style={{
+          height: 160,
+          backgroundColor: "#0d1b35",
+          backgroundImage: `
+            linear-gradient(rgba(255,255,255,0.06) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(255,255,255,0.06) 1px, transparent 1px)
+          `,
+          backgroundSize: "24px 24px",
+          position: "relative",
+        }}>
           <button
             onClick={() => navigate(-1)}
-            className="flex items-center gap-1.5 text-slate-500 hover:text-slate-900 text-sm mb-4 transition-colors"
+            style={{
+              position: "absolute",
+              top: 14,
+              left: 20,
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+              fontSize: "0.82rem",
+              color: "rgba(255,255,255,0.75)",
+              background: "rgba(255,255,255,0.1)",
+              border: "1px solid rgba(255,255,255,0.15)",
+              borderRadius: 8,
+              padding: "5px 12px",
+              cursor: "pointer",
+              fontFamily: "'Plus Jakarta Sans', sans-serif",
+            }}
           >
-            <ArrowLeft className="w-4 h-4" /> Volver
+            <ArrowLeft style={{ width: 13, height: 13 }} /> Volver
           </button>
 
-          {/* Sello validado */}
           {perfil.validado && (
-            <div className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 mb-4 text-xs"
-              style={{ backgroundColor: "#FFFBF0", border: "1px solid #D4AF37", color: "#B8962E", fontWeight: 700 }}>
-              <CheckCircle className="w-3.5 h-3.5" style={{ color: "#D4AF37" }} />
-              Perfil Validado Institucionalmente · Liceo Cardenal Caro
+            <div style={{
+              position: "absolute",
+              top: 14,
+              right: 20,
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 5,
+              backgroundColor: "rgba(212,175,55,0.15)",
+              border: "1px solid rgba(212,175,55,0.4)",
+              borderRadius: 20,
+              padding: "4px 12px",
+            }}>
+              <CheckCircle style={{ width: 13, height: 13, color: "#D4AF37" }} />
+              <span style={{ fontSize: 11, fontWeight: 700, color: "#D4AF37" }}>Validado</span>
             </div>
           )}
+        </div>
 
-          <div className="flex items-start gap-4 mb-5">
-            {/* Avatar */}
-            <div className="relative flex-shrink-0">
+        {/* Identity + tabs — maxWidth centered container */}
+        <div style={{ maxWidth: 1100, margin: "0 auto", padding: "0 24px" }}>
+
+          {/* Avatar + name row — overlaps cover */}
+          <div style={{ display: "flex", alignItems: "flex-end", gap: 18, marginTop: -44 }}>
+            <div style={{ position: "relative", flexShrink: 0 }}>
               {fotoSrc ? (
-                <img src={fotoSrc} alt={perfil.nombre} className="w-20 h-20 rounded-xl object-cover border border-slate-200" />
+                <img
+                  src={fotoSrc}
+                  alt={perfil.nombre}
+                  style={{ width: 96, height: 96, borderRadius: 18, objectFit: "cover", border: "4px solid #FFFFFF", display: "block" }}
+                />
               ) : (
-                <div className="w-20 h-20 rounded-xl bg-slate-200 flex items-center justify-center border border-slate-200">
-                  <span className="text-slate-500 text-2xl font-bold">{perfil.nombre.charAt(0).toUpperCase()}</span>
+                <div style={{
+                  width: 96, height: 96, borderRadius: 18,
+                  backgroundColor: "#0d1b35", border: "4px solid #FFFFFF",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                }}>
+                  <span style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: "2.2rem", fontWeight: 700, color: "#D4AF37" }}>
+                    {perfil.nombre.charAt(0).toUpperCase()}
+                  </span>
                 </div>
               )}
               {perfil.validado && (
-                <div className="absolute -bottom-2 -right-2 w-6 h-6 rounded-full flex items-center justify-center border-2 border-white z-10"
-                  style={{ backgroundColor: "#D4AF37" }}>
-                  <CheckCircle className="w-3.5 h-3.5 text-white" />
+                <div style={{
+                  position: "absolute", bottom: -4, right: -4,
+                  width: 24, height: 24, borderRadius: "50%",
+                  backgroundColor: "#D4AF37", border: "3px solid #FFFFFF",
+                  display: "flex", alignItems: "center", justifyContent: "center", zIndex: 10,
+                }}>
+                  <CheckCircle style={{ width: 13, height: 13, color: "#FFFFFF" }} />
                 </div>
               )}
             </div>
 
-            {/* Info */}
-            <div className="flex-1 min-w-0">
-              <h1 className="text-slate-900 truncate" style={{ fontSize: "1.2rem", fontWeight: 700 }}>
+            <div style={{ flex: 1, minWidth: 0, paddingBottom: 12, paddingTop: 48 }}>
+              <h1 style={{
+                fontFamily: "'Playfair Display', Georgia, serif",
+                fontSize: "1.5rem", fontWeight: 700, color: "#0d1b35",
+                margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+              }}>
                 {perfil.nombre}
               </h1>
-              <p className="text-slate-600 text-sm mt-0.5" style={{ fontWeight: 500 }}>{perfil.especialidad}</p>
+              <p style={{ fontSize: "0.95rem", color: "#6B5D52", margin: "3px 0 0", fontWeight: 600 }}>
+                {perfil.especialidad}
+              </p>
               {perfil.curso && (
-                <p className="text-slate-500 text-xs mt-0.5">{perfil.curso} · Liceo Cardenal Caro · Lo Espejo</p>
-              )}
-              {perfil.disponibilidad && (
-                <span className="mt-2 inline-flex items-center gap-1 bg-slate-100 rounded-full px-2.5 py-1 text-xs text-slate-600">
-                  <Clock className="w-3 h-3" />
-                  {disponibilidadLabel[perfil.disponibilidad] ?? perfil.disponibilidad}
-                </span>
+                <p style={{ fontSize: "0.82rem", color: "#8C7B6B", margin: "2px 0 0" }}>
+                  {perfil.curso} · Liceo Cardenal Caro · Lo Espejo
+                </p>
               )}
             </div>
           </div>
 
-          {/* Insignias */}
-          {perfil.insignias.length > 0 && (
-            <div className="flex gap-2 overflow-x-auto pb-3">
-              {perfil.insignias.map((b) => (
-                <span key={b.id} className="flex-shrink-0 text-xs rounded-full px-3 py-1.5 border"
-                  style={{ borderColor: "#D4AF37", color: "#B8962E", backgroundColor: "#FFFBF0", fontWeight: 600 }}>
-                  {b.icono} {b.nombre}
-                </span>
-              ))}
-            </div>
-          )}
+          {/* Availability + insignias */}
+          <div style={{ padding: "12px 0 0" }}>
+            {perfil.disponibilidad && (
+              <span style={{
+                display: "inline-flex", alignItems: "center", gap: 5,
+                backgroundColor: "#F0EDE8", borderRadius: 20, padding: "4px 12px",
+                fontSize: "0.82rem", color: "#6B5D52", fontWeight: 600, marginBottom: 10,
+              }}>
+                <Clock style={{ width: 12, height: 12 }} />
+                {disponibilidadLabel[perfil.disponibilidad] ?? perfil.disponibilidad}
+              </span>
+            )}
+            {perfil.insignias.length > 0 && (
+              <div style={{ display: "flex", gap: 8, overflowX: "auto", paddingBottom: 12, scrollbarWidth: "none" } as React.CSSProperties}>
+                {perfil.insignias.map((b) => (
+                  <span key={b.id} style={{
+                    flexShrink: 0, fontSize: 11, fontWeight: 700, padding: "4px 12px",
+                    borderRadius: 20, backgroundColor: "#FFFBF0", border: "1px solid #D4AF37",
+                    color: "#B8962E", whiteSpace: "nowrap",
+                  }}>
+                    {b.icono} {b.nombre}
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
 
-          {/* Tabs */}
-          <div className="flex border-b border-slate-200 -mx-4 px-4">
+          {/* Tab nav */}
+          <div style={{ display: "flex", borderBottom: "2px solid #E8E4DC", marginTop: 4 }}>
             {tabs.map((t) => (
-              <button key={t.id} onClick={() => setTab(t.id)}
-                className={`flex-1 py-3 text-sm transition-all border-b-2 -mb-px ${
-                  tab === t.id ? "border-slate-900 text-slate-900" : "border-transparent text-slate-500 hover:text-slate-700"
-                }`}
-                style={{ fontWeight: tab === t.id ? 700 : 500 }}>
+              <button
+                key={t.id}
+                onClick={() => setTab(t.id)}
+                style={{
+                  flex: 1, padding: "10px 4px",
+                  background: "none", border: "none", cursor: "pointer",
+                  fontSize: "0.82rem", fontWeight: 600,
+                  color: tab === t.id ? "#0d1b35" : "#94a3b8",
+                  borderBottom: tab === t.id ? "2px solid #D4AF37" : "2px solid transparent",
+                  marginBottom: -2,
+                  transition: "color 0.15s",
+                  fontFamily: "'Plus Jakarta Sans', sans-serif",
+                }}
+              >
                 {t.label}
               </button>
             ))}
@@ -195,43 +287,99 @@ export function VistaEstudiante() {
         </div>
       </div>
 
-      {/* Content */}
-      <div className="max-w-2xl mx-auto px-4 py-5 space-y-4">
+      {/* Tab content */}
+      <div style={{ maxWidth: 768, margin: "0 auto", padding: "20px 16px" }}>
 
-        {/* ── PERFIL ── */}
+        {/* Publicaciones */}
+        {tab === "publicaciones" && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            <PostList posts={posts} nombre={perfil.nombre} fotoSrc={fotoSrc} />
+          </motion.div>
+        )}
+
+        {/* Perfil */}
         {tab === "perfil" && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
-            <div className="bg-white rounded-xl border border-slate-200 p-5">
-              <h3 className="text-slate-900 text-sm font-semibold mb-3">Sobre mí</h3>
-              <p className="text-slate-600 text-sm leading-relaxed">
-                {perfil.bio || <span className="text-slate-400 italic">No ha agregado una descripción.</span>}
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+            <div style={{ backgroundColor: "#FFFFFF", border: "1px solid #E8E4DC", borderRadius: 14, padding: 20 }}>
+              <p style={{ fontSize: "0.68rem", fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 12 }}>
+                Sobre mí
+              </p>
+              <p style={{ fontSize: "0.92rem", color: "#4A3F35", lineHeight: 1.7 }}>
+                {perfil.bio
+                  ? perfil.bio
+                  : <span style={{ color: "#A8998A", fontStyle: "italic" }}>No ha agregado una descripción.</span>
+                }
               </p>
             </div>
 
-            <div className="bg-white rounded-xl border border-slate-200 p-5">
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="text-slate-900 text-sm font-semibold">Información</h3>
+            {/* Video pitch */}
+            <div style={{ backgroundColor: "#FFFFFF", border: "1px solid #E8E4DC", borderRadius: 14, overflow: "hidden" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "16px 20px 12px" }}>
+                <Play style={{ width: 14, height: 14, color: "#94a3b8" }} />
+                <p style={{ margin: 0, fontSize: "0.85rem", fontWeight: 700, color: "#0d1b35" }}>
+                  Video Pitch
+                </p>
               </div>
-              <div className="space-y-2.5">
-                <div className="flex items-center gap-2 text-sm">
-                  <Award className="w-4 h-4 text-slate-400 flex-shrink-0" />
-                  <span className="text-slate-600">{perfil.especialidad}</span>
+              {perfil.video_pitch ? (
+                <div style={{ padding: "0 20px 20px" }}>
+                  {(() => {
+                    const ytMatch = perfil.video_pitch.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&\s]+)/);
+                    const videoId = ytMatch?.[1];
+                    return videoId ? (
+                      <a
+                        href={perfil.video_pitch}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{ display: "block", borderRadius: 12, overflow: "hidden", border: "1px solid #E8E4DC", position: "relative" }}
+                      >
+                        <img
+                          src={`https://img.youtube.com/vi/${videoId}/hqdefault.jpg`}
+                          alt="miniatura video"
+                          style={{ width: "100%", objectFit: "cover", aspectRatio: "16/9", display: "block" }}
+                        />
+                        <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", backgroundColor: "rgba(0,0,0,0.3)" }}>
+                          <div style={{ width: 52, height: 52, borderRadius: "50%", backgroundColor: "rgba(255,255,255,0.92)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                            <Play style={{ width: 20, height: 20, color: "#0d1b35", marginLeft: 3 }} />
+                          </div>
+                        </div>
+                      </a>
+                    ) : (
+                      <a
+                        href={perfil.video_pitch}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{ display: "flex", alignItems: "center", gap: 8, padding: "12px 14px", borderRadius: 10, border: "1px solid #E8E4DC", color: "#0d1b35", fontSize: "0.8rem", fontWeight: 600, textDecoration: "none", backgroundColor: "#FAFAF9" }}
+                      >
+                        <Play style={{ width: 13, height: 13, color: "#94a3b8", flexShrink: 0 }} />
+                        <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{perfil.video_pitch}</span>
+                        <ExternalLink style={{ width: 12, height: 12, color: "#94a3b8", flexShrink: 0 }} />
+                      </a>
+                    );
+                  })()}
                 </div>
-                {perfil.curso && (
-                  <div className="flex items-center gap-2 text-sm">
-                    <Zap className="w-4 h-4 text-slate-400 flex-shrink-0" />
-                    <span className="text-slate-600">{perfil.curso}</span>
+              ) : (
+                <div style={{ margin: "0 20px 20px", borderRadius: 10, backgroundColor: "#FAFAF9", border: "2px dashed #E8E4DC", aspectRatio: "16/9", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 8 }}>
+                  <Play style={{ width: 28, height: 28, color: "#D4D0C8" }} />
+                  <p style={{ margin: 0, color: "#94a3b8", fontSize: "0.75rem", textAlign: "center" }}>
+                    Este estudiante no ha subido su video pitch aún.
+                  </p>
+                </div>
+              )}
+            </div>
+
+            <div style={{ backgroundColor: "#FFFFFF", border: "1px solid #E8E4DC", borderRadius: 14, padding: 20 }}>
+              <p style={{ fontSize: "0.68rem", fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 14 }}>
+                Información
+              </p>
+              <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                <InfoRow icon={Award} text={perfil.especialidad} />
+                {perfil.curso && <InfoRow icon={Zap} text={perfil.curso} />}
+                {perfil.comuna && <InfoRow icon={MapPin} text={perfil.comuna} />}
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <div style={{ width: 30, height: 30, borderRadius: 8, backgroundColor: perfil.validado ? "#FFFBF0" : "#F0EDE8", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                    <Shield style={{ width: 14, height: 14, color: perfil.validado ? "#D4AF37" : "#A8998A" }} />
                   </div>
-                )}
-                {perfil.comuna && (
-                  <div className="flex items-center gap-2 text-sm">
-                    <MapPin className="w-4 h-4 text-slate-400 flex-shrink-0" />
-                    <span className="text-slate-600">{perfil.comuna}</span>
-                  </div>
-                )}
-                <div className="flex items-center gap-2 text-sm">
-                  <Shield className="w-4 h-4 text-slate-400 flex-shrink-0" />
-                  <span className={perfil.validado ? "text-amber-700 font-semibold" : "text-slate-400"}>
+                  <span style={{ fontSize: "0.9rem", fontWeight: perfil.validado ? 700 : 400, color: perfil.validado ? "#B8962E" : "#A8998A" }}>
                     {perfil.validado ? "Validado institucionalmente" : "Pendiente de validación"}
                   </span>
                 </div>
@@ -240,82 +388,101 @@ export function VistaEstudiante() {
           </motion.div>
         )}
 
-        {/* ── COMPETENCIAS ── */}
+        {/* Competencias */}
         {tab === "competencias" && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
             {techSkills.length > 0 && (
-              <div className="bg-white rounded-xl border border-slate-200 p-5">
-                <div className="flex items-center gap-2 mb-4">
-                  <div className="w-7 h-7 rounded-lg bg-slate-900 flex items-center justify-center">
-                    <Wrench className="w-3.5 h-3.5 text-white" />
+              <div style={{ backgroundColor: "#FFFFFF", border: "1px solid #E8E4DC", borderRadius: 14, padding: 20 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 18 }}>
+                  <div style={{ width: 30, height: 30, borderRadius: 9, backgroundColor: "#0d1b35", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <Wrench style={{ width: 15, height: 15, color: "#D4AF37" }} />
                   </div>
-                  <h3 className="text-slate-900 text-sm font-semibold">Habilidades técnicas</h3>
-                  <span className="ml-auto text-xs text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">{techSkills.length}</span>
+                  <p style={{ fontSize: "0.85rem", fontWeight: 700, color: "#0d1b35", margin: 0 }}>
+                    Habilidades técnicas
+                  </p>
+                  <span style={{ marginLeft: "auto", fontSize: 11, fontWeight: 700, padding: "2px 9px", borderRadius: 20, backgroundColor: "#F0EDE8", color: "#6B5D52" }}>
+                    {techSkills.length}
+                  </span>
                 </div>
-                <div className="space-y-4">
-                  {techSkills.map((h) => <HabilidadRow key={h.id} h={h} />)}
+                <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                  {techSkills.map((h, i) => <HabilidadRow key={h.id} h={h} delay={i * 0.07} />)}
                 </div>
               </div>
             )}
 
             {softSkills.length > 0 && (
-              <div className="bg-white rounded-xl border border-slate-200 p-5">
-                <div className="flex items-center gap-2 mb-4">
-                  <div className="w-7 h-7 rounded-lg bg-blue-600 flex items-center justify-center">
-                    <Zap className="w-3.5 h-3.5 text-white" />
+              <div style={{ backgroundColor: "#FFFFFF", border: "1px solid #E8E4DC", borderRadius: 14, padding: 20 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 18 }}>
+                  <div style={{ width: 30, height: 30, borderRadius: 9, backgroundColor: "#1d4ed8", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <Zap style={{ width: 15, height: 15, color: "#FFFFFF" }} />
                   </div>
-                  <h3 className="text-slate-900 text-sm font-semibold">Habilidades blandas</h3>
-                  <span className="ml-auto text-xs text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">{softSkills.length}</span>
+                  <p style={{ fontSize: "0.85rem", fontWeight: 700, color: "#0d1b35", margin: 0 }}>
+                    Habilidades blandas
+                  </p>
+                  <span style={{ marginLeft: "auto", fontSize: 11, fontWeight: 700, padding: "2px 9px", borderRadius: 20, backgroundColor: "#F0EDE8", color: "#6B5D52" }}>
+                    {softSkills.length}
+                  </span>
                 </div>
-                <div className="space-y-4">
-                  {softSkills.map((h) => <HabilidadRow key={h.id} h={h} />)}
+                <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                  {softSkills.map((h, i) => <HabilidadRow key={h.id} h={h} delay={i * 0.07} />)}
                 </div>
               </div>
             )}
 
             {techSkills.length === 0 && softSkills.length === 0 && (
-              <div className="bg-white rounded-xl border border-slate-200 p-8 text-center">
-                <p className="text-slate-400 text-sm">No hay competencias registradas.</p>
-              </div>
+              <EmptyCard text="No hay competencias registradas." />
             )}
           </motion.div>
         )}
 
-        {/* ── PUBLICACIONES ── */}
-        {tab === "publicaciones" && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-3">
-            <PostList posts={posts} nombre={perfil.nombre} fotoSrc={fotoSrc} />
-          </motion.div>
-        )}
-
-        {/* ── EVIDENCIAS ── */}
+        {/* Evidencias */}
         {tab === "evidencias" && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
             {perfil.evidencias && perfil.evidencias.length > 0 ? (
               perfil.evidencias.map((ev) => (
-                <div key={ev.id} className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+                <div key={ev.id} style={{ backgroundColor: "#FFFFFF", border: "1px solid #E8E4DC", borderRadius: 14, overflow: "hidden" }}>
                   {ev.imagen && (
-                    <img src={ev.imagen} alt={ev.titulo} className="w-full max-h-64 object-cover" />
+                    <img src={ev.imagen} alt={ev.titulo} style={{ width: "100%", maxHeight: 240, objectFit: "cover", display: "block" }} />
                   )}
-                  <div className="p-4">
-                    <div className="flex items-center gap-2 mb-1">
-                      <ImageIcon className="w-4 h-4 text-slate-400" />
-                      <p className="text-slate-900 text-sm font-semibold">{ev.titulo}</p>
+                  <div style={{ padding: 18 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+                      <ImageIcon style={{ width: 15, height: 15, color: "#A8998A" }} />
+                      <p style={{ fontSize: "0.88rem", fontWeight: 700, color: "#0d1b35", margin: 0 }}>
+                        {ev.titulo}
+                      </p>
                     </div>
                     {ev.descripcion && (
-                      <p className="text-slate-500 text-sm leading-relaxed mt-1">{ev.descripcion}</p>
+                      <p style={{ fontSize: "0.88rem", color: "#6B5D52", lineHeight: 1.6, margin: 0 }}>{ev.descripcion}</p>
                     )}
                   </div>
                 </div>
               ))
             ) : (
-              <div className="bg-white rounded-xl border border-slate-200 p-8 text-center">
-                <p className="text-slate-400 text-sm">No hay evidencias registradas.</p>
-              </div>
+              <EmptyCard text="No hay evidencias registradas." />
             )}
           </motion.div>
         )}
+
       </div>
+    </div>
+  );
+}
+
+function InfoRow({ icon: Icon, text }: { icon: React.ElementType; text: string }) {
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+      <div style={{ width: 30, height: 30, borderRadius: 8, backgroundColor: "#F0EDE8", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+        <Icon style={{ width: 14, height: 14, color: "#8C7B6B" }} />
+      </div>
+      <span style={{ fontSize: "0.9rem", color: "#4A3F35" }}>{text}</span>
+    </div>
+  );
+}
+
+function EmptyCard({ text }: { text: string }) {
+  return (
+    <div style={{ backgroundColor: "#FFFFFF", border: "1px solid #E8E4DC", borderRadius: 14, padding: 40, textAlign: "center" }}>
+      <p style={{ fontSize: "0.88rem", color: "#A8998A", margin: 0 }}>{text}</p>
     </div>
   );
 }

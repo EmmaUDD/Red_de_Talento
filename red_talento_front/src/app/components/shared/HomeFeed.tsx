@@ -13,11 +13,52 @@ import {
 import { formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
 
+const FONT_URL =
+  "https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap";
+
+const BASE_URL = import.meta.env.VITE_API_URL ?? "http://127.0.0.1:8000";
+
+const S = {
+  label: {
+    fontSize: "0.68rem", fontWeight: 700, color: "#94a3b8",
+    textTransform: "uppercase" as const, letterSpacing: "0.08em", margin: 0,
+  } as React.CSSProperties,
+  inputBase: {
+    backgroundColor: "#F6F5F0", border: "1px solid #E8E4DC", borderRadius: 10,
+    padding: "9px 12px", fontSize: "0.85rem",
+    fontFamily: "'Plus Jakarta Sans', sans-serif",
+    outline: "none", width: "100%", boxSizing: "border-box" as const,
+    color: "#0d1b35",
+  } as React.CSSProperties,
+  card: {
+    backgroundColor: "#FFFFFF", border: "1px solid #E8E4DC",
+    borderRadius: 16, fontFamily: "'Plus Jakarta Sans', sans-serif",
+    overflow: "hidden",
+  } as React.CSSProperties,
+};
+
+const accentLeft: Record<string, string> = {
+  oferta: "#D4AF37",
+  evento: "#7c3aed",
+  anuncio: "#16a34a",
+  post: "transparent",
+};
+const typeChip: Record<string, React.CSSProperties> = {
+  oferta:  { backgroundColor: "#FFFBF0", color: "#b45309",  border: "1px solid #fde68a" },
+  evento:  { backgroundColor: "#F5F3FF", color: "#6d28d9",  border: "1px solid #ddd6fe" },
+  anuncio: { backgroundColor: "#F0FDF4", color: "#15803d",  border: "1px solid #bbf7d0" },
+};
+const typeLabel: Record<string, string> = { oferta: "Empleo", evento: "Evento", anuncio: "Anuncio" };
+const roleChip: Record<string, React.CSSProperties> = {
+  student: { backgroundColor: "#EFF6FF", color: "#1d4ed8" },
+  teacher: { backgroundColor: "#F0FDF4", color: "#15803d" },
+  company: { backgroundColor: "#FFFBF0", color: "#b45309" },
+};
+const roleLabel: Record<string, string> = { student: "Estudiante", teacher: "Docente", company: "Empresa" };
+
 function parseEvento(contenido: string) {
   const lines = contenido.split("\n");
-  let titulo = "";
-  let datetime = "";
-  let lugar = "";
+  let titulo = "", datetime = "", lugar = "";
   const descLines: string[] = [];
   for (const line of lines) {
     const l = line.trim();
@@ -59,9 +100,7 @@ function FeedPostCard({ post, canModerate, onDelete }: { post: FeedPost; canMode
     try {
       await feedApi.reportar(post.autor_id, motivoReporte, descripcionReporte || motivoReporte, post.id);
       setReporteEstado("ok");
-    } catch {
-      setReporteEstado("error");
-    }
+    } catch { setReporteEstado("error"); }
   };
 
   const handleLike = async () => {
@@ -69,7 +108,7 @@ function FeedPostCard({ post, canModerate, onDelete }: { post: FeedPost; canMode
       await feedApi.likear(post.id);
       setLiked((l) => !l);
       setLikesCount((c) => (liked ? c - 1 : c + 1));
-    } catch { /* silently fail */ }
+    } catch { }
   };
 
   const handleAddComment = () => {
@@ -79,122 +118,95 @@ function FeedPostCard({ post, canModerate, onDelete }: { post: FeedPost; canMode
   };
 
   const handleEliminar = async () => {
-    setShowMenu(false);
-    setDeleting(true);
+    setShowMenu(false); setDeleting(true);
     try {
       await feedApi.eliminarPost(post.id);
       onDelete?.(post.id);
-    } catch {
-      setDeleting(false);
-    }
+    } catch { setDeleting(false); }
   };
 
   useEffect(() => {
     if (!showMenu) return;
     const handler = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        setShowMenu(false);
-      }
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setShowMenu(false);
     };
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, [showMenu]);
 
   const timeAgo = (() => {
-    try {
-      return formatDistanceToNow(new Date(post.fecha), { addSuffix: true, locale: es });
-    } catch {
-      return post.fecha;
-    }
+    try { return formatDistanceToNow(new Date(post.fecha), { addSuffix: true, locale: es }); }
+    catch { return post.fecha; }
   })();
 
-  const roleColors: Record<string, string> = {
-    student: "bg-blue-50 text-blue-700",
-    teacher: "bg-green-50 text-green-700",
-    company: "bg-amber-50 text-amber-700",
-  };
-  const roleLabel: Record<string, string> = {
-    student: "Estudiante",
-    teacher: "Docente",
-    company: "Empresa",
-  };
-
-  const typeConfig: Record<string, { label: string; className: string }> = {
-    oferta: { label: "Empleo", className: "bg-amber-50 text-amber-700 border border-amber-200" },
-    evento: { label: "Evento", className: "bg-purple-50 text-purple-700 border border-purple-200" },
-    anuncio: { label: "Anuncio", className: "bg-green-50 text-green-700 border border-green-200" },
-  };
-  const typeTag = typeConfig[post.tipo];
-
-  const accentBorder: Record<string, string> = {
-    oferta: "border-l-amber-400",
-    evento: "border-l-purple-400",
-    anuncio: "border-l-green-400",
-    post: "border-l-transparent",
-  };
+  // Resolve photo URL
+  const fotoSrc = post.autor_foto
+    ? (post.autor_foto.startsWith("http") ? post.autor_foto : `${BASE_URL}${post.autor_foto}`)
+    : null;
 
   return (
-    <div className={`bg-white rounded-xl border border-slate-200 border-l-4 ${accentBorder[post.tipo] ?? "border-l-transparent"} overflow-hidden`}>
-      <div className="p-4">
-        <div className="flex items-start justify-between gap-2 mb-3">
+    <div style={{
+      ...S.card,
+      borderLeftWidth: 3,
+      borderLeftStyle: "solid",
+      borderLeftColor: accentLeft[post.tipo] ?? "transparent",
+    }}>
+      <div style={{ padding: "14px 16px 12px" }}>
+        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8, marginBottom: 12 }}>
           <button
             onClick={handleOpenPerfil}
             disabled={!post.autor_perfil_id}
-            className="flex items-center gap-2.5 text-left disabled:cursor-default min-w-0"
+            style={{ display: "flex", alignItems: "center", gap: 10, textAlign: "left", background: "none", border: "none", cursor: post.autor_perfil_id ? "pointer" : "default", minWidth: 0, padding: 0 }}
           >
-            {post.autor_foto ? (
-              <img src={post.autor_foto} alt={post.autor_nombre} className="w-9 h-9 rounded-lg object-cover border border-slate-100 flex-shrink-0" />
+            {fotoSrc ? (
+              <img src={fotoSrc} alt={post.autor_nombre}
+                style={{ width: 38, height: 38, borderRadius: 10, objectFit: "cover", border: "2px solid #F0EDE8", flexShrink: 0 }} />
             ) : (
-              <div className="w-9 h-9 rounded-lg bg-slate-100 flex items-center justify-center flex-shrink-0">
-                <Award className="w-4 h-4 text-slate-500" />
+              <div style={{ width: 38, height: 38, borderRadius: 10, backgroundColor: "#0d1b35", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, border: "2px solid #F0EDE8" }}>
+                <span style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: "1rem", fontWeight: 700, color: "#D4AF37" }}>
+                  {post.autor_nombre.charAt(0).toUpperCase()}
+                </span>
               </div>
             )}
-            <div className="min-w-0">
-              <div className="flex items-center gap-1.5 flex-wrap">
-                <p className="text-slate-900 text-sm font-semibold truncate">{post.autor_nombre}</p>
-                {typeTag && (
-                  <span className={`text-xs font-semibold px-1.5 py-0.5 rounded-full flex-shrink-0 ${typeTag.className}`} style={{ fontSize: "0.65rem" }}>
-                    {typeTag.label}
+            <div style={{ minWidth: 0 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                <span style={{ color: "#0d1b35", fontSize: "0.875rem", fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  {post.autor_nombre}
+                </span>
+                {typeChip[post.tipo] && (
+                  <span style={{ ...typeChip[post.tipo], fontSize: "0.6rem", fontWeight: 700, padding: "2px 7px", borderRadius: 999, flexShrink: 0 }}>
+                    {typeLabel[post.tipo]}
                   </span>
                 )}
               </div>
-              <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
-                <span className={`text-xs font-semibold px-1.5 py-0.5 rounded-full ${roleColors[post.autor_rol]}`} style={{ fontSize: "0.65rem" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 2, flexWrap: "wrap" }}>
+                <span style={{ ...roleChip[post.autor_rol], fontSize: "0.6rem", fontWeight: 700, padding: "2px 7px", borderRadius: 999 }}>
                   {roleLabel[post.autor_rol]}
                 </span>
-                <span className="text-slate-400" style={{ fontSize: "0.7rem" }}>{timeAgo}</span>
+                <span style={{ color: "#94a3b8", fontSize: "0.7rem" }}>{timeAgo}</span>
               </div>
             </div>
           </button>
+
           {(canModerate || isOwn) && (
-            <div className="relative flex-shrink-0" ref={menuRef}>
+            <div style={{ position: "relative", flexShrink: 0 }} ref={menuRef}>
               <button
                 onClick={() => setShowMenu((s) => !s)}
                 disabled={deleting}
-                className="p-1.5 rounded-lg text-slate-400 hover:bg-slate-100 transition-colors"
+                style={{ padding: 6, borderRadius: 8, color: "#94a3b8", backgroundColor: "transparent", border: "none", cursor: "pointer", display: "flex" }}
               >
-                {deleting
-                  ? <Loader2 className="w-4 h-4 animate-spin" />
-                  : <MoreHorizontal className="w-4 h-4" />}
+                {deleting ? <Loader2 style={{ width: 15, height: 15 }} className="animate-spin" /> : <MoreHorizontal style={{ width: 15, height: 15 }} />}
               </button>
               {showMenu && (
-                <div className="absolute right-0 top-full mt-1 w-44 bg-white rounded-xl border border-slate-200 shadow-lg z-50 overflow-hidden">
+                <div style={{ position: "absolute", right: 0, top: "100%", marginTop: 4, width: 180, backgroundColor: "white", borderRadius: 12, border: "1px solid #E8E4DC", boxShadow: "0 8px 24px rgba(0,0,0,0.1)", zIndex: 50, overflow: "hidden" }}>
                   {isOwn && (
-                    <button
-                      onClick={handleEliminar}
-                      className="w-full flex items-center gap-2.5 px-3 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                      Eliminar publicación
+                    <button onClick={handleEliminar} style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", fontSize: "0.8rem", color: "#ef4444", backgroundColor: "transparent", border: "none", cursor: "pointer", fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+                      <Trash2 style={{ width: 14, height: 14 }} /> Eliminar publicación
                     </button>
                   )}
                   {canModerate && !isOwn && (
-                    <button
-                      onClick={() => { setShowMenu(false); setShowReporte(true); setReporteEstado("idle"); }}
-                      className="w-full flex items-center gap-2.5 px-3 py-2.5 text-sm text-slate-600 hover:bg-slate-50 transition-colors"
-                    >
-                      <Flag className="w-4 h-4" />
-                      Reportar
+                    <button onClick={() => { setShowMenu(false); setShowReporte(true); setReporteEstado("idle"); }} style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", fontSize: "0.8rem", color: "#475569", backgroundColor: "transparent", border: "none", cursor: "pointer", fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+                      <Flag style={{ width: 14, height: 14 }} /> Reportar
                     </button>
                   )}
                 </div>
@@ -206,89 +218,93 @@ function FeedPostCard({ post, canModerate, onDelete }: { post: FeedPost; canMode
         {post.tipo === "evento" ? (() => {
           const ev = parseEvento(post.contenido);
           return (
-            <div className="mt-1">
-              <div className="rounded-xl overflow-hidden border border-purple-200">
-                <div className="bg-gradient-to-r from-purple-600 to-purple-500 px-4 py-3 flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center flex-shrink-0">
-                    <CalendarDays className="w-4 h-4 text-white" />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-white font-extrabold" style={{ letterSpacing: "0.06em", fontSize: "0.6rem" }}>EVENTO</p>
-                    <p className="text-white text-sm font-bold leading-tight">{ev.titulo || post.contenido.split("\n")[0]}</p>
-                  </div>
+            <div style={{ borderRadius: 12, overflow: "hidden", border: "1px solid #ddd6fe" }}>
+              <div style={{ background: "linear-gradient(135deg, #5b21b6, #7c3aed)", padding: "12px 16px", display: "flex", alignItems: "center", gap: 10 }}>
+                <div style={{ width: 32, height: 32, borderRadius: 9, backgroundColor: "rgba(255,255,255,0.15)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                  <CalendarDays style={{ width: 15, height: 15, color: "white" }} />
                 </div>
-                {(ev.datetime || ev.lugar) && (
-                  <div className="bg-purple-50 px-4 py-2.5 flex flex-wrap gap-x-4 gap-y-1.5 border-t border-purple-100">
-                    {ev.datetime && (
-                      <span className="flex items-center gap-1.5 text-purple-700 font-medium" style={{ fontSize: "0.75rem" }}>
-                        <Clock className="w-3.5 h-3.5 flex-shrink-0" />
-                        {ev.datetime}
-                      </span>
-                    )}
-                    {ev.lugar && (
-                      <span className="flex items-center gap-1.5 text-purple-700 font-medium" style={{ fontSize: "0.75rem" }}>
-                        <MapPin className="w-3.5 h-3.5 flex-shrink-0" />
-                        {ev.lugar}
-                      </span>
-                    )}
-                  </div>
-                )}
-                {ev.descripcion && (
-                  <div className="px-4 py-3 bg-white">
-                    <p className="text-slate-600 text-sm leading-relaxed">{ev.descripcion}</p>
-                  </div>
-                )}
+                <div>
+                  <p style={{ color: "rgba(255,255,255,0.6)", fontSize: "0.58rem", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", margin: 0 }}>EVENTO</p>
+                  <p style={{ color: "white", fontSize: "0.875rem", fontWeight: 700, margin: 0 }}>{ev.titulo || post.contenido.split("\n")[0]}</p>
+                </div>
               </div>
+              {(ev.datetime || ev.lugar) && (
+                <div style={{ backgroundColor: "#F5F3FF", padding: "8px 16px", display: "flex", flexWrap: "wrap", gap: "6px 16px", borderTop: "1px solid #ede9fe" }}>
+                  {ev.datetime && (
+                    <span style={{ display: "flex", alignItems: "center", gap: 5, color: "#6d28d9", fontSize: "0.75rem", fontWeight: 500 }}>
+                      <Clock style={{ width: 12, height: 12, flexShrink: 0 }} />{ev.datetime}
+                    </span>
+                  )}
+                  {ev.lugar && (
+                    <span style={{ display: "flex", alignItems: "center", gap: 5, color: "#6d28d9", fontSize: "0.75rem", fontWeight: 500 }}>
+                      <MapPin style={{ width: 12, height: 12, flexShrink: 0 }} />{ev.lugar}
+                    </span>
+                  )}
+                </div>
+              )}
+              {ev.descripcion && (
+                <div style={{ padding: "10px 16px" }}>
+                  <p style={{ margin: 0, color: "#475569", fontSize: "0.8125rem", lineHeight: 1.65 }}>{ev.descripcion}</p>
+                </div>
+              )}
             </div>
           );
         })() : (
-          <p className="text-slate-700 text-sm leading-relaxed">{post.contenido}</p>
+          <p style={{ margin: 0, color: "#334155", fontSize: "0.875rem", lineHeight: 1.7 }}>{post.contenido}</p>
         )}
       </div>
 
       {post.imagen_url && (
-        <div className="border-t border-slate-100">
-          <img src={post.imagen_url} alt="imagen del post" className="w-full max-h-72 object-cover" />
+        <div style={{ borderTop: "1px solid #F0EDE8" }}>
+          <img src={post.imagen_url} alt="imagen del post" style={{ width: "100%", maxHeight: 280, objectFit: "cover", display: "block" }} />
         </div>
       )}
 
-      <div className="flex items-center px-4 py-2.5 border-t border-slate-100 gap-1">
-        <button
-          onClick={handleLike}
-          className={`flex items-center gap-1.5 py-1.5 px-2 rounded-lg text-xs transition-colors ${liked ? "text-red-500 bg-red-50" : "text-slate-500 hover:bg-slate-50"}`}
-        >
-          <Heart className="w-4 h-4" fill={liked ? "currentColor" : "none"} />
-          <span className="font-semibold">{likesCount}</span>
+      <div style={{ display: "flex", alignItems: "center", padding: "8px 10px", borderTop: "1px solid #F0EDE8", gap: 2 }}>
+        <button onClick={handleLike} style={{
+          display: "flex", alignItems: "center", gap: 5,
+          padding: "6px 10px", borderRadius: 8, fontSize: "0.75rem",
+          color: liked ? "#ef4444" : "#64748b",
+          backgroundColor: liked ? "#FEF2F2" : "transparent",
+          border: "none", cursor: "pointer", fontWeight: 600,
+          fontFamily: "'Plus Jakarta Sans', sans-serif", transition: "all 0.15s",
+        }}>
+          <Heart style={{ width: 14, height: 14 }} fill={liked ? "currentColor" : "none"} />
+          {likesCount}
         </button>
-        <button
-          onClick={() => setShowComments((s) => !s)}
-          className={`flex items-center gap-1.5 py-1.5 px-2 rounded-lg text-xs transition-colors ${showComments ? "text-blue-600 bg-blue-50" : "text-slate-500 hover:bg-slate-50"}`}
-        >
-          <MessageSquare className="w-4 h-4" />
-          <span className="font-semibold">{post.comentarios + localComments.length}</span>
+        <button onClick={() => setShowComments((s) => !s)} style={{
+          display: "flex", alignItems: "center", gap: 5,
+          padding: "6px 10px", borderRadius: 8, fontSize: "0.75rem",
+          color: showComments ? "#1d4ed8" : "#64748b",
+          backgroundColor: showComments ? "#EFF6FF" : "transparent",
+          border: "none", cursor: "pointer", fontWeight: 600,
+          fontFamily: "'Plus Jakarta Sans', sans-serif", transition: "all 0.15s",
+        }}>
+          <MessageSquare style={{ width: 14, height: 14 }} />
+          {post.comentarios + localComments.length}
         </button>
         {!isOwn && (
-          <button
-            onClick={() => { setShowReporte((s) => !s); setReporteEstado("idle"); }}
-            className={`flex items-center gap-1.5 py-1.5 px-2 rounded-lg text-xs transition-colors ml-auto ${showReporte ? "text-red-500 bg-red-50" : "text-slate-400 hover:bg-slate-50"}`}
-          >
-            <Flag className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline font-medium">Reportar</span>
+          <button onClick={() => { setShowReporte((s) => !s); setReporteEstado("idle"); }} style={{
+            display: "flex", alignItems: "center", gap: 5,
+            padding: "6px 10px", borderRadius: 8, fontSize: "0.75rem",
+            color: showReporte ? "#ef4444" : "#94a3b8",
+            backgroundColor: showReporte ? "#FEF2F2" : "transparent",
+            border: "none", cursor: "pointer", marginLeft: "auto",
+            fontFamily: "'Plus Jakarta Sans', sans-serif",
+          }}>
+            <Flag style={{ width: 13, height: 13 }} />
           </button>
         )}
       </div>
+
       {showReporte && (
-        <div className="mt-3 pt-3 border-t border-slate-100">
+        <div style={{ padding: "12px 16px", borderTop: "1px solid #F0EDE8", backgroundColor: "#FAFAF8" }}>
           {reporteEstado === "ok" ? (
-            <p className="text-xs text-green-600 font-medium">Reporte enviado. Gracias por avisar.</p>
+            <p style={{ margin: 0, color: "#15803d", fontSize: "0.75rem", fontWeight: 600 }}>Reporte enviado. Gracias por avisar.</p>
           ) : (
-            <div className="space-y-2">
-              <p className="text-xs text-slate-500 font-medium">¿Por qué estás reportando esta publicación?</p>
-              <select
-                value={motivoReporte}
-                onChange={(e) => setMotivoReporte(e.target.value)}
-                className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-200"
-              >
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              <p style={{ ...S.label }}>¿Por qué reportas esta publicación?</p>
+              <select value={motivoReporte} onChange={(e) => setMotivoReporte(e.target.value)} style={S.inputBase}>
                 <option value="">Selecciona un motivo...</option>
                 <option value="Contenido inapropiado">Contenido inapropiado</option>
                 <option value="Spam">Spam</option>
@@ -296,29 +312,23 @@ function FeedPostCard({ post, canModerate, onDelete }: { post: FeedPost; canMode
                 <option value="Acoso o intimidación">Acoso o intimidación</option>
                 <option value="Otro">Otro</option>
               </select>
-              <textarea
-                value={descripcionReporte}
-                onChange={(e) => setDescripcionReporte(e.target.value)}
-                placeholder="Describe brevemente el problema (opcional)..."
-                rows={2}
-                className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-700 resize-none focus:outline-none focus:ring-2 focus:ring-slate-200 placeholder:text-slate-400"
-              />
-              {reporteEstado === "error" && (
-                <p className="text-xs text-red-500">Ocurrió un error. Intenta de nuevo.</p>
-              )}
-              <div className="flex items-center gap-2 justify-end">
-                <button
-                  onClick={() => setShowReporte(false)}
-                  className="px-3 py-1.5 rounded-lg bg-slate-100 text-slate-500 text-xs hover:bg-slate-200 transition-colors"
-                >
+              <textarea value={descripcionReporte} onChange={(e) => setDescripcionReporte(e.target.value)}
+                placeholder="Describe brevemente el problema (opcional)..." rows={2}
+                style={{ ...S.inputBase, resize: "none" }} />
+              {reporteEstado === "error" && <p style={{ margin: 0, color: "#ef4444", fontSize: "0.75rem" }}>Ocurrió un error. Intenta de nuevo.</p>}
+              <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
+                <button onClick={() => setShowReporte(false)} style={{ padding: "6px 14px", borderRadius: 8, border: "1px solid #E8E4DC", backgroundColor: "white", color: "#64748b", fontSize: "0.75rem", cursor: "pointer", fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
                   Cancelar
                 </button>
-                <button
-                  onClick={handleReportar}
-                  disabled={!motivoReporte || reporteEstado === "loading"}
-                  className="px-3 py-1.5 rounded-lg bg-red-500 text-white text-xs font-semibold disabled:bg-slate-200 disabled:text-slate-400 hover:bg-red-600 transition-colors flex items-center gap-1"
-                >
-                  {reporteEstado === "loading" && <Loader2 className="w-3 h-3 animate-spin" />}
+                <button onClick={handleReportar} disabled={!motivoReporte || reporteEstado === "loading"} style={{
+                  padding: "6px 14px", borderRadius: 8, border: "none",
+                  backgroundColor: motivoReporte && reporteEstado !== "loading" ? "#ef4444" : "#E8E4DC",
+                  color: motivoReporte && reporteEstado !== "loading" ? "white" : "#94a3b8",
+                  fontSize: "0.75rem", fontWeight: 600, cursor: motivoReporte ? "pointer" : "not-allowed",
+                  display: "flex", alignItems: "center", gap: 5,
+                  fontFamily: "'Plus Jakarta Sans', sans-serif",
+                }}>
+                  {reporteEstado === "loading" && <Loader2 style={{ width: 12, height: 12 }} className="animate-spin" />}
                   Enviar reporte
                 </button>
               </div>
@@ -326,25 +336,28 @@ function FeedPostCard({ post, canModerate, onDelete }: { post: FeedPost; canMode
           )}
         </div>
       )}
+
       {showComments && (
-        <div className="mt-3 pt-3 border-t border-slate-100 space-y-2">
+        <div style={{ padding: "12px 16px", borderTop: "1px solid #F0EDE8", backgroundColor: "#FAFAF8", display: "flex", flexDirection: "column", gap: 8 }}>
           {localComments.map((c, i) => (
-            <div key={i} className="bg-slate-50 rounded-lg px-3 py-2 text-xs text-slate-700">{c}</div>
+            <div key={i} style={{ backgroundColor: "white", borderRadius: 9, padding: "8px 12px", fontSize: "0.8rem", color: "#334155", border: "1px solid #E8E4DC", lineHeight: 1.55 }}>
+              {c}
+            </div>
           ))}
-          <div className="flex items-center gap-2">
-            <input
-              value={commentText}
-              onChange={(e) => setCommentText(e.target.value)}
+          <div style={{ display: "flex", gap: 8 }}>
+            <input value={commentText} onChange={(e) => setCommentText(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleAddComment()}
               placeholder="Escribe un comentario..."
-              className="flex-1 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-slate-200"
-            />
-            <button
-              onClick={handleAddComment}
-              disabled={!commentText.trim()}
-              className="px-3 py-2 rounded-lg bg-slate-900 text-white text-xs font-semibold disabled:bg-slate-200 disabled:text-slate-400 transition-colors"
-            >
-              <Send className="w-3 h-3" />
+              style={{ ...S.inputBase, flex: 1, padding: "8px 12px" }} />
+            <button onClick={handleAddComment} disabled={!commentText.trim()} style={{
+              padding: "8px 14px", borderRadius: 10, border: "none",
+              backgroundColor: commentText.trim() ? "#0d1b35" : "#E8E4DC",
+              color: commentText.trim() ? "white" : "#94a3b8",
+              cursor: commentText.trim() ? "pointer" : "not-allowed",
+              display: "flex", alignItems: "center", flexShrink: 0,
+              transition: "background-color 0.15s",
+            }}>
+              <Send style={{ width: 13, height: 13 }} />
             </button>
           </div>
         </div>
@@ -366,16 +379,16 @@ function PostComposer({ onPost }: { onPost: (p: FeedPost) => void }) {
   const postTypes: { id: "post" | "oferta" | "evento"; label: string; icon: typeof Send; redirect?: string }[] =
     user?.role === "company"
       ? [
-          { id: "post" as const, label: "Post", icon: Send },
-          { id: "oferta" as const, label: "Empleo", icon: Briefcase, redirect: "/publicar?tipo=empleo" },
-          { id: "evento" as const, label: "Evento", icon: CalendarDays, redirect: "/publicar?tipo=evento" },
+          { id: "post",   label: "Post",    icon: Send },
+          { id: "oferta", label: "Empleo",  icon: Briefcase,    redirect: "/publicar?tipo=empleo" },
+          { id: "evento", label: "Evento",  icon: CalendarDays, redirect: "/publicar?tipo=evento" },
         ]
       : user?.role === "teacher"
       ? [
-          { id: "post" as const, label: "Anuncio", icon: Send },
-          { id: "evento" as const, label: "Evento", icon: CalendarDays, redirect: "/publicar-evento" },
+          { id: "post",   label: "Anuncio", icon: Send },
+          { id: "evento", label: "Evento",  icon: CalendarDays, redirect: "/publicar-evento" },
         ]
-      : [{ id: "post" as const, label: "Publicación", icon: Send }];
+      : [{ id: "post", label: "Publicación", icon: Send }];
 
   const handleImagenChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -385,8 +398,7 @@ function PostComposer({ onPost }: { onPost: (p: FeedPost) => void }) {
   };
 
   const handleQuitarImagen = () => {
-    setImagen(null);
-    setPreview(null);
+    setImagen(null); setPreview(null);
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
@@ -396,13 +408,10 @@ function PostComposer({ onPost }: { onPost: (p: FeedPost) => void }) {
     try {
       await feedApi.crearPost(text.trim(), postType, imagen ?? undefined);
       const fullName = user ? `${user.first_name} ${user.last_name}`.trim() || user.username : "";
-      const roleMap: Record<string, import("@/app/types").Role> = {
-        student: "student", teacher: "teacher", company: "company",
-      };
       const newPost: import("@/app/types").FeedPost = {
         id: Date.now(),
         autor_nombre: fullName,
-        autor_rol: roleMap[user?.role ?? "student"] ?? "student",
+        autor_rol: (user?.role ?? "student") as import("@/app/types").Role,
         autor_foto: user?.foto_perfil,
         contenido: text.trim(),
         tipo: postType as import("@/app/types").FeedPost["tipo"],
@@ -411,79 +420,91 @@ function PostComposer({ onPost }: { onPost: (p: FeedPost) => void }) {
         imagen_url: preview ?? undefined,
       };
       onPost(newPost);
-      setText("");
-      handleQuitarImagen();
-    } catch { /* silently fail */ }
+      setText(""); handleQuitarImagen();
+    } catch { }
     finally { setLoading(false); }
   };
 
+  const placeholder =
+    user?.role === "student" ? "Comparte tu avance, proyecto o logro..."
+    : user?.role === "teacher" ? "Publica un anuncio o evento para la comunidad..."
+    : "Publica una oferta, oportunidad o novedad...";
+
+  const fotoSrc = user?.foto_perfil
+    ? (user.foto_perfil.startsWith("http") ? user.foto_perfil : `${BASE_URL}${user.foto_perfil}`)
+    : null;
+  const firstName = (user ? `${user.first_name} ${user.last_name}`.trim() || user.username : "").split(" ")[0];
+
   return (
-    <div className="bg-white rounded-xl border border-slate-200 p-4">
-      <div className="flex items-start gap-3">
-        {user?.foto_perfil ? (
-          <img src={user.foto_perfil} alt={user.first_name} className="w-9 h-9 rounded-lg object-cover flex-shrink-0 border border-slate-100" />
+    <div style={{ ...S.card, padding: "14px 16px" }}>
+      <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
+        {fotoSrc ? (
+          <img src={fotoSrc} alt={firstName}
+            style={{ width: 36, height: 36, borderRadius: 10, objectFit: "cover", flexShrink: 0, border: "2px solid #F0EDE8" }} />
         ) : (
-          <div className="w-9 h-9 rounded-lg bg-slate-100 flex items-center justify-center flex-shrink-0">
-            <Award className="w-4 h-4 text-slate-500" />
+          <div style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: "#0d1b35", border: "2px solid #F0EDE8", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+            <span style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: "0.95rem", fontWeight: 700, color: "#D4AF37" }}>
+              {firstName.charAt(0).toUpperCase()}
+            </span>
           </div>
         )}
-        <div className="flex-1">
+        <div style={{ flex: 1 }}>
           <textarea
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            placeholder={
-              user?.role === "student" ? "Comparte tu avance, proyecto o logro..."
-              : user?.role === "teacher" ? "Publica un anuncio o evento para la comunidad..."
-              : "Publica una oferta, oportunidad o novedad..."
-            }
-            rows={2}
-            className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2.5 text-sm text-slate-700 resize-none focus:outline-none focus:ring-2 focus:ring-slate-200 placeholder:text-slate-400 transition-all"
+            value={text} onChange={(e) => setText(e.target.value)}
+            placeholder={placeholder} rows={2}
+            style={{ ...S.inputBase, resize: "none" }}
+            onFocus={(el) => { el.currentTarget.style.borderColor = "#D4AF37"; el.currentTarget.style.backgroundColor = "#FFFFFF"; }}
+            onBlur={(el) => { el.currentTarget.style.borderColor = "#E8E4DC"; el.currentTarget.style.backgroundColor = "#F6F5F0"; }}
           />
           {preview && (
-            <div className="relative mt-2 inline-block">
-              <img src={preview} alt="preview" className="max-h-48 rounded-lg border border-slate-200 object-cover" />
-              <button
-                onClick={handleQuitarImagen}
-                className="absolute top-1 right-1 w-5 h-5 rounded-full bg-slate-900/70 text-white flex items-center justify-center text-xs hover:bg-slate-900 transition-colors"
-              >
+            <div style={{ position: "relative", marginTop: 8, display: "inline-block" }}>
+              <img src={preview} alt="preview" style={{ maxHeight: 192, borderRadius: 10, border: "1px solid #E8E4DC", objectFit: "cover" }} />
+              <button onClick={handleQuitarImagen} style={{ position: "absolute", top: 4, right: 4, width: 22, height: 22, borderRadius: "50%", backgroundColor: "rgba(13,27,53,0.7)", color: "white", border: "none", cursor: "pointer", fontSize: "0.8rem", display: "flex", alignItems: "center", justifyContent: "center" }}>
                 ×
               </button>
             </div>
           )}
-          <div className="flex items-center gap-1.5 mt-2.5 flex-wrap">
+          <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 10, flexWrap: "wrap" }}>
             {postTypes.map((t) => {
               const Icon = t.icon;
               const active = postType === t.id;
               return (
                 <button key={t.id}
                   onClick={() => t.redirect ? navigate(t.redirect) : setPostType(t.id)}
-                  className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs transition-all ${
-                    active
-                      ? "bg-slate-900 text-white font-semibold"
-                      : "bg-slate-100 text-slate-500 hover:bg-slate-200 font-medium"
-                  }`}>
-                  <Icon className="w-3 h-3" />
-                  {t.label}
+                  style={{
+                    display: "flex", alignItems: "center", gap: 4,
+                    padding: "5px 10px", borderRadius: 8, fontSize: "0.75rem",
+                    fontWeight: 600,
+                    backgroundColor: active ? "#0d1b35" : "#F6F5F0",
+                    color: active ? "white" : "#6B5D52",
+                    border: active ? "none" : "1px solid #E8E4DC",
+                    cursor: "pointer", fontFamily: "'Plus Jakarta Sans', sans-serif", transition: "all 0.15s",
+                  }}>
+                  <Icon style={{ width: 11, height: 11 }} /> {t.label}
                 </button>
               );
             })}
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={handleImagenChange}
-            />
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs transition-all ${imagen ? "bg-blue-50 text-blue-600 border border-blue-200" : "bg-slate-100 text-slate-500 hover:bg-slate-200"}`}
-            >
-              <Image className="w-3 h-3" />
-              <span className="hidden sm:inline">Foto</span>
+            <input ref={fileInputRef} type="file" accept="image/*" style={{ display: "none" }} onChange={handleImagenChange} />
+            <button onClick={() => fileInputRef.current?.click()} style={{
+              display: "flex", alignItems: "center", gap: 4,
+              padding: "5px 10px", borderRadius: 8, fontSize: "0.75rem", fontWeight: 600,
+              backgroundColor: imagen ? "#EFF6FF" : "#F6F5F0",
+              color: imagen ? "#1d4ed8" : "#6B5D52",
+              border: imagen ? "1px solid #bfdbfe" : "1px solid #E8E4DC",
+              cursor: "pointer", fontFamily: "'Plus Jakarta Sans', sans-serif",
+            }}>
+              <Image style={{ width: 11, height: 11 }} /> Foto
             </button>
-            <button onClick={handlePublicar} disabled={!text.trim() || loading}
-              className={`ml-auto px-4 py-1.5 rounded-lg text-sm font-semibold flex items-center gap-1.5 transition-all ${text.trim() ? "bg-slate-900 hover:bg-slate-700 text-white" : "bg-slate-100 text-slate-400 cursor-not-allowed"}`}>
-              {loading && <Loader2 className="w-3 h-3 animate-spin" />}
+            <button onClick={handlePublicar} disabled={!text.trim() || loading} style={{
+              marginLeft: "auto", padding: "7px 18px", borderRadius: 9, border: "none",
+              backgroundColor: text.trim() ? "#0d1b35" : "#E8E4DC",
+              color: text.trim() ? "white" : "#94a3b8",
+              fontSize: "0.8rem", fontWeight: 700,
+              cursor: text.trim() ? "pointer" : "not-allowed",
+              display: "flex", alignItems: "center", gap: 5,
+              fontFamily: "'Plus Jakarta Sans', sans-serif", transition: "all 0.15s",
+            }}>
+              {loading && <Loader2 style={{ width: 12, height: 12 }} className="animate-spin" />}
               Publicar
             </button>
           </div>
@@ -493,35 +514,63 @@ function PostComposer({ onPost }: { onPost: (p: FeedPost) => void }) {
   );
 }
 
+function SidebarCard({ children, accentGold }: { children: React.ReactNode; accentGold?: boolean }) {
+  return (
+    <div style={{
+      backgroundColor: "white", borderRadius: 14,
+      border: "1px solid #E8E4DC",
+      borderLeftWidth: accentGold ? 3 : 1,
+      borderLeftColor: accentGold ? "#D4AF37" : "#E8E4DC",
+      padding: 16, fontFamily: "'Plus Jakarta Sans', sans-serif",
+    }}>
+      {children}
+    </div>
+  );
+}
+
+function SidebarLink({ href, label, primary }: { href: string; label: string; primary?: boolean }) {
+  return (
+    <a href={href} style={{
+      display: "block", width: "100%", padding: "8px 0",
+      borderRadius: 9, textAlign: "center",
+      fontSize: "0.775rem", fontWeight: 700,
+      backgroundColor: primary ? "#0d1b35" : "white",
+      color: primary ? "white" : "#0d1b35",
+      border: primary ? "none" : "1.5px solid #E8E4DC",
+      textDecoration: "none", fontFamily: "'Plus Jakarta Sans', sans-serif",
+    }}>
+      {label}
+    </a>
+  );
+}
+
 function StudentSidebar() {
   return (
-    <div className="space-y-3">
-      <div className="bg-white rounded-xl border border-slate-200 p-4">
-        <div className="flex items-center gap-2 mb-3">
-          <div className="w-7 h-7 rounded-lg bg-slate-100 flex items-center justify-center">
-            <Award className="w-4 h-4 text-slate-600" />
+    <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+      <SidebarCard>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+          <div style={{ width: 28, height: 28, borderRadius: 8, backgroundColor: "#FFFBF0", border: "1px solid #F5E6C0", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <Award style={{ width: 13, height: 13, color: "#D4AF37" }} />
           </div>
-          <p className="text-slate-900 text-sm font-semibold">Tu perfil</p>
+          <p style={{ margin: 0, color: "#0d1b35", fontSize: "0.8rem", fontWeight: 700 }}>Tu perfil</p>
         </div>
-        <p className="text-slate-500 text-xs leading-relaxed mb-3">
+        <p style={{ margin: "0 0 12px", color: "#6B5D52", fontSize: "0.75rem", lineHeight: 1.6 }}>
           Completa tu perfil con habilidades y video-pitch para destacar ante las empresas.
         </p>
-        <a href="/perfil" className="block w-full py-2 rounded-lg text-center text-xs font-semibold border border-slate-200 text-slate-700 hover:bg-slate-50 transition-colors">
-          Ver mi perfil →
-        </a>
-      </div>
-      <div className="bg-white rounded-xl border border-slate-200 p-4">
-        <div className="flex items-center gap-2 mb-3">
-          <TrendingUp className="w-4 h-4 text-slate-500" />
-          <p className="text-slate-900 text-sm font-semibold">Empleos disponibles</p>
+        <SidebarLink href="/perfil" label="Ver mi perfil →" />
+      </SidebarCard>
+      <SidebarCard>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+          <div style={{ width: 28, height: 28, borderRadius: 8, backgroundColor: "#F6F5F0", border: "1px solid #E8E4DC", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <TrendingUp style={{ width: 13, height: 13, color: "#8C7B6B" }} />
+          </div>
+          <p style={{ margin: 0, color: "#0d1b35", fontSize: "0.8rem", fontWeight: 700 }}>Empleos disponibles</p>
         </div>
-        <p className="text-slate-500 text-xs leading-relaxed mb-3">
+        <p style={{ margin: "0 0 12px", color: "#6B5D52", fontSize: "0.75rem", lineHeight: 1.6 }}>
           Revisa las ofertas activas de empresas aliadas del Liceo.
         </p>
-        <a href="/empleos" className="block w-full py-2 rounded-lg text-center text-xs font-semibold bg-slate-900 text-white hover:bg-slate-700 transition-colors">
-          Ver empleos →
-        </a>
-      </div>
+        <SidebarLink href="/empleos" label="Ver empleos →" primary />
+      </SidebarCard>
     </div>
   );
 }
@@ -545,69 +594,73 @@ function TeacherSidebar() {
   }, []);
 
   const items = [
-    { label: "Alumnos por validar", count: porValidar, color: "bg-amber-100 text-amber-700" },
-    { label: "Solicitudes de registro", count: solicitudes, color: "bg-red-100 text-red-600" },
-    { label: "Denuncias pendientes", count: denuncias, color: "bg-purple-100 text-purple-700" },
+    { label: "Alumnos por validar", count: porValidar, style: { backgroundColor: "#FFFBF0", color: "#b45309" } },
+    { label: "Solicitudes de registro", count: solicitudes, style: { backgroundColor: "#FEF2F2", color: "#dc2626" } },
+    { label: "Denuncias pendientes", count: denuncias, style: { backgroundColor: "#F5F3FF", color: "#7c3aed" } },
   ].filter((item) => item.count > 0);
 
   return (
-    <div className="space-y-3">
-      <div className="bg-white rounded-xl border border-amber-200 p-4">
-        <div className="flex items-center gap-2 mb-3">
-          <Bell className="w-4 h-4" style={{ color: "#D4AF37" }} />
-          <p className="text-slate-900 text-sm font-semibold">Pendientes</p>
+    <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+      <SidebarCard accentGold>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+          <Bell style={{ width: 13, height: 13, color: "#D4AF37" }} />
+          <p style={{ margin: 0, color: "#0d1b35", fontSize: "0.8rem", fontWeight: 700 }}>Pendientes</p>
         </div>
         {items.length === 0 ? (
-          <p className="text-slate-400 text-xs">Todo al día. No hay pendientes.</p>
+          <p style={{ margin: 0, color: "#94a3b8", fontSize: "0.75rem" }}>Todo al día. No hay pendientes.</p>
         ) : (
-          <div className="space-y-2">
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {items.map((item) => (
-              <div key={item.label} className="flex items-center justify-between">
-                <span className="text-slate-600 text-xs">{item.label}</span>
-                <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${item.color}`}>{item.count}</span>
+              <div key={item.label} style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <span style={{ color: "#6B5D52", fontSize: "0.775rem" }}>{item.label}</span>
+                <span style={{ ...item.style, fontSize: "0.7rem", fontWeight: 700, padding: "2px 8px", borderRadius: 999 }}>
+                  {item.count}
+                </span>
               </div>
             ))}
           </div>
         )}
-      </div>
-      <div className="bg-white rounded-xl border border-slate-200 p-4">
-        <div className="flex items-center gap-2 mb-2">
-          <Pin className="w-4 h-4 text-slate-400" />
-          <p className="text-slate-900 text-sm font-semibold">Posts anclados</p>
+      </SidebarCard>
+      <SidebarCard>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+          <Pin style={{ width: 13, height: 13, color: "#8C7B6B" }} />
+          <p style={{ margin: 0, color: "#0d1b35", fontSize: "0.8rem", fontWeight: 700 }}>Posts anclados</p>
         </div>
-        <p className="text-slate-500 text-xs">Puedes anclar anuncios desde el menú de cada publicación.</p>
-      </div>
+        <p style={{ margin: 0, color: "#94a3b8", fontSize: "0.75rem", lineHeight: 1.55 }}>
+          Puedes anclar anuncios desde el menú de cada publicación.
+        </p>
+      </SidebarCard>
     </div>
   );
 }
 
 function CompanySidebar() {
   return (
-    <div className="space-y-3">
-      <div className="bg-white rounded-xl border border-slate-200 p-4">
-        <div className="flex items-center gap-2 mb-3">
-          <Users className="w-4 h-4 text-slate-500" />
-          <p className="text-slate-900 text-sm font-semibold">Buscar talento</p>
+    <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+      <SidebarCard>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+          <div style={{ width: 28, height: 28, borderRadius: 8, backgroundColor: "#F6F5F0", border: "1px solid #E8E4DC", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <Users style={{ width: 13, height: 13, color: "#8C7B6B" }} />
+          </div>
+          <p style={{ margin: 0, color: "#0d1b35", fontSize: "0.8rem", fontWeight: 700 }}>Buscar talento</p>
         </div>
-        <p className="text-slate-500 text-xs leading-relaxed mb-3">
+        <p style={{ margin: "0 0 12px", color: "#6B5D52", fontSize: "0.75rem", lineHeight: 1.6 }}>
           Encuentra candidatos validados por el Liceo Cardenal Caro según tu especialidad.
         </p>
-        <a href="/buscar" className="block w-full py-2 rounded-lg text-center text-xs font-semibold bg-slate-900 text-white hover:bg-slate-700 transition-colors">
-          Buscar candidatos →
-        </a>
-      </div>
-      <div className="bg-white rounded-xl border border-slate-200 p-4">
-        <div className="flex items-center gap-2 mb-3">
-          <TrendingUp className="w-4 h-4 text-slate-500" />
-          <p className="text-slate-900 text-sm font-semibold">Publicar empleo</p>
+        <SidebarLink href="/buscar" label="Buscar candidatos →" primary />
+      </SidebarCard>
+      <SidebarCard>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+          <div style={{ width: 28, height: 28, borderRadius: 8, backgroundColor: "#F6F5F0", border: "1px solid #E8E4DC", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <TrendingUp style={{ width: 13, height: 13, color: "#8C7B6B" }} />
+          </div>
+          <p style={{ margin: 0, color: "#0d1b35", fontSize: "0.8rem", fontWeight: 700 }}>Publicar empleo</p>
         </div>
-        <p className="text-slate-500 text-xs leading-relaxed mb-3">
+        <p style={{ margin: "0 0 12px", color: "#6B5D52", fontSize: "0.75rem", lineHeight: 1.6 }}>
           Publica una oferta y llega directo a los estudiantes con el perfil que necesitas.
         </p>
-        <a href="/publicar" className="block w-full py-2 rounded-lg text-center text-xs font-semibold border border-slate-200 text-slate-700 hover:bg-slate-50 transition-colors">
-          Crear oferta →
-        </a>
-      </div>
+        <SidebarLink href="/publicar" label="Crear oferta →" />
+      </SidebarCard>
     </div>
   );
 }
@@ -616,6 +669,14 @@ export function HomeFeed() {
   const { user } = useAuth();
   const [posts, setPosts] = useState<FeedPost[]>([]);
   const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!document.querySelector(`link[href="${FONT_URL}"]`)) {
+      const link = document.createElement("link");
+      link.href = FONT_URL; link.rel = "stylesheet";
+      document.head.appendChild(link);
+    }
+  }, []);
 
   useEffect(() => {
     feedApi.getPosts()
@@ -628,45 +689,77 @@ export function HomeFeed() {
   const fullName = user ? `${user.first_name} ${user.last_name}`.trim() || user.username : "";
   const firstName = fullName.split(" ")[0];
 
+  const roleSubline =
+    user?.role === "student" ? `${user.especialidad ?? ""} · ${user.curso ?? ""}`
+    : user?.role === "teacher" ? `Docente · ${user.departamento ?? ""}`
+    : `${user?.nombre_empresa ?? ""} · ${user?.industria ?? ""}`;
+
+  const fotoSrc = user?.foto_perfil
+    ? (user.foto_perfil.startsWith("http") ? user.foto_perfil : `${BASE_URL}${user.foto_perfil}`)
+    : null;
+
   return (
-    <div className="min-h-screen bg-[#F9FAFB]">
-      <div className="max-w-5xl mx-auto px-4 py-6">
-        <div className="flex flex-col lg:flex-row gap-5">
-          <div className="flex-1 space-y-4">
-            <div className="bg-white rounded-xl border border-slate-200 p-4 flex items-center gap-3">
-              {user?.foto_perfil && (
-                <img src={user.foto_perfil} alt={fullName} className="w-10 h-10 rounded-lg object-cover border border-slate-100 flex-shrink-0" />
-              )}
-              <div>
-                <p className="text-slate-900 text-sm font-semibold">Hola, {firstName} 👋</p>
-                <p className="text-slate-500 text-xs mt-0.5">
-                  {user?.role === "student" ? `${user.especialidad} · ${user.curso}`
-                    : user?.role === "teacher" ? `Docente · ${user.departamento ?? ""}`
-                    : `${user?.nombre_empresa ?? ""} · ${user?.industria ?? ""}`}
-                </p>
+    <div style={{ minHeight: "100vh", backgroundColor: "#F6F5F0", fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+      <div style={{ maxWidth: 1024, margin: "0 auto", padding: "24px 16px" }}>
+        <div style={{ display: "flex", gap: 20, alignItems: "flex-start" }}>
+
+          <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 12 }}>
+
+            <div style={{
+              backgroundColor: "#FFFFFF", borderRadius: 16, border: "1px solid #E8E4DC",
+              overflow: "hidden",
+            }}>
+              <div style={{
+                height: 52,
+                backgroundColor: "#0d1b35",
+                backgroundImage: "radial-gradient(circle, rgba(255,255,255,0.07) 1px, transparent 1px)",
+                backgroundSize: "16px 16px",
+              }} />
+              <div style={{ padding: "0 18px 0", marginTop: -26 }}>
+                {fotoSrc ? (
+                  <img src={fotoSrc} alt={fullName}
+                    style={{ width: 52, height: 52, borderRadius: 13, objectFit: "cover", border: "3px solid #FFFFFF", flexShrink: 0, display: "block" }} />
+                ) : (
+                  <div style={{ width: 52, height: 52, borderRadius: 13, backgroundColor: "#0d1b35", border: "3px solid #FFFFFF", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                    <span style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: "1.2rem", fontWeight: 700, color: "#D4AF37" }}>
+                      {firstName.charAt(0).toUpperCase()}
+                    </span>
+                  </div>
+                )}
               </div>
-              {user?.role === "student" && user.validado && (
-                <div className="ml-auto flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-lg border"
-                  style={{ borderColor: "#D4AF37", color: "#B8962E", backgroundColor: "#FFFBF0" }}>
-                  <CheckCircle className="w-3.5 h-3.5" style={{ color: "#D4AF37" }} />
-                  <span className="font-semibold">Validado</span>
+              <div style={{ padding: "8px 18px 14px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
+                <div style={{ minWidth: 0 }}>
+                  <p style={{ ...S.label, marginBottom: 2 }}>Bienvenido de vuelta</p>
+                  <h2 style={{ margin: 0, fontFamily: "'Playfair Display', Georgia, serif", fontWeight: 800, fontSize: "1.15rem", color: "#0d1b35", lineHeight: 1.2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {firstName}
+                  </h2>
+                  <p style={{ margin: "2px 0 0", color: "#8C7B6B", fontSize: "0.72rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{roleSubline}</p>
                 </div>
-              )}
+                {user?.role === "student" && user.validado && (
+                  <div style={{ display: "flex", alignItems: "center", gap: 5, padding: "5px 10px", borderRadius: 9, border: "1px solid #D4AF37", color: "#B8962E", backgroundColor: "#FFFBF0", flexShrink: 0 }}>
+                    <CheckCircle style={{ width: 12, height: 12, color: "#D4AF37" }} />
+                    <span style={{ fontSize: "0.7rem", fontWeight: 700 }}>Validado</span>
+                  </div>
+                )}
+              </div>
             </div>
 
             <PostComposer onPost={(p) => setPosts((prev) => [p, ...prev])} />
 
             {loading ? (
-              <div className="flex items-center justify-center py-12">
-                <Loader2 className="w-6 h-6 animate-spin text-slate-400" />
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: "48px 0" }}>
+                <Loader2 style={{ width: 22, height: 22, color: "#D4AF37" }} className="animate-spin" />
               </div>
             ) : posts.length === 0 ? (
-              <div className="text-center py-12">
-                <p className="text-slate-400 text-sm">No hay publicaciones todavía. ¡Sé el primero!</p>
+              <div style={{ textAlign: "center", padding: "48px 0" }}>
+                <div style={{ width: 48, height: 48, borderRadius: 13, backgroundColor: "#F0EDE8", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 12px" }}>
+                  <Send style={{ width: 20, height: 20, color: "#8C7B6B" }} />
+                </div>
+                <p style={{ color: "#8C7B6B", fontSize: "0.875rem", margin: 0 }}>No hay publicaciones todavía. ¡Sé el primero!</p>
               </div>
             ) : (
               posts.map((post, i) => (
-                <motion.div key={post.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}>
+                <motion.div key={post.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}>
                   <FeedPostCard
                     post={post}
                     canModerate={canModerate}
@@ -677,11 +770,12 @@ export function HomeFeed() {
             )}
           </div>
 
-          <aside className="hidden lg:block w-64 flex-shrink-0">
+          <aside className="hidden lg:block" style={{ width: 232, flexShrink: 0 }}>
             {user?.role === "student" && <StudentSidebar />}
             {user?.role === "teacher" && <TeacherSidebar />}
             {user?.role === "company" && <CompanySidebar />}
           </aside>
+
         </div>
       </div>
     </div>

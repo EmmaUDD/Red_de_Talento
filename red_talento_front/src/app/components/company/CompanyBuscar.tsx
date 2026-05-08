@@ -11,6 +11,25 @@ import type { EstudiantePerfil } from "@/app/types";
 const ESPECIALIDADES = ["Electricidad", "Mecánica Automotriz", "Computación e Informática", "Construcción"];
 const DISPONIBILIDADES = ["Part-time", "Full-time", "Fines de semana", "Práctica laboral"];
 
+const FONT_URL = "https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Crimson+Text:ital,wght@0,400;0,600;1,400&display=swap";
+
+const S: Record<string, React.CSSProperties> = {
+  card: {
+    backgroundColor: "#FFFFFF",
+    border: "1px solid #E8E4DC",
+    borderRadius: 14,
+  },
+};
+
+const nivelStyle: Record<string, React.CSSProperties> = {
+  Alto: { backgroundColor: "#f0fdf4", color: "#15803d", border: "1px solid #bbf7d0", borderRadius: 20, fontSize: 11, padding: "2px 8px", fontWeight: 600 },
+  Medio: { backgroundColor: "#fffbeb", color: "#b45309", border: "1px solid #fde68a", borderRadius: 20, fontSize: 11, padding: "2px 8px", fontWeight: 600 },
+  Bajo: { backgroundColor: "#fef2f2", color: "#b91c1c", border: "1px solid #fecaca", borderRadius: 20, fontSize: 11, padding: "2px 8px", fontWeight: 600 },
+};
+
+const toggle = <T,>(arr: T[], val: T): T[] =>
+  arr.includes(val) ? arr.filter((x) => x !== val) : [...arr, val];
+
 export function CompanyBuscar() {
   const [query, setQuery] = useState("");
   const [selSpec, setSelSpec] = useState<string[]>([]);
@@ -22,8 +41,14 @@ export function CompanyBuscar() {
   const [candidates, setCandidates] = useState<EstudiantePerfil[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const toggle = <T,>(arr: T[], val: T): T[] =>
-    arr.includes(val) ? arr.filter((x) => x !== val) : [...arr, val];
+  useEffect(() => {
+    if (!document.querySelector(`link[href="${FONT_URL}"]`)) {
+      const link = document.createElement("link");
+      link.rel = "stylesheet";
+      link.href = FONT_URL;
+      document.head.appendChild(link);
+    }
+  }, []);
 
   const loadCandidates = useCallback(async () => {
     setLoading(true);
@@ -58,29 +83,71 @@ export function CompanyBuscar() {
 
   return (
     <>
-      <div className="min-h-screen bg-[#F9FAFB]">
-        <div className="bg-white border-b border-slate-200 px-6 py-5">
-          <div className="max-w-6xl mx-auto">
-            <h1 className="text-slate-900 font-bold" style={{ fontSize: "1.25rem" }}>Buscar Talento</h1>
-            <p className="text-slate-500 text-sm mt-0.5">Candidatos validados por el Liceo Cardenal Caro</p>
+      <div style={{ minHeight: "100vh", backgroundColor: "#F6F5F0", fontFamily: "'Crimson Text', Georgia, serif" }}>
+<div style={{ backgroundColor: "#FFFFFF", borderBottom: "1px solid #E8E4DC", padding: "20px 24px 16px" }}>
+          <div style={{ maxWidth: 1100, margin: "0 auto" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 2 }}>
+              <div style={{ width: 32, height: 3, backgroundColor: "#D4AF37", borderRadius: 2 }} />
+              <h1 style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: "1.35rem", fontWeight: 700, color: "#0d1b35", margin: 0 }}>
+                Buscar Talento
+              </h1>
+            </div>
+            <p style={{ color: "#8C7B6B", fontSize: "0.9rem", marginTop: 4, marginBottom: 16 }}>
+              Candidatos validados por el Liceo Cardenal Caro
+            </p>
 
-            <div className="flex gap-3 mt-4">
-              <div className="flex-1 relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <div style={{ display: "flex", gap: 10 }}>
+              <div style={{ flex: 1, position: "relative" }}>
+                <Search style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", width: 16, height: 16, color: "#A8998A" }} />
                 <input
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                   placeholder="Buscar por nombre, especialidad o comuna..."
-                  className="w-full bg-slate-100 border border-transparent rounded-lg pl-9 pr-4 py-2.5 text-sm text-slate-900 focus:outline-none focus:bg-white focus:border-slate-300 transition-all"
+                  style={{
+                    width: "100%",
+                    boxSizing: "border-box",
+                    backgroundColor: "#F6F5F0",
+                    border: "1.5px solid #E8E4DC",
+                    borderRadius: 10,
+                    paddingLeft: 40,
+                    paddingRight: 16,
+                    paddingTop: 10,
+                    paddingBottom: 10,
+                    fontSize: "0.9rem",
+                    color: "#0d1b35",
+                    outline: "none",
+                    fontFamily: "'Crimson Text', Georgia, serif",
+                  }}
                 />
               </div>
               <button
                 onClick={() => setShowFilters(!showFilters)}
-                className={`flex items-center gap-2 px-4 py-2.5 rounded-lg border text-sm font-semibold transition-all ${showFilters || hasFilters ? "bg-slate-900 text-white border-slate-900" : "bg-white border-slate-200 text-slate-700 hover:bg-slate-50"}`}>
-                <Filter className="w-4 h-4" />
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                  padding: "10px 18px",
+                  borderRadius: 10,
+                  border: showFilters || hasFilters ? "1.5px solid #0d1b35" : "1.5px solid #E8E4DC",
+                  backgroundColor: showFilters || hasFilters ? "#0d1b35" : "#FFFFFF",
+                  color: showFilters || hasFilters ? "#FFFFFF" : "#4A3F35",
+                  fontSize: "0.88rem",
+                  fontWeight: 600,
+                  cursor: "pointer",
+                  fontFamily: "'Crimson Text', Georgia, serif",
+                }}
+              >
+                <Filter style={{ width: 15, height: 15 }} />
                 Filtros
                 {hasFilters && (
-                  <span className="bg-white text-slate-900 text-xs px-1.5 py-0.5 rounded-full font-bold">
+                  <span style={{
+                    backgroundColor: "#D4AF37",
+                    color: "#FFFFFF",
+                    fontSize: 11,
+                    padding: "1px 7px",
+                    borderRadius: 20,
+                    fontWeight: 700,
+                  }}>
                     {selSpec.length + selAvail.length}
                   </span>
                 )}
@@ -89,41 +156,72 @@ export function CompanyBuscar() {
           </div>
         </div>
 
-        <div className="max-w-6xl mx-auto px-4 md:px-6 py-5">
+        {/* Body */}
+        <div style={{ maxWidth: 1100, margin: "0 auto", padding: "20px 24px" }}>
           <div className="flex flex-col md:flex-row gap-5">
+
+            {/* Sidebar filters */}
             <AnimatePresence>
               {showFilters && (
                 <motion.aside
-                  initial={{ opacity: 0, x: -12 }}
+                  initial={{ opacity: 0, x: -14 }}
                   animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -12 }}
-                  className="w-full md:w-56 flex-shrink-0 space-y-3"
+                  exit={{ opacity: 0, x: -14 }}
+                  className="w-full md:w-56 flex-shrink-0"
+                  style={{ display: "flex", flexDirection: "column", gap: 10 }}
                 >
                   {[
                     { title: "Especialidad", items: ESPECIALIDADES, selected: selSpec, set: setSelSpec },
                     { title: "Disponibilidad", items: DISPONIBILIDADES, selected: selAvail, set: setSelAvail },
                   ].map((group) => (
-                    <div key={group.title} className="bg-white rounded-xl border border-slate-200 p-4">
-                      <h3 className="text-slate-900 text-xs font-semibold mb-3">{group.title}</h3>
-                      <div className="space-y-2">
+                    <div key={group.title} style={{ ...S.card, padding: 16 }}>
+                      <p style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: "0.8rem", fontWeight: 700, color: "#0d1b35", marginBottom: 12, letterSpacing: "0.05em", textTransform: "uppercase" }}>
+                        {group.title}
+                      </p>
+                      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                         {group.items.map((item) => {
                           const checked = group.selected.includes(item);
                           return (
-                            <label key={item} className="flex items-center gap-2.5 cursor-pointer"
+                            <label key={item} style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }}
                               onClick={() => group.set((p: string[]) => toggle(p, item))}>
-                              <div className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-all flex-shrink-0 ${checked ? "bg-slate-900 border-slate-900" : "border-slate-300 hover:border-slate-500"}`}>
-                                {checked && <CheckCircle className="w-2.5 h-2.5 text-white" />}
+                              <div style={{
+                                width: 17,
+                                height: 17,
+                                borderRadius: 5,
+                                border: checked ? "2px solid #D4AF37" : "2px solid #D0C9C0",
+                                backgroundColor: checked ? "#D4AF37" : "transparent",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                flexShrink: 0,
+                                transition: "all 0.15s",
+                              }}>
+                                {checked && <CheckCircle style={{ width: 11, height: 11, color: "#FFFFFF" }} />}
                               </div>
-                              <span className="text-slate-600 text-sm">{item}</span>
+                              <span style={{ fontSize: "0.88rem", color: checked ? "#0d1b35" : "#6B5D52", fontWeight: checked ? 600 : 400 }}>{item}</span>
                             </label>
                           );
                         })}
                       </div>
                     </div>
                   ))}
+
                   {hasFilters && (
-                    <button onClick={() => { setSelSpec([]); setSelAvail([]); }}
-                      className="w-full py-2.5 rounded-xl border border-slate-200 text-slate-600 text-sm font-medium hover:bg-slate-50 transition-colors">
+                    <button
+                      onClick={() => { setSelSpec([]); setSelAvail([]); }}
+                      style={{
+                        width: "100%",
+                        padding: "10px 0",
+                        borderRadius: 10,
+                        border: "1.5px solid #E8E4DC",
+                        backgroundColor: "#FFFFFF",
+                        color: "#6B5D52",
+                        fontSize: "0.88rem",
+                        fontWeight: 600,
+                        cursor: "pointer",
+                        fontFamily: "'Crimson Text', Georgia, serif",
+                      }}
+                    >
                       Limpiar filtros
                     </button>
                   )}
@@ -131,69 +229,143 @@ export function CompanyBuscar() {
               )}
             </AnimatePresence>
 
-            <div className="flex-1 space-y-3">
-              <div className="flex items-center justify-between">
-                <p className="text-slate-500 text-sm">
-                  <span className="text-slate-900 font-semibold">{filtered.length}</span> candidatos
+            {/* Results */}
+            <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 12 }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <p style={{ fontSize: "0.88rem", color: "#8C7B6B" }}>
+                  <span style={{ fontFamily: "'Playfair Display', Georgia, serif", fontWeight: 700, color: "#0d1b35", fontSize: "0.95rem" }}>
+                    {filtered.length}
+                  </span>{" "}
+                  candidatos encontrados
                 </p>
               </div>
 
               {loading ? (
-                <div className="flex justify-center py-12">
-                  <div className="w-6 h-6 border-2 border-slate-300 border-t-slate-900 rounded-full animate-spin" />
+                <div style={{ display: "flex", justifyContent: "center", padding: "48px 0" }}>
+                  <div className="w-6 h-6 border-2 border-t-transparent rounded-full animate-spin"
+                    style={{ borderColor: "#E8E4DC", borderTopColor: "#D4AF37" }} />
                 </div>
               ) : (
                 <>
                   {filtered.map((c, i) => (
-                    <motion.div key={c.id} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.06 }}
-                      className="bg-white rounded-xl border border-slate-200 p-4 hover:shadow-sm transition-shadow">
-                      <div className="flex items-start gap-3">
-                        <div className="relative flex-shrink-0">
+                    <motion.div
+                      key={c.id}
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: i * 0.06 }}
+                      style={{ ...S.card, padding: 16 }}
+                    >
+                      <div style={{ display: "flex", alignItems: "flex-start", gap: 14 }}>
+                        {/* Avatar */}
+                        <div style={{ position: "relative", flexShrink: 0 }}>
                           {c.foto_perfil ? (
-                            <img src={c.foto_perfil} className="w-12 h-12 rounded-xl object-cover border border-slate-100" />
+                            <img src={c.foto_perfil} style={{ width: 52, height: 52, borderRadius: 12, objectFit: "cover", border: "1px solid #E8E4DC" }} />
                           ) : (
-                            <div className="w-12 h-12 rounded-xl bg-slate-200 flex items-center justify-center">
-                              <span className="text-slate-500 font-bold">{c.nombre.charAt(0)}</span>
+                            <div style={{
+                              width: 52,
+                              height: 52,
+                              borderRadius: 12,
+                              backgroundColor: "#0d1b35",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                            }}>
+                              <span style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: "1.3rem", fontWeight: 700, color: "#D4AF37" }}>
+                                {c.nombre.charAt(0)}
+                              </span>
                             </div>
                           )}
                           {c.validado && (
-                            <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center border-2 border-white" style={{ backgroundColor: "#D4AF37" }}>
-                              <CheckCircle className="w-3 h-3 text-white" />
+                            <div style={{
+                              position: "absolute",
+                              bottom: -5,
+                              right: -5,
+                              width: 20,
+                              height: 20,
+                              borderRadius: "50%",
+                              backgroundColor: "#D4AF37",
+                              border: "2px solid #FFFFFF",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                            }}>
+                              <CheckCircle style={{ width: 11, height: 11, color: "#FFFFFF" }} />
                             </div>
                           )}
                         </div>
 
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-start justify-between gap-2">
+                        {/* Info */}
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
                             <div>
-                              <p className="text-slate-900 text-sm font-bold">{c.nombre}</p>
-                              <p className="text-slate-600 text-sm font-medium">{c.especialidad}</p>
+                              <p style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: "1rem", fontWeight: 700, color: "#0d1b35", margin: 0 }}>
+                                {c.nombre}
+                              </p>
+                              <p style={{ fontSize: "0.9rem", color: "#6B5D52", margin: "1px 0 0" }}>{c.especialidad}</p>
                             </div>
-                            <div className="flex items-center gap-2 flex-shrink-0">
+                            <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
                               {c.score !== undefined && (
-                                <div className="flex items-center gap-1 bg-slate-50 border border-slate-200 rounded-lg px-2 py-1">
-                                  <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
-                                  <span className="text-slate-900 text-xs font-bold">{c.score}</span>
+                                <div style={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: 5,
+                                  backgroundColor: "#FFFBF0",
+                                  border: "1px solid #F5E6C0",
+                                  borderRadius: 8,
+                                  padding: "4px 10px",
+                                }}>
+                                  <Star style={{ width: 13, height: 13, fill: "#D4AF37", color: "#D4AF37" }} />
+                                  <span style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: "0.85rem", fontWeight: 700, color: "#0d1b35" }}>
+                                    {c.score}
+                                  </span>
                                 </div>
                               )}
                               {c.validado && (
-                                <span className="text-xs px-2 py-0.5 rounded-full font-semibold" style={{ backgroundColor: "#FFFBF0", color: "#B8962E", border: "1px solid #D4AF37" }}>
+                                <span style={{
+                                  fontSize: 11,
+                                  fontWeight: 700,
+                                  padding: "3px 10px",
+                                  borderRadius: 20,
+                                  backgroundColor: "#FFFBF0",
+                                  color: "#B8962E",
+                                  border: "1px solid #D4AF37",
+                                }}>
                                   ✓ Validado
                                 </span>
                               )}
                             </div>
                           </div>
 
-                          <div className="flex flex-wrap gap-2 mt-1.5 text-xs text-slate-500">
-                            {c.comuna && <span className="flex items-center gap-1"><MapPin className="w-3 h-3" /> {c.comuna}</span>}
-                            {c.disponibilidad && <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {c.disponibilidad}</span>}
-                            {c.curso && <span className="flex items-center gap-1"><Award className="w-3 h-3" /> {c.curso}</span>}
+                          <div style={{ display: "flex", flexWrap: "wrap", gap: 10, marginTop: 8, fontSize: "0.82rem", color: "#8C7B6B" }}>
+                            {c.comuna && (
+                              <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                                <MapPin style={{ width: 12, height: 12 }} /> {c.comuna}
+                              </span>
+                            )}
+                            {c.disponibilidad && (
+                              <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                                <Clock style={{ width: 12, height: 12 }} /> {c.disponibilidad}
+                              </span>
+                            )}
+                            {c.curso && (
+                              <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                                <Award style={{ width: 12, height: 12 }} /> {c.curso}
+                              </span>
+                            )}
                           </div>
 
                           {c.insignias?.length > 0 && (
-                            <div className="mt-2.5 flex flex-wrap gap-1.5">
+                            <div style={{ marginTop: 10, display: "flex", flexWrap: "wrap", gap: 6 }}>
                               {c.insignias.map((b) => (
-                                <span key={b.id} className="text-xs bg-slate-100 text-slate-700 px-2 py-0.5 rounded-full border border-slate-200">
+                                <span key={b.id} style={{
+                                  fontSize: 11,
+                                  padding: "3px 9px",
+                                  borderRadius: 20,
+                                  backgroundColor: "#F6F5F0",
+                                  border: "1px solid #E8E4DC",
+                                  color: "#6B5D52",
+                                  fontWeight: 600,
+                                }}>
                                   {b.icono} {b.nombre}
                                 </span>
                               ))}
@@ -202,32 +374,106 @@ export function CompanyBuscar() {
                         </div>
                       </div>
 
-                      <div className="mt-3 flex gap-2">
-                        <button onClick={() => setPasaporteTarget(c)}
-                          className="flex-1 py-2 rounded-lg bg-slate-900 hover:bg-slate-700 text-white text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors">
-                          <Eye className="w-3.5 h-3.5" /> Ver Pasaporte
+                      {/* Action buttons */}
+                      <div style={{ marginTop: 14, display: "flex", gap: 8 }}>
+                        <button
+                          onClick={() => setPasaporteTarget(c)}
+                          style={{
+                            flex: 1,
+                            padding: "9px 0",
+                            borderRadius: 9,
+                            backgroundColor: "#0d1b35",
+                            border: "none",
+                            color: "#FFFFFF",
+                            fontSize: "0.82rem",
+                            fontWeight: 700,
+                            cursor: "pointer",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            gap: 6,
+                            fontFamily: "'Crimson Text', Georgia, serif",
+                          }}
+                        >
+                          <Eye style={{ width: 14, height: 14 }} /> Ver Pasaporte
                         </button>
-                        <button className="flex-1 py-2 rounded-lg border border-slate-200 text-slate-700 text-xs font-semibold flex items-center justify-center gap-1.5 hover:bg-slate-50 transition-colors">
-                          <Send className="w-3.5 h-3.5" /> Contactar
+                        <button
+                          style={{
+                            flex: 1,
+                            padding: "9px 0",
+                            borderRadius: 9,
+                            backgroundColor: "#FFFFFF",
+                            border: "1.5px solid #E8E4DC",
+                            color: "#4A3F35",
+                            fontSize: "0.82rem",
+                            fontWeight: 700,
+                            cursor: "pointer",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            gap: 6,
+                            fontFamily: "'Crimson Text', Georgia, serif",
+                          }}
+                        >
+                          <Send style={{ width: 14, height: 14 }} /> Contactar
                         </button>
-                        <button onClick={() => setSaved((p) => toggle(p, c.id))}
-                          className={`p-2 rounded-lg border transition-all ${saved.includes(c.id) ? "border-red-200 bg-red-50 text-red-500" : "border-slate-200 text-slate-400 hover:border-red-200 hover:text-red-400"}`}>
-                          <Heart className="w-4 h-4" fill={saved.includes(c.id) ? "currentColor" : "none"} />
+                        <button
+                          onClick={() => setSaved((p) => toggle(p, c.id))}
+                          style={{
+                            padding: "9px 12px",
+                            borderRadius: 9,
+                            border: saved.includes(c.id) ? "1.5px solid #fecaca" : "1.5px solid #E8E4DC",
+                            backgroundColor: saved.includes(c.id) ? "#fff5f5" : "#FFFFFF",
+                            color: saved.includes(c.id) ? "#ef4444" : "#A8998A",
+                            cursor: "pointer",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                          }}
+                        >
+                          <Heart style={{ width: 16, height: 16 }} fill={saved.includes(c.id) ? "currentColor" : "none"} />
                         </button>
-                        <button onClick={() => setReportTarget({ name: c.nombre, id: c.usuario_id })}
-                          className="p-2 rounded-lg border border-slate-200 text-slate-400 hover:border-red-200 hover:bg-red-50 hover:text-red-500 transition-all"
-                          title="Reportar usuario">
-                          <Flag className="w-4 h-4" />
+                        <button
+                          onClick={() => setReportTarget({ name: c.nombre, id: c.usuario_id })}
+                          title="Reportar usuario"
+                          style={{
+                            padding: "9px 12px",
+                            borderRadius: 9,
+                            border: "1.5px solid #E8E4DC",
+                            backgroundColor: "#FFFFFF",
+                            color: "#A8998A",
+                            cursor: "pointer",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                          }}
+                        >
+                          <Flag style={{ width: 16, height: 16 }} />
                         </button>
                       </div>
                     </motion.div>
                   ))}
 
                   {filtered.length === 0 && (
-                    <div className="text-center py-16">
-                      <Users className="w-10 h-10 text-slate-200 mx-auto mb-3" />
-                      <p className="text-slate-500 text-sm font-semibold">Sin resultados</p>
-                      <p className="text-slate-400 text-xs mt-1">Ajusta los filtros de búsqueda</p>
+                    <div style={{ textAlign: "center", padding: "64px 0" }}>
+                      <div style={{
+                        width: 56,
+                        height: 56,
+                        borderRadius: 14,
+                        backgroundColor: "#F0EDE8",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        margin: "0 auto 14px",
+                      }}>
+                        <Users style={{ width: 26, height: 26, color: "#C0B09A" }} />
+                      </div>
+                      <p style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: "1rem", fontWeight: 700, color: "#0d1b35", margin: 0 }}>
+                        Sin resultados
+                      </p>
+                      <p style={{ fontSize: "0.88rem", color: "#8C7B6B", marginTop: 4 }}>
+                        Ajusta los filtros de búsqueda
+                      </p>
                     </div>
                   )}
                 </>
@@ -246,58 +492,133 @@ export function CompanyBuscar() {
         />
       )}
 
+      {/* Pasaporte modal */}
       <AnimatePresence>
         {pasaporteTarget && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4"
+            style={{
+              position: "fixed",
+              inset: 0,
+              zIndex: 50,
+              backgroundColor: "rgba(0,0,0,0.45)",
+              backdropFilter: "blur(4px)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              padding: 16,
+            }}
             onClick={(e) => e.target === e.currentTarget && setPasaporteTarget(null)}
           >
             <motion.div
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden"
+              style={{
+                backgroundColor: "#FFFFFF",
+                borderRadius: 18,
+                boxShadow: "0 24px 60px rgba(0,0,0,0.2)",
+                width: "100%",
+                maxWidth: 400,
+                overflow: "hidden",
+              }}
             >
-              <div className="flex items-center justify-between px-5 pt-5 pb-3">
-                <p className="text-slate-900 text-sm font-bold">Pasaporte de Oficio</p>
-                <button onClick={() => setPasaporteTarget(null)} className="w-7 h-7 rounded-lg flex items-center justify-center hover:bg-slate-100 text-slate-400">
-                  <X className="w-4 h-4" />
+              {/* Modal header — navy with dot grid */}
+              <div style={{
+                backgroundColor: "#0d1b35",
+                backgroundImage: "radial-gradient(circle, rgba(255,255,255,0.07) 1px, transparent 1px)",
+                backgroundSize: "18px 18px",
+                borderBottom: "3px solid #D4AF37",
+                padding: "20px 20px 16px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+              }}>
+                <div>
+                  <p style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: "1rem", fontWeight: 700, color: "#FFFFFF", margin: 0 }}>
+                    Pasaporte de Oficio
+                  </p>
+                  <p style={{ fontSize: "0.8rem", color: "rgba(255,255,255,0.55)", marginTop: 2 }}>
+                    Certificado institucional
+                  </p>
+                </div>
+                <button
+                  onClick={() => setPasaporteTarget(null)}
+                  style={{
+                    width: 32,
+                    height: 32,
+                    borderRadius: 8,
+                    border: "1px solid rgba(255,255,255,0.15)",
+                    backgroundColor: "rgba(255,255,255,0.08)",
+                    color: "rgba(255,255,255,0.7)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    cursor: "pointer",
+                  }}
+                >
+                  <X style={{ width: 16, height: 16 }} />
                 </button>
               </div>
 
-              <div className="px-5 pb-5 space-y-4">
-                <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl border border-slate-200">
+              {/* Modal body */}
+              <div style={{ padding: 20, display: "flex", flexDirection: "column", gap: 16 }}>
+                {/* Student identity card */}
+                <div style={{
+                  backgroundColor: "#F6F5F0",
+                  border: "1px solid #E8E4DC",
+                  borderRadius: 12,
+                  padding: 14,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 14,
+                }}>
                   {pasaporteTarget.foto_perfil ? (
-                    <img src={pasaporteTarget.foto_perfil} className="w-12 h-12 rounded-xl object-cover flex-shrink-0" />
+                    <img src={pasaporteTarget.foto_perfil} style={{ width: 52, height: 52, borderRadius: 12, objectFit: "cover", flexShrink: 0 }} />
                   ) : (
-                    <div className="w-12 h-12 rounded-xl bg-slate-200 flex items-center justify-center flex-shrink-0">
-                      <span className="text-slate-500 font-bold text-lg">{pasaporteTarget.nombre.charAt(0)}</span>
+                    <div style={{
+                      width: 52,
+                      height: 52,
+                      borderRadius: 12,
+                      backgroundColor: "#0d1b35",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      flexShrink: 0,
+                    }}>
+                      <span style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: "1.35rem", fontWeight: 700, color: "#D4AF37" }}>
+                        {pasaporteTarget.nombre.charAt(0)}
+                      </span>
                     </div>
                   )}
                   <div>
-                    <p className="text-slate-900 text-sm font-bold">{pasaporteTarget.nombre}</p>
-                    <p className="text-slate-600 text-xs">{pasaporteTarget.especialidad}</p>
+                    <p style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: "1rem", fontWeight: 700, color: "#0d1b35", margin: 0 }}>
+                      {pasaporteTarget.nombre}
+                    </p>
+                    <p style={{ fontSize: "0.88rem", color: "#6B5D52", margin: "1px 0 0" }}>{pasaporteTarget.especialidad}</p>
                     {pasaporteTarget.validado && (
-                      <div className="flex items-center gap-1 mt-1">
-                        <CheckCircle className="w-3 h-3" style={{ color: "#D4AF37" }} />
-                        <span className="text-xs font-semibold" style={{ color: "#B8962E" }}>Validado institucionalmente</span>
+                      <div style={{ display: "flex", alignItems: "center", gap: 5, marginTop: 5 }}>
+                        <CheckCircle style={{ width: 13, height: 13, color: "#D4AF37" }} />
+                        <span style={{ fontSize: "0.78rem", fontWeight: 700, color: "#B8962E" }}>Validado institucionalmente</span>
                       </div>
                     )}
                   </div>
                 </div>
 
+                {/* Habilidades */}
                 {pasaporteTarget.habilidades?.length > 0 && (
                   <div>
-                    <div className="flex items-center gap-1.5 mb-2">
-                      <Wrench className="w-3.5 h-3.5 text-slate-500" />
-                      <p className="text-slate-700 text-xs font-semibold">Habilidades certificadas</p>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
+                      <Wrench style={{ width: 13, height: 13, color: "#8C7B6B" }} />
+                      <p style={{ fontSize: "0.78rem", fontWeight: 700, color: "#4A3F35", textTransform: "uppercase", letterSpacing: "0.05em", margin: 0 }}>
+                        Habilidades certificadas
+                      </p>
                     </div>
-                    <div className="flex flex-wrap gap-1.5">
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
                       {pasaporteTarget.habilidades.map((h) => (
-                        <span key={h.id} className={`text-xs px-2 py-0.5 rounded-full border font-semibold ${h.nivel === "Alto" ? "bg-green-50 text-green-700 border-green-200" : h.nivel === "Medio" ? "bg-amber-50 text-amber-700 border-amber-200" : "bg-red-50 text-red-600 border-red-200"}`}>
+                        <span key={h.id} style={nivelStyle[h.nivel] ?? nivelStyle.Bajo}>
                           {h.nombre} · {h.nivel}
                         </span>
                       ))}
@@ -305,12 +626,23 @@ export function CompanyBuscar() {
                   </div>
                 )}
 
+                {/* Insignias */}
                 {pasaporteTarget.insignias?.length > 0 && (
                   <div>
-                    <p className="text-slate-700 text-xs font-semibold mb-2">Insignias</p>
-                    <div className="flex flex-wrap gap-1.5">
+                    <p style={{ fontSize: "0.78rem", fontWeight: 700, color: "#4A3F35", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 8 }}>
+                      Insignias
+                    </p>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
                       {pasaporteTarget.insignias.map((b) => (
-                        <span key={b.id} className="text-xs px-2 py-0.5 rounded-full border font-semibold" style={{ borderColor: "#D4AF37", color: "#B8962E", backgroundColor: "#FFFBF0" }}>
+                        <span key={b.id} style={{
+                          fontSize: 11,
+                          padding: "3px 10px",
+                          borderRadius: 20,
+                          backgroundColor: "#FFFBF0",
+                          border: "1px solid #D4AF37",
+                          color: "#B8962E",
+                          fontWeight: 700,
+                        }}>
                           {b.icono} {b.nombre}
                         </span>
                       ))}
@@ -318,11 +650,29 @@ export function CompanyBuscar() {
                   </div>
                 )}
 
+                {/* Divider */}
+                <div style={{ height: 1, backgroundColor: "#F1EDE5" }} />
+
                 <button
                   onClick={() => setPasaporteTarget(null)}
-                  className="w-full py-2.5 rounded-xl bg-slate-900 text-white text-sm font-semibold hover:bg-slate-700 transition-colors flex items-center justify-center gap-2"
+                  style={{
+                    width: "100%",
+                    padding: "12px 0",
+                    borderRadius: 10,
+                    backgroundColor: "#0d1b35",
+                    border: "none",
+                    color: "#FFFFFF",
+                    fontSize: "0.92rem",
+                    fontWeight: 700,
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: 8,
+                    fontFamily: "'Crimson Text', Georgia, serif",
+                  }}
                 >
-                  <Send className="w-4 h-4" /> Contactar candidato
+                  <Send style={{ width: 16, height: 16 }} /> Contactar candidato
                 </button>
               </div>
             </motion.div>

@@ -4,9 +4,12 @@ import {
   Award, GraduationCap, Building2, BookOpen, ArrowLeft,
   ChevronRight, Eye, EyeOff, CheckCircle, ArrowRight, Loader2,
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { authApi } from "@/api/api";
 import type { Role } from "@/app/types";
+
+const FONT_URL =
+  "https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap";
 
 const roles = [
   {
@@ -15,6 +18,7 @@ const roles = [
     label: "Estudiante / Egresado",
     desc: "4° Medio TP, EPJA o exalumno del Liceo Cardenal Caro",
     requiresApproval: true,
+    badge: { text: "Requiere aprobación", bg: "#FFFBF0", color: "#B8962E", border: "#F5E6C0" },
   },
   {
     id: "company" as Role,
@@ -22,13 +26,15 @@ const roles = [
     label: "Empresa",
     desc: "Empleador que busca talento técnico del Liceo",
     requiresApproval: false,
+    badge: { text: "Acceso inmediato", bg: "#F0FDF4", color: "#166534", border: "#BBF7D0" },
   },
   {
     id: "teacher" as Role,
     icon: BookOpen,
     label: "Docente / Directivo",
     desc: "Personal del Liceo Cardenal Caro",
-    requiresApproval: false,
+    requiresApproval: true,
+    badge: { text: "Requiere aprobación", bg: "#FFFBF0", color: "#B8962E", border: "#F5E6C0" },
   },
 ];
 
@@ -58,6 +64,25 @@ function parsearErrores(err: Record<string, unknown>): Record<string, string> {
   return result;
 }
 
+function inputStyle(hasError?: boolean): React.CSSProperties {
+  return {
+    width: "100%", boxSizing: "border-box",
+    backgroundColor: hasError ? "#FFF1F0" : "#F6F5F0",
+    border: `1px solid ${hasError ? "#FECDD3" : "#E8E4DC"}`,
+    borderRadius: 10, padding: "9px 13px",
+    fontSize: "0.855rem", color: "#0d1b35",
+    fontFamily: "'Plus Jakarta Sans', sans-serif",
+    outline: "none",
+  };
+}
+
+const labelStyle: React.CSSProperties = {
+  display: "block",
+  fontSize: "0.7rem", fontWeight: 700, color: "#6B5D52",
+  textTransform: "uppercase", letterSpacing: "0.06em",
+  marginBottom: 5,
+};
+
 export function Register() {
   const navigate = useNavigate();
   const [step, setStep] = useState<"role" | "form">("role");
@@ -69,19 +94,19 @@ export function Register() {
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
   const [form, setForm] = useState({
-    first_name: "",
-    last_name: "",
-    username: "",
-    email: "",
-    password: "",
-    especialidad: "Electricidad",
-    curso: "4° Medio TP",
-    departamento: "",
-    nombre_empresa: "",
-    industria: "",
-    nombre_representante: "",
-    rut: "",
+    first_name: "", last_name: "", username: "", email: "", password: "",
+    especialidad: "Electricidad", curso: "4° Medio TP",
+    departamento: "", nombre_empresa: "", industria: "",
+    nombre_representante: "", rut: "",
   });
+
+  useEffect(() => {
+    if (!document.querySelector(`link[href="${FONT_URL}"]`)) {
+      const link = document.createElement("link");
+      link.rel = "stylesheet"; link.href = FONT_URL;
+      document.head.appendChild(link);
+    }
+  }, []);
 
   const role = roles.find((r) => r.id === selectedRole)!;
 
@@ -90,16 +115,9 @@ export function Register() {
     if (fieldErrors[k]) setFieldErrors((prev) => ({ ...prev, [k]: "" }));
   };
 
-  const inputClass = (field: string) =>
-    `w-full bg-slate-50 border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 transition-colors ${
-      fieldErrors[field]
-        ? "border-red-300 focus:ring-red-100 bg-red-50"
-        : "border-slate-200 focus:ring-slate-200"
-    }`;
-
   const FieldError = ({ field }: { field: string }) =>
     fieldErrors[field] ? (
-      <p className="text-red-500 text-xs mt-1">{fieldErrors[field]}</p>
+      <p style={{ color: "#BE123C", fontSize: "0.72rem", margin: "4px 0 0", fontWeight: 500 }}>{fieldErrors[field]}</p>
     ) : null;
 
   const validarRut = (rut: string): boolean => {
@@ -109,8 +127,7 @@ export function Register() {
     const dv = limpio.slice(-1);
     if (!/^\d+$/.test(cuerpo)) return false;
     let numero = parseInt(cuerpo, 10);
-    let suma = 0;
-    let factor = 2;
+    let suma = 0; let factor = 2;
     while (numero > 0) {
       suma += (numero % 10) * factor;
       numero = Math.floor(numero / 10);
@@ -131,17 +148,11 @@ export function Register() {
 
   const handleRutChange = (raw: string) => {
     const sanitized = raw.replace(/[^0-9kK.\-]/g, "").toUpperCase();
-    const formatted =
-      sanitized.length > 1
-        ? formatRut(sanitized.replace(/\./g, "").replace(/-/g, ""))
-        : sanitized;
+    const formatted = sanitized.length > 1 ? formatRut(sanitized.replace(/\./g, "").replace(/-/g, "")) : sanitized;
     setField("rut", formatted);
     const sinFormato = formatted.replace(/\./g, "").replace(/-/g, "");
     if (sinFormato.length >= 8) {
-      setFieldErrors((prev) => ({
-        ...prev,
-        rut: validarRut(formatted) ? "" : "RUT inválido",
-      }));
+      setFieldErrors((prev) => ({ ...prev, rut: validarRut(formatted) ? "" : "RUT inválido" }));
     } else {
       setFieldErrors((prev) => ({ ...prev, rut: "" }));
     }
@@ -149,15 +160,10 @@ export function Register() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
-    setGlobalError(null);
-    setFieldErrors({});
+    setLoading(true); setGlobalError(null); setFieldErrors({});
 
     const gradoMap: Record<string, string> = {
-      "4° Medio TP": "4to_medio",
-      "3° Medio TP": "4to_medio",
-      "EPJA": "4to_medio",
-      "Egresado": "egresado",
+      "4° Medio TP": "4to_medio", "3° Medio TP": "4to_medio", "EPJA": "4to_medio", "Egresado": "egresado",
     };
 
     const frontErrors: Record<string, string> = {};
@@ -167,34 +173,24 @@ export function Register() {
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) frontErrors.email = "Ingresa un correo electrónico válido.";
     if (form.password.length < 8) frontErrors.password = "La contraseña debe tener al menos 8 caracteres.";
     if (/^\d+$/.test(form.password)) frontErrors.password = "La contraseña no puede ser solo números.";
-    if (selectedRole === "company" && !validarRut(form.rut)) {
-      frontErrors.rut = "El RUT ingresado no es válido.";
-    }
+    if (selectedRole === "company" && !validarRut(form.rut)) frontErrors.rut = "El RUT ingresado no es válido.";
 
     if (Object.keys(frontErrors).length > 0) {
-      setFieldErrors(frontErrors);
-      setLoading(false);
-      return;
+      setFieldErrors(frontErrors); setLoading(false); return;
     }
 
     const payload: Record<string, unknown> = {
-      username: form.username,
-      email: form.email,
-      password: form.password,
-      role: selectedRole,
+      username: form.username, email: form.email, password: form.password, role: selectedRole,
     };
 
     if (selectedRole === "student") {
-      payload.first_name = form.first_name;
-      payload.last_name = form.last_name;
-      payload.especialidad = form.especialidad;
-      payload.grado = gradoMap[form.curso] ?? "4to_medio";
+      payload.first_name = form.first_name; payload.last_name = form.last_name;
+      payload.especialidad = form.especialidad; payload.grado = gradoMap[form.curso] ?? "4to_medio";
     } else if (selectedRole === "company") {
       const parts = form.nombre_representante.trim().split(" ");
       payload.first_name = parts[0] ?? form.nombre_representante;
       payload.last_name = parts.slice(1).join(" ") || "-";
-      payload.nombre_empresa = form.nombre_empresa;
-      payload.industria = form.industria;
+      payload.nombre_empresa = form.nombre_empresa; payload.industria = form.industria;
       payload.rut = form.rut.replace(/\./g, "").toUpperCase();
     } else if (selectedRole === "teacher") {
       const parts = form.first_name.trim().split(" ");
@@ -229,72 +225,80 @@ export function Register() {
 
   if (submitted) {
     return (
-      <div className="min-h-screen bg-[#F9FAFB] flex items-center justify-center px-4 py-12">
+      <div style={{ minHeight: "100vh", backgroundColor: "#F6F5F0", display: "flex", alignItems: "center", justifyContent: "center", padding: "48px 24px", fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="bg-white rounded-2xl border border-slate-200 shadow-sm w-full max-w-sm p-8 text-center"
+          style={{ backgroundColor: "#FFFFFF", borderRadius: 20, border: "1px solid #E8E4DC", width: "100%", maxWidth: 380, overflow: "hidden" }}
         >
-          <div className="w-14 h-14 bg-green-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
-            <CheckCircle className="w-7 h-7 text-green-500" />
+          <div style={{ height: 6, backgroundColor: "#D4AF37" }} />
+          <div style={{ padding: "36px 32px", textAlign: "center" }}>
+            <div style={{ width: 56, height: 56, borderRadius: 16, backgroundColor: "#FFFBF0", border: "1px solid #F5E6C0", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 20px" }}>
+              <CheckCircle style={{ width: 26, height: 26, color: "#D4AF37" }} />
+            </div>
+            <h2 style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: "1.35rem", fontWeight: 700, color: "#0d1b35", margin: "0 0 8px" }}>
+              Solicitud enviada
+            </h2>
+            <p style={{ fontSize: "0.84rem", color: "#6B5D52", lineHeight: 1.7, margin: "0 0 28px" }}>
+              Tu solicitud de cuenta fue enviada al equipo del Liceo Cardenal Caro.
+              Recibirás un correo cuando sea aprobada.
+            </p>
+            <button
+              onClick={() => navigate("/login")}
+              style={{ width: "100%", padding: "11px 0", borderRadius: 10, border: "none", backgroundColor: "#0d1b35", color: "#FFFFFF", fontSize: "0.875rem", fontWeight: 700, cursor: "pointer", fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+            >
+              Volver al login
+            </button>
           </div>
-          <h2 className="text-slate-900 font-bold mb-2">Solicitud enviada</h2>
-          <p className="text-slate-500 text-sm leading-relaxed mb-6">
-            Tu solicitud de cuenta fue enviada al equipo del Liceo Cardenal Caro.
-            Recibirás un correo cuando sea aprobada.
-          </p>
-          <button
-            onClick={() => navigate("/login")}
-            className="w-full py-3 rounded-xl bg-slate-900 hover:bg-slate-700 text-white text-sm font-semibold transition-colors"
-          >
-            Volver al login
-          </button>
         </motion.div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#F9FAFB] flex items-center justify-center px-4 py-12">
+    <div style={{ minHeight: "100vh", backgroundColor: "#F6F5F0", display: "flex", alignItems: "flex-start", justifyContent: "center", padding: "40px 24px 64px", fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
       <motion.div
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-white rounded-2xl border border-slate-200 shadow-sm w-full max-w-md overflow-hidden"
+        style={{ width: "100%", maxWidth: 460, backgroundColor: "#FFFFFF", borderRadius: 20, border: "1px solid #E8E4DC", overflow: "hidden" }}
       >
-        <div className="p-6 border-b border-slate-100">
+        {/* Top accent strip */}
+        <div style={{ height: 6, backgroundColor: "#0d1b35", backgroundImage: "radial-gradient(circle, rgba(212,175,55,0.3) 1px, transparent 1px)", backgroundSize: "10px 10px" }} />
+
+<div style={{ padding: "22px 28px 18px", borderBottom: "1px solid #F0EDE8" }}>
           <button
             onClick={() => (step === "form" ? setStep("role") : navigate("/login"))}
-            className="flex items-center gap-1.5 text-slate-500 hover:text-slate-900 text-sm font-medium mb-5 transition-colors"
+            style={{ display: "flex", alignItems: "center", gap: 6, color: "#8C7B6B", background: "none", border: "none", cursor: "pointer", fontSize: "0.8rem", fontWeight: 600, fontFamily: "'Plus Jakarta Sans', sans-serif", marginBottom: 16, padding: 0 }}
           >
-            <ArrowLeft className="w-4 h-4" />
+            <ArrowLeft style={{ width: 14, height: 14 }} />
             {step === "form" ? "Cambiar tipo de cuenta" : "Volver al login"}
           </button>
 
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-slate-900 flex items-center justify-center">
-              <Award className="w-5 h-5" style={{ color: "#D4AF37" }} />
+          <div style={{ display: "flex", alignItems: "center", gap: 11, marginBottom: 14 }}>
+            <div style={{ width: 38, height: 38, borderRadius: 11, backgroundColor: "#0d1b35", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+              <Award style={{ width: 18, height: 18, color: "#D4AF37" }} />
             </div>
             <div>
-              <p className="text-slate-900 text-sm font-bold">Red Talento Caro</p>
-              <p className="text-slate-500 text-xs">Crear nueva cuenta</p>
+              <p style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: "0.95rem", fontWeight: 700, color: "#0d1b35", margin: 0 }}>
+                Red Talento Caro
+              </p>
+              <p style={{ fontSize: "0.72rem", color: "#8C7B6B", margin: "2px 0 0" }}>Crear nueva cuenta</p>
             </div>
           </div>
 
-          <div className="mt-4">
-            <h2 className="text-slate-900 font-bold">
-              {step === "role" ? "¿Qué tipo de cuenta?" : `Cuenta de ${role.label}`}
-            </h2>
-            <p className="text-slate-500 text-sm mt-0.5">
-              {step === "role"
-                ? "Selecciona tu perfil para continuar"
-                : "Completa tus datos para registrarte"}
-            </p>
-          </div>
+          <h2 style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: "1.25rem", fontWeight: 700, color: "#0d1b35", margin: "0 0 3px" }}>
+            {step === "role" ? "¿Qué tipo de cuenta?" : `Cuenta de ${role.label}`}
+          </h2>
+          <p style={{ fontSize: "0.8rem", color: "#8C7B6B", margin: 0 }}>
+            {step === "role" ? "Selecciona tu perfil para continuar" : "Completa tus datos para registrarte"}
+          </p>
         </div>
 
-        <div className="p-6">
-          {step === "role" ? (
-            <div className="space-y-3">
+        {/* Body */}
+        <div style={{ padding: "24px 28px 28px" }}>
+
+          {step === "role" && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
               {roles.map((r) => {
                 const RIcon = r.icon;
                 const sel = selectedRole === r.id;
@@ -302,77 +306,82 @@ export function Register() {
                   <button
                     key={r.id}
                     onClick={() => setSelectedRole(r.id)}
-                    className={`w-full border-2 rounded-xl p-4 flex items-center gap-3 transition-all text-left ${
-                      sel ? "border-slate-900 bg-slate-50" : "border-slate-200 hover:border-slate-300 hover:bg-slate-50"
-                    }`}
+                    style={{
+                      width: "100%", textAlign: "left",
+                      border: `2px solid ${sel ? "#0d1b35" : "#E8E4DC"}`,
+                      borderRadius: 14, padding: "14px 16px",
+                      display: "flex", alignItems: "center", gap: 12,
+                      backgroundColor: sel ? "#F6F5F0" : "#FFFFFF",
+                      cursor: "pointer", fontFamily: "'Plus Jakarta Sans', sans-serif",
+                      transition: "border-color 0.15s, background-color 0.15s",
+                    }}
                   >
-                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${sel ? "bg-slate-900" : "bg-slate-100"}`}>
-                      <RIcon className={`w-5 h-5 ${sel ? "text-white" : "text-slate-500"}`} />
+                    <div style={{ width: 42, height: 42, borderRadius: 11, backgroundColor: sel ? "#0d1b35" : "#F0EDE8", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, transition: "background-color 0.15s" }}>
+                      <RIcon style={{ width: 19, height: 19, color: sel ? "#D4AF37" : "#8C7B6B" }} />
                     </div>
-                    <div className="flex-1">
-                      <p className={`text-slate-900 text-sm ${sel ? "font-semibold" : "font-medium"}`}>{r.label}</p>
-                      <p className="text-slate-500 text-xs mt-0.5">{r.desc}</p>
-                      {r.id === "company" && (
-                        <span className="inline-flex items-center gap-1 text-xs text-green-700 font-semibold mt-1">
-                          <CheckCircle className="w-3 h-3" /> Acceso inmediato
-                        </span>
-                      )}
-                      {r.requiresApproval && (
-                        <span className="text-xs text-amber-600 font-medium mt-1 block">
-                          Requiere aprobación del Liceo
-                        </span>
-                      )}
+                    <div style={{ flex: 1 }}>
+                      <p style={{ fontSize: "0.875rem", fontWeight: 700, color: "#0d1b35", margin: 0 }}>{r.label}</p>
+                      <p style={{ fontSize: "0.75rem", color: "#6B5D52", margin: "2px 0 5px" }}>{r.desc}</p>
+                      <span style={{ display: "inline-block", fontSize: "0.68rem", fontWeight: 700, padding: "2px 9px", borderRadius: 20, backgroundColor: r.badge.bg, color: r.badge.color, border: `1px solid ${r.badge.border}` }}>
+                        {r.badge.text}
+                      </span>
                     </div>
-                    {sel && <ChevronRight className="w-4 h-4 text-slate-500 flex-shrink-0" />}
+                    {sel && <ChevronRight style={{ width: 15, height: 15, color: "#0d1b35", flexShrink: 0 }} />}
                   </button>
                 );
               })}
 
               <button
                 onClick={() => setStep("form")}
-                className="w-full py-3 rounded-xl bg-slate-900 hover:bg-slate-700 text-white text-sm font-semibold transition-colors flex items-center justify-center gap-2 mt-2"
+                style={{ width: "100%", marginTop: 6, padding: "12px 0", borderRadius: 10, border: "none", backgroundColor: "#0d1b35", color: "#FFFFFF", fontSize: "0.875rem", fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 7, fontFamily: "'Plus Jakarta Sans', sans-serif" }}
               >
-                Continuar <ArrowRight className="w-4 h-4" />
+                Continuar <ArrowRight style={{ width: 15, height: 15 }} />
               </button>
             </div>
-          ) : (
-            <form className="space-y-4" onSubmit={handleSubmit}>
+          )}
+
+          {step === "form" && (
+            <form style={{ display: "flex", flexDirection: "column", gap: 14 }} onSubmit={handleSubmit}>
+
               {globalError && (
-                <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3">
-                  <p className="text-red-600 text-xs font-medium">{globalError}</p>
+                <div style={{ backgroundColor: "#FFF1F0", border: "1px solid #FECDD3", borderRadius: 10, padding: "10px 14px" }}>
+                  <p style={{ color: "#BE123C", fontSize: "0.78rem", fontWeight: 600, margin: 0 }}>{globalError}</p>
                 </div>
               )}
 
               {selectedRole === "company" && (
-                <div className="flex items-start gap-3 bg-green-50 border border-green-200 rounded-xl p-3">
-                  <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
-                  <p className="text-green-700 text-xs leading-relaxed">
-                    Las empresas tienen acceso inmediato al registrarse.
-                    Podrás buscar y contactar talento validado por el Liceo desde el primer día.
+                <div style={{ display: "flex", alignItems: "flex-start", gap: 9, backgroundColor: "#F0FDF4", border: "1px solid #BBF7D0", borderRadius: 10, padding: "10px 13px" }}>
+                  <CheckCircle style={{ width: 14, height: 14, color: "#166534", flexShrink: 0, marginTop: 1 }} />
+                  <p style={{ fontSize: "0.78rem", color: "#166534", margin: 0, lineHeight: 1.6 }}>
+                    Las empresas tienen acceso inmediato al registrarse. Podrás buscar y contactar talento validado por el Liceo desde el primer día.
                   </p>
                 </div>
               )}
 
+              {/* Student fields */}
               {selectedRole === "student" && (
                 <>
-                  <div className="grid grid-cols-2 gap-3">
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
                     <div>
-                      <label className="block text-slate-700 text-sm font-medium mb-1.5">Nombre(s)</label>
-                      <input value={form.first_name} onChange={(e) => setField("first_name", e.target.value)}
-                        placeholder="Felipe" className={inputClass("first_name")} required />
+                      <label style={labelStyle}>Nombre(s)</label>
+                      <input value={form.first_name} onChange={(e) => setField("first_name", e.target.value)} placeholder="Felipe" style={inputStyle(!!fieldErrors.first_name)}
+                        onFocus={(el) => { el.currentTarget.style.borderColor = "#D4AF37"; el.currentTarget.style.backgroundColor = "#FFFFFF"; }}
+                        onBlur={(el) => { el.currentTarget.style.borderColor = fieldErrors.first_name ? "#FECDD3" : "#E8E4DC"; el.currentTarget.style.backgroundColor = fieldErrors.first_name ? "#FFF1F0" : "#F6F5F0"; }}
+                        required />
                       <FieldError field="first_name" />
                     </div>
                     <div>
-                      <label className="block text-slate-700 text-sm font-medium mb-1.5">Apellido(s)</label>
-                      <input value={form.last_name} onChange={(e) => setField("last_name", e.target.value)}
-                        placeholder="Muñoz" className={inputClass("last_name")} required />
+                      <label style={labelStyle}>Apellido(s)</label>
+                      <input value={form.last_name} onChange={(e) => setField("last_name", e.target.value)} placeholder="Muñoz" style={inputStyle(!!fieldErrors.last_name)}
+                        onFocus={(el) => { el.currentTarget.style.borderColor = "#D4AF37"; el.currentTarget.style.backgroundColor = "#FFFFFF"; }}
+                        onBlur={(el) => { el.currentTarget.style.borderColor = fieldErrors.last_name ? "#FECDD3" : "#E8E4DC"; el.currentTarget.style.backgroundColor = fieldErrors.last_name ? "#FFF1F0" : "#F6F5F0"; }}
+                        required />
                       <FieldError field="last_name" />
                     </div>
                   </div>
                   <div>
-                    <label className="block text-slate-700 text-sm font-medium mb-1.5">Especialidad técnica</label>
-                    <select value={form.especialidad} onChange={(e) => setField("especialidad", e.target.value)}
-                      className={inputClass("especialidad")}>
+                    <label style={labelStyle}>Especialidad técnica</label>
+                    <select value={form.especialidad} onChange={(e) => setField("especialidad", e.target.value)} style={inputStyle()}>
                       <option>Electricidad</option>
                       <option>Mecánica Automotriz</option>
                       <option>Computación e Informática</option>
@@ -381,9 +390,8 @@ export function Register() {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-slate-700 text-sm font-medium mb-1.5">Curso / Nivel</label>
-                    <select value={form.curso} onChange={(e) => setField("curso", e.target.value)}
-                      className={inputClass("curso")}>
+                    <label style={labelStyle}>Curso / Nivel</label>
+                    <select value={form.curso} onChange={(e) => setField("curso", e.target.value)} style={inputStyle()}>
                       <option>4° Medio TP</option>
                       <option>3° Medio TP</option>
                       <option>EPJA</option>
@@ -393,108 +401,120 @@ export function Register() {
                 </>
               )}
 
+              {/* Company fields */}
               {selectedRole === "company" && (
                 <>
                   <div>
-                    <label className="block text-slate-700 text-sm font-medium mb-1.5">Nombre de la empresa</label>
-                    <input value={form.nombre_empresa} onChange={(e) => setField("nombre_empresa", e.target.value)}
-                      placeholder="Eléctrica Los Espejo Ltda." className={inputClass("nombre_empresa")} required />
+                    <label style={labelStyle}>Nombre de la empresa</label>
+                    <input value={form.nombre_empresa} onChange={(e) => setField("nombre_empresa", e.target.value)} placeholder="Eléctrica Los Espejo Ltda." style={inputStyle(!!fieldErrors.nombre_empresa)}
+                      onFocus={(el) => { el.currentTarget.style.borderColor = "#D4AF37"; el.currentTarget.style.backgroundColor = "#FFFFFF"; }}
+                      onBlur={(el) => { el.currentTarget.style.borderColor = fieldErrors.nombre_empresa ? "#FECDD3" : "#E8E4DC"; el.currentTarget.style.backgroundColor = fieldErrors.nombre_empresa ? "#FFF1F0" : "#F6F5F0"; }}
+                      required />
                     <FieldError field="nombre_empresa" />
                   </div>
                   <div>
-                    <label className="block text-slate-700 text-sm font-medium mb-1.5">RUT de la empresa</label>
+                    <label style={labelStyle}>RUT de la empresa</label>
                     <input
-                      value={form.rut}
-                      onChange={(e) => handleRutChange(e.target.value)}
-                      placeholder="12.345.678-9"
-                      maxLength={12}
-                      className={`w-full bg-slate-50 border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 transition-colors ${
-                        fieldErrors.rut
-                          ? "border-red-300 focus:ring-red-100 bg-red-50"
-                          : form.rut && validarRut(form.rut)
-                          ? "border-green-300 focus:ring-green-100"
-                          : "border-slate-200 focus:ring-slate-200"
-                      }`}
+                      value={form.rut} onChange={(e) => handleRutChange(e.target.value)}
+                      placeholder="12.345.678-9" maxLength={12}
+                      style={{ ...inputStyle(!!fieldErrors.rut), borderColor: !fieldErrors.rut && form.rut && validarRut(form.rut) ? "#86EFAC" : (fieldErrors.rut ? "#FECDD3" : "#E8E4DC") }}
+                      onFocus={(el) => { el.currentTarget.style.borderColor = "#D4AF37"; el.currentTarget.style.backgroundColor = "#FFFFFF"; }}
+                      onBlur={(el) => {
+                        el.currentTarget.style.backgroundColor = fieldErrors.rut ? "#FFF1F0" : "#F6F5F0";
+                        el.currentTarget.style.borderColor = fieldErrors.rut ? "#FECDD3" : (form.rut && validarRut(form.rut) ? "#86EFAC" : "#E8E4DC");
+                      }}
                       required
                     />
-                    {fieldErrors.rut && (
-                      <p className="text-red-500 text-xs mt-1">{fieldErrors.rut}</p>
-                    )}
+                    {fieldErrors.rut && <p style={{ color: "#BE123C", fontSize: "0.72rem", margin: "4px 0 0" }}>{fieldErrors.rut}</p>}
                     {!fieldErrors.rut && form.rut && validarRut(form.rut) && (
-                      <p className="text-green-600 text-xs mt-1 flex items-center gap-1">
-                        <CheckCircle className="w-3 h-3" /> RUT válido
+                      <p style={{ color: "#166534", fontSize: "0.72rem", margin: "4px 0 0", display: "flex", alignItems: "center", gap: 3 }}>
+                        <CheckCircle style={{ width: 11, height: 11 }} /> RUT válido
                       </p>
                     )}
-                    <p className="text-slate-400 text-xs mt-1">Ej: 12.345.678-9</p>
+                    <p style={{ color: "#94a3b8", fontSize: "0.7rem", margin: "3px 0 0" }}>Ej: 12.345.678-9</p>
                   </div>
                   <div>
-                    <label className="block text-slate-700 text-sm font-medium mb-1.5">Rubro / Industria</label>
-                    <input value={form.industria} onChange={(e) => setField("industria", e.target.value)}
-                      placeholder="Electricidad, Construcción, TI..." className={inputClass("industria")} required />
+                    <label style={labelStyle}>Rubro / Industria</label>
+                    <input value={form.industria} onChange={(e) => setField("industria", e.target.value)} placeholder="Electricidad, Construcción, TI..." style={inputStyle(!!fieldErrors.industria)}
+                      onFocus={(el) => { el.currentTarget.style.borderColor = "#D4AF37"; el.currentTarget.style.backgroundColor = "#FFFFFF"; }}
+                      onBlur={(el) => { el.currentTarget.style.borderColor = fieldErrors.industria ? "#FECDD3" : "#E8E4DC"; el.currentTarget.style.backgroundColor = fieldErrors.industria ? "#FFF1F0" : "#F6F5F0"; }}
+                      required />
                     <FieldError field="industria" />
                   </div>
                   <div>
-                    <label className="block text-slate-700 text-sm font-medium mb-1.5">Nombre del representante</label>
-                    <input value={form.nombre_representante} onChange={(e) => setField("nombre_representante", e.target.value)}
-                      placeholder="Juan Pérez" className={inputClass("nombre_representante")} required />
+                    <label style={labelStyle}>Nombre del representante</label>
+                    <input value={form.nombre_representante} onChange={(e) => setField("nombre_representante", e.target.value)} placeholder="Juan Pérez" style={inputStyle(!!fieldErrors.nombre_representante)}
+                      onFocus={(el) => { el.currentTarget.style.borderColor = "#D4AF37"; el.currentTarget.style.backgroundColor = "#FFFFFF"; }}
+                      onBlur={(el) => { el.currentTarget.style.borderColor = fieldErrors.nombre_representante ? "#FECDD3" : "#E8E4DC"; el.currentTarget.style.backgroundColor = fieldErrors.nombre_representante ? "#FFF1F0" : "#F6F5F0"; }}
+                      required />
                     <FieldError field="nombre_representante" />
                   </div>
                 </>
               )}
 
+              {/* Teacher fields */}
               {selectedRole === "teacher" && (
                 <>
                   <div>
-                    <label className="block text-slate-700 text-sm font-medium mb-1.5">Nombre completo</label>
-                    <input value={form.first_name} onChange={(e) => setField("first_name", e.target.value)}
-                      placeholder="Ana García Vidal" className={inputClass("first_name")} required />
+                    <label style={labelStyle}>Nombre completo</label>
+                    <input value={form.first_name} onChange={(e) => setField("first_name", e.target.value)} placeholder="Ana García Vidal" style={inputStyle(!!fieldErrors.first_name)}
+                      onFocus={(el) => { el.currentTarget.style.borderColor = "#D4AF37"; el.currentTarget.style.backgroundColor = "#FFFFFF"; }}
+                      onBlur={(el) => { el.currentTarget.style.borderColor = fieldErrors.first_name ? "#FECDD3" : "#E8E4DC"; el.currentTarget.style.backgroundColor = fieldErrors.first_name ? "#FFF1F0" : "#F6F5F0"; }}
+                      required />
                     <FieldError field="first_name" />
                   </div>
                   <div>
-                    <label className="block text-slate-700 text-sm font-medium mb-1.5">Departamento / Especialidad</label>
-                    <input value={form.departamento} onChange={(e) => setField("departamento", e.target.value)}
-                      placeholder="Dpto. Electricidad" className={inputClass("departamento")} required />
+                    <label style={labelStyle}>Departamento / Especialidad</label>
+                    <input value={form.departamento} onChange={(e) => setField("departamento", e.target.value)} placeholder="Dpto. Electricidad" style={inputStyle(!!fieldErrors.departamento)}
+                      onFocus={(el) => { el.currentTarget.style.borderColor = "#D4AF37"; el.currentTarget.style.backgroundColor = "#FFFFFF"; }}
+                      onBlur={(el) => { el.currentTarget.style.borderColor = fieldErrors.departamento ? "#FECDD3" : "#E8E4DC"; el.currentTarget.style.backgroundColor = fieldErrors.departamento ? "#FFF1F0" : "#F6F5F0"; }}
+                      required />
                     <FieldError field="departamento" />
                   </div>
                 </>
               )}
 
+              {/* Common fields */}
               <div>
-                <label className="block text-slate-700 text-sm font-medium mb-1.5">Usuario</label>
-                <input type="text" value={form.username} onChange={(e) => setField("username", e.target.value)}
-                  placeholder="mi_usuario" autoComplete="username" className={inputClass("username")} required />
+                <label style={labelStyle}>Usuario</label>
+                <input type="text" value={form.username} onChange={(e) => setField("username", e.target.value)} placeholder="mi_usuario" autoComplete="username" style={inputStyle(!!fieldErrors.username)}
+                  onFocus={(el) => { el.currentTarget.style.borderColor = "#D4AF37"; el.currentTarget.style.backgroundColor = "#FFFFFF"; }}
+                  onBlur={(el) => { el.currentTarget.style.borderColor = fieldErrors.username ? "#FECDD3" : "#E8E4DC"; el.currentTarget.style.backgroundColor = fieldErrors.username ? "#FFF1F0" : "#F6F5F0"; }}
+                  required />
                 <FieldError field="username" />
               </div>
               <div>
-                <label className="block text-slate-700 text-sm font-medium mb-1.5">Correo electrónico</label>
-                <input type="email" value={form.email} onChange={(e) => setField("email", e.target.value)}
-                  placeholder="correo@ejemplo.cl" className={inputClass("email")} required />
+                <label style={labelStyle}>Correo electrónico</label>
+                <input type="email" value={form.email} onChange={(e) => setField("email", e.target.value)} placeholder="correo@ejemplo.cl" style={inputStyle(!!fieldErrors.email)}
+                  onFocus={(el) => { el.currentTarget.style.borderColor = "#D4AF37"; el.currentTarget.style.backgroundColor = "#FFFFFF"; }}
+                  onBlur={(el) => { el.currentTarget.style.borderColor = fieldErrors.email ? "#FECDD3" : "#E8E4DC"; el.currentTarget.style.backgroundColor = fieldErrors.email ? "#FFF1F0" : "#F6F5F0"; }}
+                  required />
                 <FieldError field="email" />
               </div>
               <div>
-                <label className="block text-slate-700 text-sm font-medium mb-1.5">Contraseña</label>
-                <div className="relative">
+                <label style={labelStyle}>Contraseña</label>
+                <div style={{ position: "relative" }}>
                   <input
                     type={showPass ? "text" : "password"}
-                    value={form.password}
-                    onChange={(e) => setField("password", e.target.value)}
+                    value={form.password} onChange={(e) => setField("password", e.target.value)}
                     placeholder="Mínimo 8 caracteres"
-                    className={`${inputClass("password")} pr-10`}
-                    required
-                    minLength={8}
+                    style={{ ...inputStyle(!!fieldErrors.password), paddingRight: 42 }}
+                    onFocus={(el) => { el.currentTarget.style.borderColor = "#D4AF37"; el.currentTarget.style.backgroundColor = "#FFFFFF"; }}
+                    onBlur={(el) => { el.currentTarget.style.borderColor = fieldErrors.password ? "#FECDD3" : "#E8E4DC"; el.currentTarget.style.backgroundColor = fieldErrors.password ? "#FFF1F0" : "#F6F5F0"; }}
+                    required minLength={8}
                   />
-                  <button type="button" onClick={() => setShowPass(!showPass)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
-                    {showPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  <button type="button" onClick={() => setShowPass(!showPass)} style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: "#8C7B6B", display: "flex" }}>
+                    {showPass ? <EyeOff style={{ width: 15, height: 15 }} /> : <Eye style={{ width: 15, height: 15 }} />}
                   </button>
                 </div>
                 <FieldError field="password" />
               </div>
 
+              {/* Approval notice */}
               {role.requiresApproval && (
-                <div className="flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-xl p-3">
-                  <CheckCircle className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
-                  <p className="text-amber-700 text-xs leading-relaxed">
+                <div style={{ display: "flex", alignItems: "flex-start", gap: 9, backgroundColor: "#FFFBF0", border: "1px solid #F5E6C0", borderRadius: 10, padding: "10px 13px" }}>
+                  <CheckCircle style={{ width: 14, height: 14, color: "#B8962E", flexShrink: 0, marginTop: 1 }} />
+                  <p style={{ fontSize: "0.78rem", color: "#8C7B6B", margin: 0, lineHeight: 1.6 }}>
                     {selectedRole === "teacher"
                       ? "Las cuentas docentes deben ser aprobadas por la dirección del Liceo antes de activarse."
                       : "Tu cuenta debe ser vinculada al Liceo Cardenal Caro por un docente para activarse."}
@@ -505,18 +525,17 @@ export function Register() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full py-3 rounded-xl bg-slate-900 hover:bg-slate-700 disabled:bg-slate-300 text-white text-sm font-semibold transition-colors flex items-center justify-center gap-2"
+                style={{ width: "100%", padding: "12px 0", borderRadius: 10, border: "none", backgroundColor: loading ? "#E8E4DC" : "#0d1b35", color: loading ? "#94a3b8" : "#FFFFFF", fontSize: "0.875rem", fontWeight: 700, cursor: loading ? "not-allowed" : "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 7, fontFamily: "'Plus Jakarta Sans', sans-serif", transition: "background-color 0.15s" }}
               >
                 {loading ? (
-                  <><Loader2 className="w-4 h-4 animate-spin" /> Enviando...</>
-                ) : (
-                  selectedRole === "company" ? "Crear cuenta de empresa"
+                  <><Loader2 style={{ width: 14, height: 14 }} className="animate-spin" /> Enviando...</>
+                ) : selectedRole === "company" ? "Crear cuenta de empresa"
                   : selectedRole === "teacher" ? "Crear cuenta de docente"
-                  : "Enviar solicitud de registro"
-                )}
+                  : "Enviar solicitud de registro"}
               </button>
             </form>
           )}
+
         </div>
       </motion.div>
     </div>

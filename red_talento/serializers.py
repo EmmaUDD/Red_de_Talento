@@ -1,7 +1,6 @@
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework import serializers
 from rest_framework.exceptions import AuthenticationFailed
-from django.utils import timezone
 from .models import (
     Usuario,
     PerfilEstudiante,
@@ -266,7 +265,6 @@ class PostulacionSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError('Ya se ha postulado a esta oferta')
         return data
 
-# Serializer para estudiante
 class RegistroEstudianteSerializer(serializers.Serializer):
     username = serializers.CharField(required=True)
     password = serializers.CharField(write_only=True, required=True)
@@ -331,7 +329,6 @@ class PerfilEstudianteSerializer(serializers.ModelSerializer):
         return result
 
 
-# Serializer para docente
 class RegistroDocenteSerializer(serializers.Serializer):
     username = serializers.CharField(required=True)
     password = serializers.CharField(write_only=True, required=True)
@@ -366,12 +363,7 @@ class PerfilDocenteSerializer(serializers.ModelSerializer):
             return request.build_absolute_uri(obj.foto_perfil.url)
         return obj.foto_perfil.url
 
-# ─── Utilidad: validación matemática de RUT chileno ───────────────────────────
 def validar_rut_chileno(rut: str) -> bool:
-    """
-    Valida el dígito verificador de un RUT chileno.
-    Acepta formatos: '12345678-9', '12.345.678-9', '123456789' (sin guión).
-    """
     rut = rut.strip().replace(".", "").replace(" ", "").upper()
     if "-" in rut:
         cuerpo, dv = rut.split("-", 1)
@@ -400,7 +392,6 @@ def validar_rut_chileno(rut: str) -> bool:
     return dv == verificador
 
 
-# Serializer para empresa
 class RegistroEmpresaSerializer(serializers.Serializer):
     username = serializers.CharField(required=True)
     password = serializers.CharField(write_only=True, required=True)

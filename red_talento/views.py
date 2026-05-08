@@ -4,7 +4,8 @@ from rest_framework.response import Response
 from django.http import HttpResponse
 from rest_framework import status
 from django.db import IntegrityError
-from django.db.models import Q, Value
+from django.db.models import Q, Value, Count
+from django.db.models.functions import TruncMonth
 from django.db.models.functions import Concat
 from .serializers import (
     RegistroEstudianteSerializer,
@@ -88,7 +89,7 @@ class MeView(APIView):
                     'video_pitch': p.video_pitch or '',
                     'foto_perfil': foto_url(p),
                 })
-            except Exception:
+            except PerfilEstudiante.DoesNotExist:
                 pass
         elif user.role == 'docente':
             try:
@@ -100,7 +101,7 @@ class MeView(APIView):
                     'es_admin': p.es_admin,
                     'foto_perfil': foto_url(p),
                 })
-            except Exception:
+            except PerfilDocente.DoesNotExist:
                 pass
         elif user.role == 'empresa':
             try:
@@ -115,7 +116,7 @@ class MeView(APIView):
                     'horario': p.horario or '',
                     'que_buscamos': p.que_buscamos or '',
                 })
-            except Exception:
+            except PerfilEmpresa.DoesNotExist:
                 pass
         return Response(data, status=status.HTTP_200_OK)
 
@@ -126,39 +127,30 @@ class MeView(APIView):
                 setattr(user, field, request.data[field])
         user.save()
         if user.role == 'docente':
-            try:
-                p = user.perfil_docente
-                for field in ['bio', 'departamento']:
-                    if field in request.data:
-                        setattr(p, field, request.data[field])
-                if 'foto_perfil' in request.FILES:
-                    p.foto_perfil = request.FILES['foto_perfil']
-                p.save()
-            except Exception:
-                pass
+            p = user.perfil_docente
+            for field in ['bio', 'departamento']:
+                if field in request.data:
+                    setattr(p, field, request.data[field])
+            if 'foto_perfil' in request.FILES:
+                p.foto_perfil = request.FILES['foto_perfil']
+            p.save()
         elif user.role == 'estudiante':
-            try:
-                p = user.perfil_estudiante
-                if 'bio' in request.data:
-                    p.bio = request.data['bio'] or None
-                if 'video_pitch' in request.data:
-                    p.video_pitch = request.data['video_pitch'] or None
-                if 'foto_perfil' in request.FILES:
-                    p.foto_perfil = request.FILES['foto_perfil']
-                p.save()
-            except Exception:
-                pass
+            p = user.perfil_estudiante
+            if 'bio' in request.data:
+                p.bio = request.data['bio'] or None
+            if 'video_pitch' in request.data:
+                p.video_pitch = request.data['video_pitch'] or None
+            if 'foto_perfil' in request.FILES:
+                p.foto_perfil = request.FILES['foto_perfil']
+            p.save()
         elif user.role == 'empresa':
-            try:
-                p = user.perfil_empresa
-                for field in ['nombre_empresa', 'industria', 'descripcion', 'ubicacion', 'horario', 'que_buscamos']:
-                    if field in request.data:
-                        setattr(p, field, request.data[field] or None)
-                if 'foto_perfil' in request.FILES:
-                    p.foto_perfil = request.FILES['foto_perfil']
-                p.save()
-            except Exception:
-                pass
+            p = user.perfil_empresa
+            for field in ['nombre_empresa', 'industria', 'descripcion', 'ubicacion', 'horario', 'que_buscamos']:
+                if field in request.data:
+                    setattr(p, field, request.data[field] or None)
+            if 'foto_perfil' in request.FILES:
+                p.foto_perfil = request.FILES['foto_perfil']
+            p.save()
         return self.get(request)
 
 
@@ -329,7 +321,6 @@ class ReporteView(APIView):
 
 
 class GestionUsuarioView(APIView):
-    """Permite a docentes-admin suspender o bloquear usuarios."""
     permission_classes = [IsAuthenticated]
 
     def patch(self, request, id):
@@ -344,11 +335,15 @@ class GestionUsuarioView(APIView):
         dias = request.data.get('dias')       # solo para 'suspender'
 
         if accion == 'suspender':
-            if not dias or int(dias) <= 0:
-                return Response({'error': 'Indica los días de suspensión'}, status=status.HTTP_400_BAD_REQUEST)
-            usuario.suspendido_hasta = timezone.now() + timedelta(days=int(dias))
+            try:
+                dias_int = int(dias)
+                if dias_int <= 0:
+                    raise ValueError
+            except (TypeError, ValueError):
+                return Response({'error': 'Indica un número de días válido'}, status=status.HTTP_400_BAD_REQUEST)
+            usuario.suspendido_hasta = timezone.now() + timedelta(days=dias_int)
             usuario.save()
-            return Response({'mensaje': f'Usuario suspendido por {dias} días'}, status=status.HTTP_200_OK)
+            return Response({'mensaje': f'Usuario suspendido por {dias_int} días'}, status=status.HTTP_200_OK)
 
         elif accion == 'bloquear':
             usuario.is_active = False
@@ -418,7 +413,6 @@ class PostulacionView(APIView):
     
     def get(self, request, id=None):
         if id is None:
-            # Estudiante: ver sus propias postulaciones
             if not EsEstudiante().has_permission(request, self):
                 return Response({'error': 'Solo estudiantes pueden ver sus postulaciones'}, status=status.HTTP_403_FORBIDDEN)
             postulaciones = Postulacion.objects.filter(
@@ -426,7 +420,6 @@ class PostulacionView(APIView):
             ).select_related('oferta', 'oferta__empresa')
             serializer = PostulacionSerializer(postulaciones, many=True)
             return Response(serializer.data, status=status.HTTP_200_OK)
-        # Empresa: ver postulaciones de una oferta
         try:
             oferta = OfertaLaboral.objects.get(id=id)
         except OfertaLaboral.DoesNotExist:
@@ -454,7 +447,6 @@ class PostulacionView(APIView):
             if serializer.instance.estado == 'Contratado':
                 postulacion.oferta.activa = False
                 postulacion.oferta.save()
-                # Post automático del sistema en el feed
                 estudiante = postulacion.estudiante
                 empresa = postulacion.oferta.empresa
                 nombre_estudiante = f"{estudiante.usuario.first_name} {estudiante.usuario.last_name}".strip() or estudiante.usuario.username
@@ -478,7 +470,7 @@ class PostulacionView(APIView):
 class BusquedaEstudiantesView(APIView):
     permission_classes = [IsAuthenticated]
     def get(self, request):
-        estudiante = PerfilEstudiante.objects.all()
+        estudiante = PerfilEstudiante.objects.filter(usuario__is_active=True)
         especialidad = request.query_params.get('especialidad')
         nombre = request.query_params.get('nombre')
         disponibilidad = request.query_params.get('disponibilidad')
@@ -552,7 +544,6 @@ class RecomendacionesView(APIView):
 
 
 class RecomendacionesEmpresaView(APIView):
-    """Recomendaciones de estudiantes para la empresa autenticada, basadas en su oferta más reciente."""
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
@@ -564,7 +555,7 @@ class RecomendacionesEmpresaView(APIView):
             return Response([], status=status.HTTP_200_OK)
         oferta = ofertas.first()
         estudiantes = PerfilEstudiante.objects.filter(usuario__is_active=True).prefetch_related(
-            'disponibilidad', 'habilidades_set'
+            'disponibilidad', 'habilidades_set', 'evidencia_set'
         )
         resultados = []
         for est in estudiantes:
@@ -585,14 +576,32 @@ class EstadisticasView(APIView):
         total_habilidades = Habilidades.objects.filter(estado='Aprobado').count()
         total_postulaciones = Postulacion.objects.count()
         total_ofertas = OfertaLaboral.objects.filter(activa=True).count()
+
+        contratados_por_mes = (
+            Postulacion.objects
+            .filter(estado='Contratado')
+            .annotate(mes=TruncMonth('fecha'))
+            .values('mes')
+            .annotate(total=Count('id'))
+            .order_by('mes')
+        )
+        tasa_por_mes = [
+            {
+                'mes': entry['mes'].strftime('%b %Y'),
+                'contratados': entry['total'],
+                'tasa': round(entry['total'] / total_estudiantes * 100, 1) if total_estudiantes else 0,
+            }
+            for entry in contratados_por_mes
+        ]
+
         return Response({
             "total_estudiantes": total_estudiantes,
-            "estudiantes_validados": total_estudiantes,
             "total_empresas": total_empresas,
             "total_ofertas_activas": total_ofertas,
             "postulaciones_este_mes": total_postulaciones,
             "total_habilidades": total_habilidades,
             "por_especialidad": [],
+            "contratados_por_mes": tasa_por_mes,
         }, status=status.HTTP_200_OK)
 class QRView(APIView):
     permission_classes = [IsAuthenticated]
@@ -608,7 +617,6 @@ class QRView(APIView):
         return HttpResponse(buffer.getvalue(), content_type='image/png')
 
 
-# Create your views here.
 class RegistroEstudianteView(APIView):
     def post(self, request):
         serializer = RegistroEstudianteSerializer(data=request.data)
@@ -739,14 +747,12 @@ class CursoCompletadoView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        # Estudiante: ve sus propios cursos inscritos
         if EsEstudiante().has_permission(request, self):
             inscritos = CursoCompletado.objects.filter(
                 estudiante=request.user.perfil_estudiante
             ).select_related('curso__publicado_por__usuario')
             serializer = CursoCompletadoSerializer(inscritos, many=True, context={'request': request})
             return Response(serializer.data, status=status.HTTP_200_OK)
-        # Docente: ve los pendientes de sus cursos
         if EsDocente().has_permission(request, self):
             pendientes = CursoCompletado.objects.filter(
                 curso__publicado_por=request.user.perfil_docente,
