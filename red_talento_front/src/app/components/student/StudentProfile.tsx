@@ -3,7 +3,7 @@ import { useState, useEffect, useCallback } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import {
   CheckCircle, Award, Play, Shield, Wrench, Zap, Users, Clock,
-  Pencil, Save, X, PlusCircle, AlertCircle, Medal, Star, BookOpen,
+  Pencil, Save, X, PlusCircle, AlertCircle, Medal, Star,
   TrendingUp, ExternalLink, MessageSquare, QrCode, Share2, Camera,
 } from "lucide-react";
 import { useAuth } from "@/app/context/AuthContext";
@@ -269,7 +269,7 @@ export function StudentProfile() {
   const nombre = user ? `${user.first_name} ${user.last_name}`.trim() || user.username : "—";
   const especialidad = user?.especialidad ?? "Técnico";
   const curso = user?.curso ?? "";
-  const profileUrl = user ? qrApi.getUrlPerfil(user.id) : window.location.href;
+  const profileUrl = user ? qrApi.getUrlPerfil(user.profile_id ?? user.id) : window.location.href;
   const fotoSrc = user?.foto_perfil
     ? (user.foto_perfil.startsWith("http") ? user.foto_perfil : `${BASE_URL}${user.foto_perfil}`)
     : null;

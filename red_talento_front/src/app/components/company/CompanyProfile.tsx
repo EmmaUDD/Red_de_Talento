@@ -140,16 +140,20 @@ export function CompanyProfile() {
       .catch(() => setOfertas([]))
       .finally(() => setLoadingOfertas(false));
 
-    feedApi.getPosts()
-      .then((allPosts) => {
-        setPosts(allPosts.slice(0, 5));
-        const counts: Record<number, number> = {};
-        allPosts.forEach((p) => { counts[p.id] = p.likes; });
-        setLikeCounts(counts);
-      })
-      .catch(() => setPosts([]))
-      .finally(() => setLoadingPosts(false));
-  }, []);
+    if (user?.id) {
+      feedApi.getPostsDeUsuario(user.id)
+        .then((myPosts) => {
+          setPosts(myPosts);
+          const counts: Record<number, number> = {};
+          myPosts.forEach((p) => { counts[p.id] = p.likes; });
+          setLikeCounts(counts);
+        })
+        .catch(() => setPosts([]))
+        .finally(() => setLoadingPosts(false));
+    } else {
+      setLoadingPosts(false);
+    }
+  }, [user?.id]);
 
   useEffect(() => {
     if (menuPostId === null) return;

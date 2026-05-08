@@ -17,6 +17,7 @@ import { CompanyProfile } from "@/app/components/company/CompanyProfile";
 import { VistaEstudiante } from "@/app/components/vistas/VistaEstudiante";
 import { VistaEmpresa } from "@/app/components/vistas/VistaEmpresa";
 import { VistaDocente } from "@/app/components/vistas/VistaDocente";
+import { PerfilPublico } from "@/app/components/vistas/PerfilPublico";
 import { NotFound } from "@/app/components/NotFound";
 import { ProtectedRoute } from "@/app/components/ProtectedRoute";
 
@@ -24,6 +25,7 @@ export const router = createBrowserRouter([
   // Rutas públicas
   { path: "/login", element: <Login /> },
   { path: "/register", element: <Register /> },
+  { path: "/perfil/:id", element: <PerfilPublico /> },
 
   // Rutas protegidas (dentro del Layout)
   {

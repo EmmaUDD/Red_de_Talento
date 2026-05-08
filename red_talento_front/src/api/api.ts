@@ -121,6 +121,7 @@ function fromBackendEstudiante(p: any): EstudiantePerfil {
     foto: fotoUrl,
     bio: p.bio ?? undefined,
     video_pitch: p.video_pitch ?? undefined,
+    email: u.email ?? undefined,
     habilidades: (p.habilidades_aprobadas ?? []).map(fromBackendHabilidad),
     habilidades_pendientes: (p.habilidades_pendientes ?? []).map(fromBackendHabilidad),
     insignias: (p.insignias_perfil ?? []).map((i: any) => ({ id: i.id, nombre: i.nombre, icono: i.icono, descripcion: "" })),
@@ -263,6 +264,7 @@ export const perfilApi = {
       foto_url: d.foto_url ?? undefined,
       bio: d.bio ?? undefined,
       nivel: d.nivel ?? undefined,
+      email: d.usuario?.email ?? undefined,
     };
   },
 
@@ -278,6 +280,7 @@ export const perfilApi = {
       foto_url: e.foto_url ?? undefined,
       descripcion: e.descripcion ?? undefined,
       sitio_web: e.sitio_web ?? undefined,
+      email: e.usuario?.email ?? undefined,
     };
   },
 
@@ -576,7 +579,7 @@ export const docenteApi = {
   getSolicitudes: async (): Promise<SolicitudAlumno[]> => {
     try {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const data = await request<any[]>("/api/estudiantes/");
+      const data = await request<any[]>("/api/estudiantes/?pendientes=true");
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       return (Array.isArray(data) ? data : []).map((p: any) => ({
         id: p.id,

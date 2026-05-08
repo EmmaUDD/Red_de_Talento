@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router";
 import { motion } from "motion/react";
 import {
   CheckCircle, Award, Wrench, Zap, Clock, ArrowLeft,
-  MapPin, Shield, Image as ImageIcon, Loader2, Play, ExternalLink,
+  MapPin, Shield, Image as ImageIcon, Loader2, Play, ExternalLink, Mail,
 } from "lucide-react";
 import { perfilApi, feedApi } from "@/api/api";
 import type { EstudiantePerfil, Habilidad, FeedPost } from "@/app/types";
@@ -385,6 +385,29 @@ export function VistaEstudiante() {
                 </div>
               </div>
             </div>
+
+            {perfil.email && (
+              <div style={{ backgroundColor: "#FFFFFF", border: "1px solid #E8E4DC", borderRadius: 14, padding: 20 }}>
+                <p style={{ fontSize: "0.68rem", fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 14 }}>
+                  Contacto
+                </p>
+                <a
+                  href={`mailto:${perfil.email}`}
+                  style={{
+                    display: "flex", alignItems: "center", gap: 10,
+                    padding: "10px 14px", borderRadius: 10,
+                    border: "1px solid #E8E4DC", backgroundColor: "#F6F5F0",
+                    color: "#0d1b35", fontSize: "0.88rem", fontWeight: 600,
+                    textDecoration: "none",
+                  }}
+                >
+                  <div style={{ width: 30, height: 30, borderRadius: 8, backgroundColor: "#0d1b35", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                    <Mail style={{ width: 14, height: 14, color: "#D4AF37" }} />
+                  </div>
+                  {perfil.email}
+                </a>
+              </div>
+            )}
           </motion.div>
         )}
 

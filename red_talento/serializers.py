@@ -379,7 +379,7 @@ def validar_rut_chileno(rut: str) -> bool:
     while numero:
         suma += (numero % 10) * factor
         numero //= 10
-        factor = factor % 7 + 2
+        factor = factor + 1 if factor < 7 else 2
 
     resto = 11 - (suma % 11)
     if resto == 11:
