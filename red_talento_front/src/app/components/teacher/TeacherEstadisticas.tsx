@@ -1,42 +1,79 @@
 import { useState, useEffect } from "react";
 import { motion } from "motion/react";
+import { Users, Building2, Award, Briefcase, ArrowUp, Zap } from "lucide-react";
 import {
-  BarChart2, TrendingUp, Users, Building2, Award,
-  Briefcase, Star, ArrowUp, Zap, Activity,
-} from "lucide-react";
-import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
-  ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line,
+  XAxis, YAxis, CartesianGrid, Tooltip,
+  ResponsiveContainer, PieChart, Pie, Cell, AreaChart, Area,
 } from "recharts";
 import { docenteApi } from "@/api/api";
 import type { EstadisticasGenerales } from "@/app/types";
 
-const COLORS = ["#0f2557", "#f59e0b", "#10b981", "#8b5cf6", "#ef4444", "#06b6d4"];
+const FONT_URL =
+  "https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap";
 
-const monthlyValidations = [
-  { mes: "Ago", validados: 4 }, { mes: "Sep", validados: 8 },
-  { mes: "Oct", validados: 5 }, { mes: "Nov", validados: 11 },
-  { mes: "Dic", validados: 7 }, { mes: "Ene", validados: 9 },
-  { mes: "Feb", validados: 13 }, { mes: "Mar", validados: 10 },
-];
+const CHART_COLORS = ["#0d1b35", "#D4AF37", "#10b981", "#8b5cf6", "#ef4444", "#06b6d4"];
 
-const employmentTrend = [
-  { mes: "Sep", tasa: 68 }, { mes: "Oct", tasa: 72 },
-  { mes: "Nov", tasa: 75 }, { mes: "Dic", tasa: 71 },
-  { mes: "Ene", tasa: 80 }, { mes: "Feb", tasa: 85 },
-  { mes: "Mar", tasa: 92 },
-];
+const S = {
+  label: {
+    fontSize: "0.68rem", fontWeight: 700, color: "#94a3b8",
+    textTransform: "uppercase" as const, letterSpacing: "0.08em", margin: 0,
+  } as React.CSSProperties,
+  card: {
+    backgroundColor: "white", border: "1px solid #E8E4DC",
+    borderRadius: 16, padding: "20px",
+    fontFamily: "'Plus Jakarta Sans', sans-serif",
+  } as React.CSSProperties,
+};
 
-const recentActivity = [
-  { action: "Sistema de validación activo", time: "hoy", icon: "⚡" },
-  { action: "Alumnos en proceso de evaluación", time: "esta semana", icon: "📋" },
-  { action: "Empresas aliadas conectadas", time: "este mes", icon: "🏢" },
-  { action: "Cursos publicados disponibles", time: "este mes", icon: "📚" },
-];
+function Spinner({ size = 18 }: { size?: number }) {
+  return (
+    <div
+      className="animate-spin"
+      style={{ width: size, height: size, borderRadius: "50%", border: "2.5px solid #E8E4DC", borderTopColor: "#D4AF37", flexShrink: 0 }}
+    />
+  );
+}
+
+function CardHeading({ icon: Icon, title, right, gold }: {
+  icon: React.ElementType; title: string; right?: React.ReactNode; gold?: boolean;
+}) {
+  return (
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <div style={{
+          width: 26, height: 26, borderRadius: 7, flexShrink: 0,
+          backgroundColor: gold ? "#FFFBF0" : "#F6F5F0",
+          border: gold ? "1px solid #F5E6C0" : "1px solid #E8E4DC",
+          display: "flex", alignItems: "center", justifyContent: "center",
+        }}>
+          <Icon style={{ width: 12, height: 12, color: gold ? "#D4AF37" : "#8C7B6B" }} />
+        </div>
+        <p style={{ ...S.label }}>{title}</p>
+      </div>
+      {right}
+    </div>
+  );
+}
+
+function EmptyState({ text }: { text: string }) {
+  return (
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: 140 }}>
+      <p style={{ margin: 0, color: "#C4BDB5", fontSize: "0.8rem" }}>{text}</p>
+    </div>
+  );
+}
 
 export function TeacherEstadisticas() {
   const [stats, setStats] = useState<EstadisticasGenerales | null>(null);
   const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!document.querySelector(`link[href="${FONT_URL}"]`)) {
+      const link = document.createElement("link");
+      link.href = FONT_URL; link.rel = "stylesheet";
+      document.head.appendChild(link);
+    }
+  }, []);
 
   useEffect(() => {
     docenteApi.getEstadisticas()
@@ -45,45 +82,94 @@ export function TeacherEstadisticas() {
       .finally(() => setLoading(false));
   }, []);
 
-  // Distribución por especialidad desde el backend
   const specialtyDist = stats?.por_especialidad?.map((s, i) => ({
     name: s.especialidad,
     value: s.cantidad,
-    color: COLORS[i % COLORS.length],
+    color: CHART_COLORS[i % CHART_COLORS.length],
   })) ?? [];
 
-  // KPIs
+  const employmentTrend = stats?.contratados_por_mes ?? [];
+
   const kpis = [
-    { label: "Alumnos activos", value: stats?.total_estudiantes?.toString() ?? "—", icon: Users },
-    { label: "Perfiles validados", value: stats?.estudiantes_validados?.toString() ?? "—", icon: Award },
-    { label: "Postulaciones mes", value: stats?.postulaciones_este_mes?.toString() ?? "—", icon: Briefcase },
-    { label: "Empresas aliadas", value: stats?.total_empresas?.toString() ?? "—", icon: Building2 },
+    { label: "Alumnos activos",       value: stats?.total_estudiantes,      icon: Users,     gold: false },
+    { label: "Habilidades aprobadas", value: stats?.total_habilidades,      icon: Award,     gold: true  },
+    { label: "Postulaciones",         value: stats?.postulaciones_este_mes, icon: Briefcase, gold: false },
+    { label: "Empresas aliadas",      value: stats?.total_empresas,         icon: Building2, gold: false },
+  ];
+
+  const impacto = [
+    { label: "Habilidades aprobadas",     value: stats?.total_habilidades       ?? 0 },
+    { label: "Ofertas laborales activas", value: stats?.total_ofertas_activas   ?? 0 },
+    { label: "Postulaciones totales",     value: stats?.postulaciones_este_mes  ?? 0 },
   ];
 
   return (
-    <div className="min-h-screen bg-[#F9FAFB]">
-      <div className="bg-white border-b border-slate-200 px-6 py-5">
-        <div className="max-w-5xl mx-auto">
-          <h1 className="text-slate-900" style={{ fontWeight: 700, fontSize: "1.25rem" }}>Estadísticas de la Plataforma</h1>
-          <p className="text-slate-500 text-sm mt-0.5">Liceo Cardenal Caro · Año escolar 2025</p>
+    <div style={{ minHeight: "100vh", backgroundColor: "#F6F5F0", fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-4">
-            {kpis.map((k) => {
+      <div style={{
+        backgroundColor: "#0d1b35",
+        backgroundImage: "radial-gradient(circle, rgba(212,175,55,0.15) 1px, transparent 1px)",
+        backgroundSize: "18px 18px",
+        borderBottom: "3px solid #D4AF37",
+      }}>
+        <div style={{ maxWidth: 960, margin: "0 auto", padding: "20px 20px 0" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 20 }}>
+            <div style={{ width: 34, height: 34, borderRadius: 9, backgroundColor: "#D4AF37", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+              <Zap style={{ width: 15, height: 15, color: "white" }} />
+            </div>
+            <div>
+              <h1 style={{ margin: 0, fontFamily: "'Playfair Display', Georgia, serif", fontWeight: 800, fontSize: "1.1rem", color: "white", lineHeight: 1.2 }}>
+                Estadísticas de la Plataforma
+              </h1>
+              <p style={{ margin: 0, color: "rgba(255,255,255,0.45)", fontSize: "0.7rem", marginTop: 2 }}>
+                Liceo Cardenal Caro · Año escolar 2025
+              </p>
+            </div>
+          </div>
+
+          <div style={{
+            display: "grid", gridTemplateColumns: "repeat(4, 1fr)",
+            backgroundColor: "#F6F5F0", border: "1px solid #E8E4DC",
+            borderRadius: "12px 12px 0 0", overflow: "hidden",
+            borderBottom: "none",
+          }}>
+            {kpis.map((k, i) => {
               const Icon = k.icon;
               return (
-                <motion.div key={k.label} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
-                  className="bg-white rounded-xl border border-slate-200 p-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <Icon className="w-4 h-4 text-slate-400" />
-                    <div className="flex items-center gap-1 text-green-600 text-xs" style={{ fontWeight: 600 }}>
-                      <ArrowUp className="w-3 h-3" />
-                      +este mes
+                <motion.div
+                  key={k.label}
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: i * 0.07 }}
+                  style={{
+                    textAlign: "center", padding: "14px 8px",
+                    borderRight: i < 3 ? "1px solid #E8E4DC" : "none",
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 6 }}>
+                    <div style={{ width: 24, height: 24, borderRadius: 6, backgroundColor: k.gold ? "#FFFBF0" : "white", border: k.gold ? "1px solid #F5E6C0" : "1px solid #E8E4DC", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                      <Icon style={{ width: 11, height: 11, color: k.gold ? "#D4AF37" : "#94a3b8" }} />
                     </div>
                   </div>
-                  <p className="text-slate-900" style={{ fontWeight: 800, fontSize: "1.75rem", lineHeight: 1 }}>
-                    {loading ? "…" : k.value}
-                  </p>
-                  <p className="text-slate-500 text-xs mt-1">{k.label}</p>
+                  {loading ? (
+                    <div style={{ display: "flex", justifyContent: "center", padding: "4px 0" }}>
+                      <Spinner size={16} />
+                    </div>
+                  ) : (
+                    <p style={{
+                      margin: 0, lineHeight: 1,
+                      fontFamily: "'Playfair Display', Georgia, serif",
+                      fontWeight: 800, fontSize: "1.6rem",
+                      color: k.gold ? "#D4AF37" : "#0d1b35",
+                    }}>
+                      {k.value?.toString() ?? "—"}
+                    </p>
+                  )}
+                  <p style={{ ...S.label, marginTop: 4 }}>{k.label}</p>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 3, marginTop: 5, color: "#10b981", fontSize: "0.6rem", fontWeight: 700 }}>
+                    <ArrowUp style={{ width: 9, height: 9 }} />
+                    este mes
+                  </div>
                 </motion.div>
               );
             })}
@@ -91,144 +177,191 @@ export function TeacherEstadisticas() {
         </div>
       </div>
 
-      <div className="max-w-5xl mx-auto px-4 md:px-6 py-5 space-y-5">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Validaciones por mes */}
-          <div className="bg-white rounded-xl border border-slate-200 p-5">
-            <div className="flex items-center gap-2 mb-4">
-              <BarChart2 className="w-4 h-4 text-slate-400" />
-              <h3 className="text-slate-900" style={{ fontSize: "0.875rem", fontWeight: 600 }}>Validaciones por mes</h3>
-            </div>
-            <ResponsiveContainer width="100%" height={180}>
-              <BarChart data={monthlyValidations} barSize={20}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                <XAxis dataKey="mes" tick={{ fontSize: 11, fill: "#94a3b8" }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fontSize: 11, fill: "#94a3b8" }} axisLine={false} tickLine={false} />
-                <Tooltip contentStyle={{ borderRadius: "8px", border: "1px solid #e2e8f0", fontSize: "12px" }}
-                  formatter={(v) => [`${v} alumnos`, "Validados"]} />
-                <Bar dataKey="validados" fill="#1e293b" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
+      <div style={{ maxWidth: 960, margin: "0 auto", padding: "20px 20px", display: "flex", flexDirection: "column", gap: 14 }}>
 
-          {/* Por especialidad */}
-          <div className="bg-white rounded-xl border border-slate-200 p-5">
-            <div className="flex items-center gap-2 mb-4">
-              <Users className="w-4 h-4 text-slate-400" />
-              <h3 className="text-slate-900" style={{ fontSize: "0.875rem", fontWeight: 600 }}>Por especialidad</h3>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+
+          <motion.div
+            initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.12 }}
+            style={{ ...S.card, display: "flex", flexDirection: "column" }}
+          >
+            <CardHeading icon={Award} title="Habilidades validadas" gold />
+            <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 4, padding: "16px 0" }}>
+              {loading ? (
+                <Spinner size={28} />
+              ) : (
+                <p style={{ margin: 0, lineHeight: 1, fontFamily: "'Playfair Display', Georgia, serif", fontWeight: 800, fontSize: "4.5rem", color: "#D4AF37" }}>
+                  {stats?.total_habilidades ?? 0}
+                </p>
+              )}
+              <p style={{ margin: 0, color: "#8C7B6B", fontSize: "0.78rem" }}>habilidades aprobadas en total</p>
+              <p style={{ margin: 0, color: "#C4BDB5", fontSize: "0.7rem" }}>Certificadas por docentes del Liceo</p>
             </div>
-            {specialtyDist.length === 0 ? (
-              <div className="flex items-center justify-center h-40 text-slate-400 text-sm">
-                {loading ? "Cargando…" : "Sin datos de especialidades"}
+            <div style={{ height: 3, borderRadius: 2, background: "linear-gradient(90deg, #D4AF37 0%, rgba(212,175,55,0.1) 100%)" }} />
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.17 }}
+            style={{ ...S.card }}
+          >
+            <CardHeading icon={Users} title="Distribución por especialidad" />
+            {loading ? (
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: 140 }}>
+                <Spinner size={22} />
               </div>
+            ) : specialtyDist.length === 0 ? (
+              <EmptyState text="Sin datos de especialidades" />
             ) : (
-              <div className="flex items-center gap-4">
-                <ResponsiveContainer width="50%" height={160}>
+              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                <ResponsiveContainer width="44%" height={148}>
                   <PieChart>
-                    <Pie data={specialtyDist} cx="50%" cy="50%" innerRadius={44} outerRadius={68} dataKey="value">
-                      {specialtyDist.map((e, i) => (
-                        <Cell key={i} fill={e.color} />
-                      ))}
+                    <Pie data={specialtyDist} cx="50%" cy="50%" innerRadius={38} outerRadius={60} dataKey="value" strokeWidth={0}>
+                      {specialtyDist.map((e, i) => <Cell key={i} fill={e.color} />)}
                     </Pie>
                   </PieChart>
                 </ResponsiveContainer>
-                <div className="flex-1 space-y-2">
+                <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 8 }}>
                   {specialtyDist.map((s) => (
-                    <div key={s.name} className="flex items-center gap-2">
-                      <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: s.color }} />
-                      <span className="text-slate-600 text-xs flex-1 truncate">{s.name}</span>
-                      <span className="text-slate-900 text-xs" style={{ fontWeight: 600 }}>{s.value}</span>
+                    <div key={s.name} style={{ display: "flex", alignItems: "center", gap: 7 }}>
+                      <div style={{ width: 8, height: 8, borderRadius: "50%", flexShrink: 0, backgroundColor: s.color }} />
+                      <span style={{ color: "#6B5D52", fontSize: "0.7rem", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        {s.name}
+                      </span>
+                      <span style={{ color: "#0d1b35", fontSize: "0.72rem", fontWeight: 700, fontFamily: "'Playfair Display', Georgia, serif" }}>
+                        {s.value}
+                      </span>
                     </div>
                   ))}
                 </div>
               </div>
             )}
-          </div>
+          </motion.div>
         </div>
 
-        {/* Tasa de inserción */}
-        <div className="bg-white rounded-xl border border-slate-200 p-5">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2">
-              <TrendingUp className="w-4 h-4 text-slate-400" />
-              <h3 className="text-slate-900" style={{ fontSize: "0.875rem", fontWeight: 600 }}>Tasa de inserción laboral (%)</h3>
+        <motion.div
+          initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.22 }}
+          style={{ ...S.card }}
+        >
+          <CardHeading
+            icon={() => (
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2.5">
+                <polyline points="22 7 13.5 15.5 8.5 10.5 2 17" />
+                <polyline points="16 7 22 7 22 13" />
+              </svg>
+            )}
+            title="Tasa de inserción laboral"
+            right={
+              <span style={{ color: "#10b981", fontSize: "0.65rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                % mensual
+              </span>
+            }
+          />
+          {loading ? (
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: 160 }}>
+              <Spinner size={22} />
             </div>
-            <span className="text-green-600 text-xs flex items-center gap-1" style={{ fontWeight: 600 }}>
-              <ArrowUp className="w-3 h-3" /> +24% este año
-            </span>
-          </div>
-          <ResponsiveContainer width="100%" height={160}>
-            <LineChart data={employmentTrend}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-              <XAxis dataKey="mes" tick={{ fontSize: 11, fill: "#94a3b8" }} axisLine={false} tickLine={false} />
-              <YAxis domain={[60, 100]} tick={{ fontSize: 11, fill: "#94a3b8" }} axisLine={false} tickLine={false} />
-              <Tooltip contentStyle={{ borderRadius: "8px", border: "1px solid #e2e8f0", fontSize: "12px" }}
-                formatter={(v) => [`${v}%`, "Inserción"]} />
-              <Line type="monotone" dataKey="tasa" stroke="#10b981" strokeWidth={2.5} dot={{ fill: "#10b981", r: 3 }} />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
+          ) : employmentTrend.length === 0 ? (
+            <EmptyState text="Sin contrataciones registradas aún" />
+          ) : (
+            <ResponsiveContainer width="100%" height={160}>
+              <AreaChart data={employmentTrend}>
+                <defs>
+                  <linearGradient id="emeraldGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#10b981" stopOpacity={0.15} />
+                    <stop offset="100%" stopColor="#10b981" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="#F1EDE5" />
+                <XAxis dataKey="mes" tick={{ fontSize: 11, fill: "#94a3b8", fontFamily: "'Plus Jakarta Sans', sans-serif" }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fontSize: 11, fill: "#94a3b8", fontFamily: "'Plus Jakarta Sans', sans-serif" }} axisLine={false} tickLine={false} />
+                <Tooltip
+                  contentStyle={{ borderRadius: 10, border: "1px solid #E8E4DC", fontSize: "12px", backgroundColor: "white", fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+                  formatter={(v) => [`${v}%`, "Tasa inserción"]}
+                />
+                <Area type="monotone" dataKey="tasa" stroke="#10b981" strokeWidth={2.5} fill="url(#emeraldGrad)"
+                  dot={{ fill: "#10b981", r: 3, strokeWidth: 0 }}
+                  activeDot={{ fill: "#10b981", r: 5, strokeWidth: 0 }}
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          )}
+        </motion.div>
 
-        {/* Bottom row */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="bg-white rounded-xl border border-slate-200 p-5">
-            <div className="flex items-center gap-2 mb-4">
-              <Activity className="w-4 h-4 text-slate-400" />
-              <h3 className="text-slate-900" style={{ fontSize: "0.875rem", fontWeight: 600 }}>Actividad reciente</h3>
-            </div>
-            <div className="space-y-3">
-              {recentActivity.map((a, i) => (
-                <div key={i} className="flex items-center gap-3 py-1 border-b border-slate-50 last:border-0">
-                  <span className="text-base flex-shrink-0">{a.icon}</span>
-                  <div className="flex-1">
-                    <p className="text-slate-700 text-sm">{a.action}</p>
-                    <p className="text-slate-400 text-xs">{a.time}</p>
-                  </div>
+        <motion.div
+          initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.28 }}
+          style={{ ...S.card }}
+        >
+          <CardHeading
+            icon={() => (
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#D4AF37" strokeWidth="2.5">
+                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+              </svg>
+            )}
+            title="Resumen de impacto"
+            gold
+          />
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {impacto.map((item, i) => (
+              <div
+                key={item.label}
+                style={{
+                  display: "flex", alignItems: "center", gap: 12,
+                  padding: "11px 14px", borderRadius: 10,
+                  backgroundColor: "#F6F5F0", border: "1px solid #E8E4DC",
+                }}
+              >
+                <div style={{
+                  width: 30, height: 30, borderRadius: 8, flexShrink: 0,
+                  backgroundColor: i === 0 ? "#FFFBF0" : "white",
+                  border: i === 0 ? "1.5px solid #D4AF37" : "1px solid #E8E4DC",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                }}>
+                  <span style={{ color: i === 0 ? "#D4AF37" : "#94a3b8", fontSize: "0.65rem", fontWeight: 800, fontFamily: "'Playfair Display', Georgia, serif" }}>
+                    #{i + 1}
+                  </span>
                 </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="bg-white rounded-xl border border-slate-200 p-5">
-            <div className="flex items-center gap-2 mb-4">
-              <Star className="w-4 h-4 text-slate-400" />
-              <h3 className="text-slate-900" style={{ fontSize: "0.875rem", fontWeight: 600 }}>Resumen de impacto</h3>
-            </div>
-            <div className="space-y-3">
-              {[
-                { label: "Alumnos validados este año", value: stats?.estudiantes_validados ?? 0, gold: true },
-                { label: "Ofertas laborales activas", value: stats?.total_ofertas_activas ?? 0, gold: false },
-                { label: "Postulaciones este mes", value: stats?.postulaciones_este_mes ?? 0, gold: false },
-              ].map((s, i) => (
-                <div key={i} className="flex items-center gap-3 p-2.5 rounded-lg bg-slate-50">
-                  <div className={`w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 ${i === 0 ? "text-white" : "bg-slate-200 text-slate-700"}`}
-                    style={i === 0 ? { backgroundColor: "#D4AF37" } : {}}>
-                    <span className="text-xs" style={{ fontWeight: 700 }}>#{i + 1}</span>
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-slate-900 text-sm" style={{ fontWeight: 600 }}>
-                      {loading ? "…" : s.value}
+                <div style={{ flex: 1 }}>
+                  {loading ? (
+                    <Spinner size={16} />
+                  ) : (
+                    <p style={{ margin: 0, lineHeight: 1, fontFamily: "'Playfair Display', Georgia, serif", fontWeight: 700, fontSize: "1.4rem", color: i === 0 ? "#D4AF37" : "#0d1b35" }}>
+                      {item.value}
                     </p>
-                    <p className="text-slate-500 text-xs">{s.label}</p>
-                  </div>
+                  )}
+                  <p style={{ ...S.label, marginTop: 3 }}>{item.label}</p>
                 </div>
-              ))}
-            </div>
+                <div style={{ width: 56, height: 4, borderRadius: 2, backgroundColor: "#E8E4DC", overflow: "hidden", flexShrink: 0 }}>
+                  <div style={{ height: "100%", borderRadius: 2, backgroundColor: i === 0 ? "#D4AF37" : "#CBD5E1", width: item.value > 0 ? "100%" : "0%", transition: "width 0.6s ease" }} />
+                </div>
+              </div>
+            ))}
           </div>
-        </div>
+        </motion.div>
 
-        {/* Institutional note */}
-        <div className="bg-slate-900 rounded-xl p-5 text-white flex items-start gap-4">
-          <div className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0" style={{ backgroundColor: "#D4AF37" }}>
-            <Zap className="w-5 h-5 text-white" />
+        <motion.div
+          initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.34 }}
+          style={{
+            backgroundColor: "#0d1b35",
+            backgroundImage: "radial-gradient(circle, rgba(212,175,55,0.1) 1px, transparent 1px)",
+            backgroundSize: "14px 14px",
+            borderRadius: 16, padding: "18px 20px",
+            display: "flex", alignItems: "flex-start", gap: 14,
+            border: "1px solid #1a2d50",
+          }}
+        >
+          <div style={{ width: 38, height: 38, borderRadius: 10, flexShrink: 0, backgroundColor: "#D4AF37", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <Zap style={{ width: 16, height: 16, color: "white" }} />
           </div>
           <div>
-            <h3 className="text-white mb-1 text-sm" style={{ fontWeight: 700 }}>Recomendación institucional</h3>
-            <p className="text-white/60 text-xs leading-relaxed">
+            <p style={{ margin: "0 0 5px", fontFamily: "'Playfair Display', Georgia, serif", fontWeight: 700, fontSize: "0.9rem", color: "white" }}>
+              Recomendación institucional
+            </p>
+            <p style={{ margin: 0, color: "rgba(255,255,255,0.5)", fontSize: "0.78rem", lineHeight: 1.65 }}>
               Continúa ampliando las alianzas con empresas locales de Lo Espejo y comunas aledañas para maximizar la inserción laboral de los egresados.
             </p>
           </div>
-        </div>
+        </motion.div>
+
       </div>
     </div>
   );

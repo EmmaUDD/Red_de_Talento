@@ -43,7 +43,7 @@ urlpatterns = [
     path('evidencias/', EvidenciasView.as_view(), name='registrar_evidencia'),
     path('evidencias/estudiante/<int:id>/', EvidenciasView.as_view(), name='ver_evidencias'),
     path('ofertas/', OfertaLaboralView.as_view(), name='ver_ofertas'),
-    path('postulaciones/', PostulacionView.as_view(), name='postulaciones'),  # GET(estudiante)=mis postulaciones, POST=postular
+    path('postulaciones/', PostulacionView.as_view(), name='postulaciones'),
     path('postulaciones/oferta/<int:id>/', PostulacionView.as_view(), name='postulacion_oferta'),
     path('postulaciones/<int:id>/', PostulacionView.as_view(), name='estado_postulacion'),
     path('feed/', PublicacionFeedView.as_view(), name='feed'),

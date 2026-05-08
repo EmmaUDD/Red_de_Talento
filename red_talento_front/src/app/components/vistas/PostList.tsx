@@ -1,6 +1,9 @@
 import { useState, useRef, useEffect } from "react";
 import { motion } from "motion/react";
-import { FileText, CalendarDays, Briefcase, Bell, MapPin, Clock, MoreHorizontal, Trash2, Loader2 } from "lucide-react";
+import {
+  FileText, CalendarDays, Briefcase, Bell,
+  MapPin, Clock, MoreHorizontal, Trash2,
+} from "lucide-react";
 import type { FeedPost } from "@/app/types";
 import { feedApi } from "@/api/api";
 import { formatDistanceToNow } from "date-fns";
@@ -8,11 +11,32 @@ import { es } from "date-fns/locale";
 
 const BASE_URL = import.meta.env.VITE_API_URL ?? "http://127.0.0.1:8000";
 
+const S = {
+  label: {
+    fontSize: "0.68rem", fontWeight: 700, color: "#94a3b8",
+    textTransform: "uppercase" as const, letterSpacing: "0.08em", margin: 0,
+  } as React.CSSProperties,
+};
+
+function Spinner({ size = 14 }: { size?: number }) {
+  return (
+    <div
+      className="animate-spin"
+      style={{ width: size, height: size, borderRadius: "50%", border: "2px solid #E8E4DC", borderTopColor: "#D4AF37", flexShrink: 0 }}
+    />
+  );
+}
+
+const tipoChip: Record<string, { label: string; icon: React.ElementType; style: React.CSSProperties; accentLeft: string }> = {
+  post:    { label: "Publicación", icon: FileText,    style: { backgroundColor: "#F6F5F0", color: "#6B5D52",  border: "1px solid #E8E4DC"  }, accentLeft: "transparent" },
+  evento:  { label: "Evento",      icon: CalendarDays, style: { backgroundColor: "#F5F3FF", color: "#6d28d9",  border: "1px solid #ddd6fe"  }, accentLeft: "#7c3aed"     },
+  oferta:  { label: "Oferta",      icon: Briefcase,    style: { backgroundColor: "#FFFBF0", color: "#b45309",  border: "1px solid #fde68a"  }, accentLeft: "#D4AF37"     },
+  anuncio: { label: "Anuncio",     icon: Bell,         style: { backgroundColor: "#F0FDF4", color: "#15803d",  border: "1px solid #bbf7d0"  }, accentLeft: "#16a34a"     },
+};
+
 function parseEvento(contenido: string) {
   const lines = contenido.split("\n");
-  let titulo = "";
-  let datetime = "";
-  let lugar = "";
+  let titulo = "", datetime = "", lugar = "";
   const descLines: string[] = [];
   for (const line of lines) {
     const l = line.trim();
@@ -24,37 +48,19 @@ function parseEvento(contenido: string) {
   return { titulo, datetime, lugar, descripcion: descLines.join(" ").trim() };
 }
 
-const tipoConfig: Record<string, { label: string; icon: React.ElementType; color: string }> = {
-  post:     { label: "Publicación", icon: FileText,    color: "bg-slate-100 text-slate-600 border-slate-200" },
-  evento:   { label: "Evento",      icon: CalendarDays, color: "bg-blue-50 text-blue-700 border-blue-200" },
-  oferta:   { label: "Oferta",      icon: Briefcase,    color: "bg-green-50 text-green-700 border-green-200" },
-  anuncio:  { label: "Anuncio",     icon: Bell,         color: "bg-amber-50 text-amber-700 border-amber-200" },
-};
-
 function timeAgo(fecha: string) {
-  try {
-    return formatDistanceToNow(new Date(fecha), { addSuffix: true, locale: es });
-  } catch {
-    return "";
-  }
+  try { return formatDistanceToNow(new Date(fecha), { addSuffix: true, locale: es }); }
+  catch { return ""; }
 }
 
 function imageSrc(url: string) {
   return url.startsWith("http") ? url : `${BASE_URL}${url}`;
 }
 
-function PostCard({
-  post,
-  nombre,
-  fotoSrc,
-  onDelete,
-}: {
-  post: FeedPost;
-  nombre: string;
-  fotoSrc: string | null;
-  onDelete?: (id: number) => void;
+function PostCard({ post, nombre, fotoSrc, onDelete }: {
+  post: FeedPost; nombre: string; fotoSrc: string | null; onDelete?: (id: number) => void;
 }) {
-  const cfg = tipoConfig[post.tipo] ?? tipoConfig.post;
+  const cfg = tipoChip[post.tipo] ?? tipoChip.post;
   const Icon = cfg.icon;
   const [showMenu, setShowMenu] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -63,74 +69,76 @@ function PostCard({
   useEffect(() => {
     if (!showMenu) return;
     const handler = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        setShowMenu(false);
-      }
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setShowMenu(false);
     };
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, [showMenu]);
 
   const handleEliminar = async () => {
-    setShowMenu(false);
-    setDeleting(true);
+    setShowMenu(false); setDeleting(true);
     try {
       await feedApi.eliminarPost(post.id);
       onDelete?.(post.id);
-    } catch {
-      setDeleting(false);
-    }
+    } catch { setDeleting(false); }
   };
 
   return (
-    <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-      {/* Imagen adjunta */}
-      {post.imagen_url && (
-        <img
-          src={imageSrc(post.imagen_url)}
-          alt="imagen publicación"
-          className="w-full max-h-72 object-cover"
-        />
+    <div style={{
+      backgroundColor: "white", borderRadius: 14,
+      border: "1px solid #E8E4DC",
+      borderLeftWidth: 3, borderLeftStyle: "solid", borderLeftColor: cfg.accentLeft,
+      overflow: "hidden", fontFamily: "'Plus Jakarta Sans', sans-serif",
+    }}>
+{post.imagen_url && (
+        <img src={imageSrc(post.imagen_url)} alt="imagen publicación"
+          style={{ width: "100%", maxHeight: 240, objectFit: "cover", display: "block", borderBottom: "1px solid #F0EDE8" }} />
       )}
 
-      <div className="p-4">
-        {/* Cabecera: avatar + nombre + fecha + menú */}
-        <div className="flex items-center gap-2.5 mb-3">
+      <div style={{ padding: "14px 16px" }}>
+<div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
           {fotoSrc ? (
-            <img src={fotoSrc} className="w-8 h-8 rounded-lg object-cover border border-slate-100 flex-shrink-0" alt={nombre} />
+            <img src={fotoSrc} alt={nombre}
+              style={{ width: 32, height: 32, borderRadius: 9, objectFit: "cover", border: "1.5px solid #F0EDE8", flexShrink: 0 }} />
           ) : (
-            <div className="w-8 h-8 rounded-lg bg-slate-200 flex items-center justify-center flex-shrink-0">
-              <span className="text-slate-600 text-xs font-bold">{nombre.charAt(0).toUpperCase()}</span>
+            <div style={{ width: 32, height: 32, borderRadius: 9, backgroundColor: "#0d1b35", border: "1.5px solid #F0EDE8", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+              <span style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: "0.85rem", fontWeight: 700, color: "#D4AF37" }}>
+                {nombre.charAt(0).toUpperCase()}
+              </span>
             </div>
           )}
-          <div className="flex-1 min-w-0">
-            <p className="text-slate-900 text-xs font-semibold truncate">{nombre}</p>
-            <p className="text-slate-400 text-xs">{timeAgo(post.fecha)}</p>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <p style={{ margin: 0, color: "#0d1b35", fontSize: "0.8rem", fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              {nombre}
+            </p>
+            <p style={{ margin: 0, color: "#94a3b8", fontSize: "0.7rem" }}>{timeAgo(post.fecha)}</p>
           </div>
-          {/* Badge tipo */}
-          <span className={`flex-shrink-0 text-xs px-2 py-0.5 rounded-full border flex items-center gap-1 ${cfg.color}`} style={{ fontWeight: 600 }}>
-            <Icon className="w-3 h-3" />
+
+<div style={{ display: "flex", alignItems: "center", gap: 5, padding: "3px 9px", borderRadius: 999, flexShrink: 0, ...cfg.style, fontSize: "0.62rem", fontWeight: 700 }}>
+            <Icon style={{ width: 10, height: 10 }} />
             {cfg.label}
-          </span>
-          {/* Menú 3 puntos (solo si se proporciona onDelete) */}
-          {onDelete && (
-            <div className="relative flex-shrink-0" ref={menuRef}>
+          </div>
+
+{onDelete && (
+            <div style={{ position: "relative", flexShrink: 0 }} ref={menuRef}>
               <button
                 onClick={() => setShowMenu((s) => !s)}
                 disabled={deleting}
-                className="p-1 rounded-lg text-slate-400 hover:bg-slate-100 transition-colors"
+                style={{ width: 28, height: 28, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", backgroundColor: "transparent", border: "none", cursor: "pointer", color: "#94a3b8", transition: "background-color 0.1s" }}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "#F6F5F0"}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "transparent"}
               >
-                {deleting
-                  ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                  : <MoreHorizontal className="w-3.5 h-3.5" />}
+                {deleting ? <Spinner size={13} /> : <MoreHorizontal style={{ width: 14, height: 14 }} />}
               </button>
               {showMenu && (
-                <div className="absolute right-0 top-full mt-1 w-44 bg-white rounded-xl border border-slate-200 shadow-lg z-50 overflow-hidden">
+                <div style={{ position: "absolute", right: 0, top: "calc(100% + 4px)", width: 180, backgroundColor: "white", border: "1px solid #E8E4DC", borderRadius: 12, boxShadow: "0 8px 24px rgba(13,27,53,0.1)", zIndex: 50, overflow: "hidden" }}>
                   <button
                     onClick={handleEliminar}
-                    className="w-full flex items-center gap-2.5 px-3 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                    style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", fontSize: "0.8rem", color: "#ef4444", backgroundColor: "transparent", border: "none", cursor: "pointer", fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 500, transition: "background-color 0.1s" }}
+                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "#FEF2F2"}
+                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "transparent"}
                   >
-                    <Trash2 className="w-4 h-4" />
+                    <Trash2 style={{ width: 13, height: 13 }} />
                     Eliminar publicación
                   </button>
                 </div>
@@ -139,71 +147,66 @@ function PostCard({
           )}
         </div>
 
-        {/* Contenido */}
-        {post.tipo === "evento" ? (() => {
+{post.tipo === "evento" ? (() => {
           const ev = parseEvento(post.contenido);
           return (
-            <div className="rounded-xl overflow-hidden border border-purple-200">
-              <div className="bg-gradient-to-r from-purple-600 to-purple-500 px-4 py-3 flex items-center gap-2.5">
-                <div className="w-7 h-7 rounded-lg bg-white/20 flex items-center justify-center flex-shrink-0">
-                  <CalendarDays className="w-3.5 h-3.5 text-white" />
+            <div style={{ borderRadius: 12, overflow: "hidden", border: "1px solid #ddd6fe" }}>
+              <div style={{ background: "linear-gradient(135deg, #5b21b6, #7c3aed)", padding: "10px 14px", display: "flex", alignItems: "center", gap: 10 }}>
+                <div style={{ width: 28, height: 28, borderRadius: 8, backgroundColor: "rgba(255,255,255,0.15)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                  <CalendarDays style={{ width: 13, height: 13, color: "white" }} />
                 </div>
-                <div className="min-w-0">
-                  <p className="text-white/70 text-xs" style={{ fontWeight: 700, letterSpacing: "0.06em", fontSize: "0.6rem" }}>EVENTO</p>
-                  <p className="text-white text-sm leading-tight" style={{ fontWeight: 700 }}>{ev.titulo || post.contenido.split("\n")[0]}</p>
+                <div style={{ minWidth: 0 }}>
+                  <p style={{ margin: 0, color: "rgba(255,255,255,0.55)", fontSize: "0.55rem", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase" }}>EVENTO</p>
+                  <p style={{ margin: 0, color: "white", fontSize: "0.85rem", fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {ev.titulo || post.contenido.split("\n")[0]}
+                  </p>
                 </div>
               </div>
               {(ev.datetime || ev.lugar) && (
-                <div className="bg-purple-50 px-4 py-2 flex flex-wrap gap-x-4 gap-y-1 border-t border-purple-100">
+                <div style={{ backgroundColor: "#F5F3FF", padding: "7px 14px", display: "flex", flexWrap: "wrap", gap: "4px 14px", borderTop: "1px solid #ede9fe" }}>
                   {ev.datetime && (
-                    <span className="flex items-center gap-1.5 text-purple-700" style={{ fontSize: "0.72rem", fontWeight: 500 }}>
-                      <Clock className="w-3 h-3" />{ev.datetime}
+                    <span style={{ display: "flex", alignItems: "center", gap: 4, color: "#6d28d9", fontSize: "0.7rem", fontWeight: 500 }}>
+                      <Clock style={{ width: 10, height: 10, flexShrink: 0 }} />{ev.datetime}
                     </span>
                   )}
                   {ev.lugar && (
-                    <span className="flex items-center gap-1.5 text-purple-700" style={{ fontSize: "0.72rem", fontWeight: 500 }}>
-                      <MapPin className="w-3 h-3" />{ev.lugar}
+                    <span style={{ display: "flex", alignItems: "center", gap: 4, color: "#6d28d9", fontSize: "0.7rem", fontWeight: 500 }}>
+                      <MapPin style={{ width: 10, height: 10, flexShrink: 0 }} />{ev.lugar}
                     </span>
                   )}
                 </div>
               )}
               {ev.descripcion && (
-                <div className="px-4 py-3 bg-white">
-                  <p className="text-slate-600 text-sm leading-relaxed">{ev.descripcion}</p>
+                <div style={{ padding: "10px 14px" }}>
+                  <p style={{ margin: 0, color: "#475569", fontSize: "0.8rem", lineHeight: 1.65 }}>{ev.descripcion}</p>
                 </div>
               )}
             </div>
           );
         })() : (
-          <p className="text-slate-700 text-sm leading-relaxed">{post.contenido}</p>
+          <p style={{ margin: 0, color: "#334155", fontSize: "0.875rem", lineHeight: 1.7 }}>{post.contenido}</p>
         )}
       </div>
     </div>
   );
 }
 
-export function PostList({
-  posts,
-  nombre,
-  fotoSrc,
-  onDeletePost,
-}: {
-  posts: FeedPost[];
-  nombre: string;
-  fotoSrc: string | null;
-  onDeletePost?: (id: number) => void;
+export function PostList({ posts, nombre, fotoSrc, onDeletePost }: {
+  posts: FeedPost[]; nombre: string; fotoSrc: string | null; onDeletePost?: (id: number) => void;
 }) {
   if (posts.length === 0) {
     return (
-      <div className="bg-white rounded-xl border border-slate-200 p-10 text-center">
-        <FileText className="w-8 h-8 text-slate-200 mx-auto mb-3" />
-        <p className="text-slate-400 text-sm">No hay publicaciones aún.</p>
+      <div style={{ backgroundColor: "white", border: "1px solid #E8E4DC", borderRadius: 14, padding: "40px 24px", textAlign: "center", fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+        <div style={{ width: 44, height: 44, borderRadius: 12, backgroundColor: "#F6F5F0", border: "1px solid #E8E4DC", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 12px" }}>
+          <FileText style={{ width: 18, height: 18, color: "#C4BDB5" }} />
+        </div>
+        <p style={{ margin: 0, color: "#94a3b8", fontSize: "0.82rem" }}>No hay publicaciones aún.</p>
       </div>
     );
   }
 
   return (
-    <div className="space-y-3">
+    <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
       {posts.map((post, i) => (
         <motion.div
           key={post.id}
@@ -211,12 +214,7 @@ export function PostList({
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: i * 0.05 }}
         >
-          <PostCard
-            post={post}
-            nombre={nombre}
-            fotoSrc={fotoSrc}
-            onDelete={onDeletePost}
-          />
+          <PostCard post={post} nombre={nombre} fotoSrc={fotoSrc} onDelete={onDeletePost} />
         </motion.div>
       ))}
     </div>

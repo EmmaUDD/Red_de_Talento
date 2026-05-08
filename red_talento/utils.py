@@ -1,5 +1,3 @@
-# Funcion para calcular los alumnos que mas conectan con la oferta
-
 def score(estudiante, oferta):
     total = 0
     if estudiante.especialidad == oferta.especialidad_requerida:

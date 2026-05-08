@@ -1,6 +1,12 @@
 venv/
 .env
+.env.production
 db.sqlite3
 __pycache__/
 *.pyc
+*.pyo
 Docuemtacion sobre el proyecto/
+staticfiles/
+media/
+red_talento_front/node_modules/
+red_talento_front/dist/

@@ -1,11 +1,5 @@
-// ────────────────────────────────────────────
-// Roles
-// ────────────────────────────────────────────
-export type Role = "student" | "teacher" | "company";
+﻿export type Role = "student" | "teacher" | "company";
 
-// ────────────────────────────────────────────
-// Usuario autenticado (lo que guardamos en contexto)
-// ────────────────────────────────────────────
 export interface AuthUser {
   id: number;
   username: string;
@@ -13,17 +7,14 @@ export interface AuthUser {
   first_name: string;
   last_name: string;
   role: Role;
-  // Campos según rol
   especialidad?: string;
   curso?: string;
   validado?: boolean;
   foto_perfil?: string;
   bio?: string;
   video_pitch?: string;
-  // Teacher
   departamento?: string;
   es_admin?: boolean;
-  // Company
   nombre_empresa?: string;
   industria?: string;
   descripcion?: string;
@@ -32,17 +23,11 @@ export interface AuthUser {
   que_buscamos?: string;
 }
 
-// ────────────────────────────────────────────
-// Tokens JWT
-// ────────────────────────────────────────────
 export interface TokenPair {
   access: string;
   refresh: string;
 }
 
-// ────────────────────────────────────────────
-// Habilidades
-// ────────────────────────────────────────────
 export type SkillLevel = "Alto" | "Medio" | "Bajo";
 
 export interface Habilidad {
@@ -55,9 +40,6 @@ export interface Habilidad {
   porcentaje?: number;
 }
 
-// ────────────────────────────────────────────
-// Insignias
-// ────────────────────────────────────────────
 export interface Insignia {
   id: number;
   nombre: string;
@@ -66,9 +48,6 @@ export interface Insignia {
   fecha_obtencion: string;
 }
 
-// ────────────────────────────────────────────
-// Oferta laboral
-// ────────────────────────────────────────────
 export type TipoOferta = "Part-time" | "Full-time" | "Práctica";
 export type ModalidadOferta = "Presencial" | "Híbrido" | "Remoto";
 
@@ -92,9 +71,6 @@ export interface OfertaLaboral {
   ya_postule?: boolean;
 }
 
-// ────────────────────────────────────────────
-// Postulación
-// ────────────────────────────────────────────
 export type EstadoPostulacion = "pendiente" | "revisado" | "aceptado" | "rechazado";
 
 export interface Postulacion {
@@ -108,18 +84,12 @@ export interface Postulacion {
   mensaje_estudiante?: string;
 }
 
-// ────────────────────────────────────────────
-// Recomendación
-// ────────────────────────────────────────────
 export interface Recomendacion {
   oferta: OfertaLaboral;
   score: number;
   razones: string[];
 }
 
-// ────────────────────────────────────────────
-// Perfil de estudiante (vista pública)
-// ────────────────────────────────────────────
 export interface Evidencia {
   id: number;
   titulo: string;
@@ -137,8 +107,9 @@ export interface EstudiantePerfil {
   disponibilidad?: string;
   validado: boolean;
   foto_perfil?: string;
-  foto?: string; // alias de foto_perfil
+  foto?: string;
   bio?: string;
+  video_pitch?: string;
   habilidades: Habilidad[];
   habilidades_pendientes?: Habilidad[];
   insignias: Insignia[];
@@ -146,9 +117,6 @@ export interface EstudiantePerfil {
   score?: number;
 }
 
-// ────────────────────────────────────────────
-// Feed post
-// ────────────────────────────────────────────
 export type TipoPost = "post" | "oferta" | "evento" | "anuncio";
 
 export interface FeedPost {
@@ -167,9 +135,6 @@ export interface FeedPost {
   imagen_url?: string;
 }
 
-// ────────────────────────────────────────────
-// Búsqueda global
-// ────────────────────────────────────────────
 export interface EmpresaResult {
   id: number;
   usuario_id?: number;
@@ -192,9 +157,6 @@ export interface DocenteResult {
   nivel?: string;
 }
 
-// ────────────────────────────────────────────
-// Reporte / Denuncia
-// ────────────────────────────────────────────
 export type EstadoReporte = "pendiente" | "en_revision" | "resuelto";
 
 export interface PublicacionData {
@@ -219,9 +181,6 @@ export interface Reporte {
   estado: EstadoReporte;
 }
 
-// ────────────────────────────────────────────
-// Curso recomendado
-// ────────────────────────────────────────────
 export interface Curso {
   id: number;
   titulo: string;
@@ -232,9 +191,6 @@ export interface Curso {
   progreso?: number;
 }
 
-// ────────────────────────────────────────────
-// Solicitud de registro de alumno (para docente)
-// ────────────────────────────────────────────
 export type EstadoSolicitud = "pendiente" | "aprobado" | "rechazado";
 
 export interface SolicitudAlumno {
@@ -247,21 +203,16 @@ export interface SolicitudAlumno {
   estado: EstadoSolicitud;
 }
 
-// ────────────────────────────────────────────
-// Estadísticas (para docente)
-// ────────────────────────────────────────────
 export interface EstadisticasGenerales {
   total_estudiantes: number;
-  estudiantes_validados: number;
   total_empresas: number;
   total_ofertas_activas: number;
   postulaciones_este_mes: number;
+  total_habilidades: number;
   por_especialidad: { especialidad: string; cantidad: number }[];
+  contratados_por_mes: { mes: string; contratados: number; tasa: number }[];
 }
 
-// ────────────────────────────────────────────
-// Respuesta paginada genérica
-// ────────────────────────────────────────────
 export interface PaginatedResponse<T> {
   count: number;
   next: string | null;
@@ -269,9 +220,6 @@ export interface PaginatedResponse<T> {
   results: T[];
 }
 
-// ────────────────────────────────────────────
-// Errores de API
-// ────────────────────────────────────────────
 export interface ApiError {
   detail?: string;
   [key: string]: unknown;

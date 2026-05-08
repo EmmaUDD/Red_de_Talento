@@ -1,4 +1,4 @@
-import type {
+﻿import type {
   TokenPair,
   AuthUser,
   OfertaLaboral,
@@ -17,10 +17,8 @@ import type {
   EstadoReporte,
 } from "@/app/types";
 
-// ─── Base URL ────────────────────────────────────────────────────────────────
 const BASE = import.meta.env.VITE_API_URL ?? "http://127.0.0.1:8000";
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
 function getToken(): string | null {
   return localStorage.getItem("access_token");
 }
@@ -93,7 +91,6 @@ async function request<T>(
   return res.json() as Promise<T>;
 }
 
-// ─── Transforms: backend → frontend types ────────────────────────────────────
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function fromBackendHabilidad(h: any): Habilidad {
   return {
@@ -123,6 +120,7 @@ function fromBackendEstudiante(p: any): EstudiantePerfil {
     foto_perfil: fotoUrl,
     foto: fotoUrl,
     bio: p.bio ?? undefined,
+    video_pitch: p.video_pitch ?? undefined,
     habilidades: (p.habilidades_aprobadas ?? []).map(fromBackendHabilidad),
     habilidades_pendientes: (p.habilidades_pendientes ?? []).map(fromBackendHabilidad),
     insignias: (p.insignias_perfil ?? []).map((i: any) => ({ id: i.id, nombre: i.nombre, icono: i.icono, descripcion: "" })),
@@ -189,7 +187,6 @@ function fromBackendPost(p: any): FeedPost {
   };
 }
 
-// ─── Auth ────────────────────────────────────────────────────────────────────
 export const authApi = {
   login: async (username: string, password: string): Promise<TokenPair> => {
     const data = await request<TokenPair>("/api/login/", {
@@ -223,7 +220,6 @@ export const authApi = {
   isLoggedIn: () => !!getToken(),
 };
 
-// ─── Perfil de usuario ───────────────────────────────────────────────────────
 export const perfilApi = {
   updatePerfil: (data: FormData): Promise<AuthUser> =>
     request<AuthUser>("/api/me/", {
@@ -245,7 +241,7 @@ export const perfilApi = {
   getEstudiantes: async (params?: Record<string, string>): Promise<PaginatedResponse<EstudiantePerfil>> => {
     const mapped: Record<string, string> = {};
     if (params?.nombre) mapped["nombre"] = params.nombre;
-    if (params?.search) mapped["nombre"] = params.search; // alias
+    if (params?.search) mapped["nombre"] = params.search;
     if (params?.especialidad) mapped["especialidad"] = params.especialidad;
     if (params?.disponibilidad) mapped["disponibilidad"] = params.disponibilidad;
     const qs = Object.keys(mapped).length ? "?" + new URLSearchParams(mapped).toString() : "";
@@ -313,7 +309,6 @@ export const perfilApi = {
   },
 };
 
-// ─── Habilidades ─────────────────────────────────────────────────────────────
 export const habilidadesApi = {
   getMias: async (): Promise<Habilidad[]> => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -349,7 +344,6 @@ export const habilidadesApi = {
     }),
 };
 
-// ─── Insignias ───────────────────────────────────────────────────────────────
 export const insigniasApi = {
   getMias: async (): Promise<Insignia[]> => {
     try {
@@ -372,22 +366,16 @@ export const insigniasApi = {
     request<Insignia[]>(`/api/estudiantes/${id}/insignias/`),
 };
 
-// ─── Cursos ──────────────────────────────────────────────────────────────────
 export const cursosApi = {
-  // Cursos publicados por el docente actual
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   getMisPublicados: (): Promise<any[]> =>
     request<any[]>("/api/cursos/?mios=1"), // eslint-disable-line @typescript-eslint/no-explicit-any
-
-  // Todos los cursos disponibles (con ya_inscrito por el backend)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   getAll: async (q?: string): Promise<any[]> => {
     const qs = q ? `?q=${encodeURIComponent(q)}` : "";
     const data = await request<any[]>(`/api/cursos/${qs}`); // eslint-disable-line @typescript-eslint/no-explicit-any
     return Array.isArray(data) ? data : [];
   },
-
-  // Compatibilidad con StudentProfile existente
   getRecomendados: async (): Promise<Curso[]> => {
     try {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -406,25 +394,17 @@ export const cursosApi = {
       return [];
     }
   },
-
-  // Inscribir al estudiante en un curso (crea CursoCompletado con estado=pendiente)
   inscribirse: (cursoId: number): Promise<void> =>
     request<void>("/api/cursos/completar/", {
       method: "POST",
       body: JSON.stringify({ curso_id: cursoId }),
     }),
-
-  // Cursos en los que el estudiante ya está inscrito (con su estado)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   getMisCursos: (): Promise<any[]> =>
     request<any[]>("/api/cursos/completar/"),
-
-  // Cursos pendientes de validación (para docentes)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   getPendientesValidacion: (): Promise<any[]> =>
     request<any[]>("/api/cursos/completar/"),
-
-  // Validar o rechazar un curso (docente)
   validar: (id: number, estado: "aprobado" | "rechazado"): Promise<void> =>
     request<void>(`/api/cursos/completar/${id}/validar/`, {
       method: "PATCH",
@@ -445,7 +425,6 @@ export const cursosApi = {
     }),
 };
 
-// ─── Ofertas laborales ───────────────────────────────────────────────────────
 export const ofertasApi = {
   getAll: async (params?: Record<string, string>): Promise<PaginatedResponse<OfertaLaboral>> => {
     const mapped: Record<string, string> = {};
@@ -503,7 +482,6 @@ export const ofertasApi = {
   },
 };
 
-// ─── Postulaciones ───────────────────────────────────────────────────────────
 export const postulacionesApi = {
   postular: (ofertaId: number, mensaje?: string): Promise<Postulacion> =>
     request<Postulacion>("/api/postulaciones/", {
@@ -540,7 +518,6 @@ export const postulacionesApi = {
     }),
 };
 
-// ─── Recomendaciones ─────────────────────────────────────────────────────────
 export const recomendacionesApi = {
   getParaEmpresa: async (): Promise<EstudiantePerfil[]> => {
     try {
@@ -553,7 +530,6 @@ export const recomendacionesApi = {
   },
 };
 
-// ─── Feed ────────────────────────────────────────────────────────────────────
 export const feedApi = {
   getPosts: async (): Promise<FeedPost[]> => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -596,11 +572,9 @@ export const feedApi = {
 
 };
 
-// ─── Docente — administración ─────────────────────────────────────────────────
 export const docenteApi = {
   getSolicitudes: async (): Promise<SolicitudAlumno[]> => {
     try {
-      // Los estudiantes inactivos son los que necesitan aprobación
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const data = await request<any[]>("/api/estudiantes/");
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -649,7 +623,6 @@ export const docenteApi = {
   },
 };
 
-// ─── Evidencias ──────────────────────────────────────────────────────────────
 export const evidenciasApi = {
   getMias: async (profileId: number): Promise<{ id: number; titulo: string; descripcion: string; imagen: string; fecha_subida: string }[]> => {
     try {
@@ -673,13 +646,11 @@ export const evidenciasApi = {
   },
 };
 
-// ─── QR ─────────────────────────────────────────────────────────────────────
 export const qrApi = {
   getUrlPerfil: (userId: number): string =>
     `${window.location.origin}/perfil/${userId}`,
 };
 
-// ─── Disponibilidad ──────────────────────────────────────────────────────────
 export const adminApi = {
   suspenderUsuario: (usuarioId: number, dias: number): Promise<{ mensaje: string }> =>
     request<{ mensaje: string }>(`/api/usuarios/${usuarioId}/gestion/`, {
@@ -721,7 +692,6 @@ export const disponibilidadApi = {
   },
 
   set: async (disponibilidad: string): Promise<void> => {
-    // Borra todas las anteriores y crea la nueva
     const actuales = await disponibilidadApi.get();
     await Promise.all(actuales.map((d) =>
       request(`/api/disponibilidad/${d.id}/`, { method: "DELETE" }).catch(() => {})

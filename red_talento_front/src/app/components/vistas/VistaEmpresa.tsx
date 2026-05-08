@@ -3,13 +3,26 @@ import { useParams, useNavigate } from "react-router";
 import { motion } from "motion/react";
 import {
   Building2, MapPin, Briefcase, CheckCircle,
-  ArrowLeft, Loader2, Globe,
+  ArrowLeft, Loader2, Globe, Clock, Send,
 } from "lucide-react";
 import { perfilApi, ofertasApi, feedApi } from "@/api/api";
 import type { EmpresaResult, OfertaLaboral, FeedPost } from "@/app/types";
 import { PostList } from "./PostList";
 
 const BASE_URL = import.meta.env.VITE_API_URL ?? "http://127.0.0.1:8000";
+const FONT_URL = "https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap";
+
+const tipoStyle: Record<string, React.CSSProperties> = {
+  "Part-time": { backgroundColor: "#eff6ff", color: "#1d4ed8", border: "1px solid #bfdbfe", borderRadius: 20, fontSize: 11, padding: "2px 9px", fontWeight: 700 },
+  "Full-time": { backgroundColor: "#f0fdf4", color: "#15803d", border: "1px solid #bbf7d0", borderRadius: 20, fontSize: 11, padding: "2px 9px", fontWeight: 700 },
+  "Práctica": { backgroundColor: "#fdf4ff", color: "#7e22ce", border: "1px solid #e9d5ff", borderRadius: 20, fontSize: 11, padding: "2px 9px", fontWeight: 700 },
+};
+
+const modalidadStyle: Record<string, React.CSSProperties> = {
+  "Presencial": { backgroundColor: "#F6F5F0", color: "#4A3F35", border: "1px solid #E8E4DC", borderRadius: 20, fontSize: 11, padding: "2px 9px", fontWeight: 600 },
+  "Híbrido":    { backgroundColor: "#fff7ed", color: "#c2410c", border: "1px solid #fed7aa", borderRadius: 20, fontSize: 11, padding: "2px 9px", fontWeight: 600 },
+  "Remoto":     { backgroundColor: "#ecfdf5", color: "#065f46", border: "1px solid #a7f3d0", borderRadius: 20, fontSize: 11, padding: "2px 9px", fontWeight: 600 },
+};
 
 export function VistaEmpresa() {
   const { id } = useParams<{ id: string }>();
@@ -19,6 +32,15 @@ export function VistaEmpresa() {
   const [posts, setPosts] = useState<FeedPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<"publicaciones" | "perfil" | "empleos">("publicaciones");
+
+  useEffect(() => {
+    if (!document.querySelector(`link[href="${FONT_URL}"]`)) {
+      const link = document.createElement("link");
+      link.rel = "stylesheet";
+      link.href = FONT_URL;
+      document.head.appendChild(link);
+    }
+  }, []);
 
   useEffect(() => {
     if (!id) return;
@@ -37,18 +59,21 @@ export function VistaEmpresa() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#F9FAFB] flex items-center justify-center">
-        <Loader2 className="w-7 h-7 animate-spin text-slate-400" />
+      <div style={{ minHeight: "100vh", backgroundColor: "#F6F5F0", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <Loader2 className="animate-spin" style={{ width: 28, height: 28, color: "#D4AF37" }} />
       </div>
     );
   }
 
   if (!perfil) {
     return (
-      <div className="min-h-screen bg-[#F9FAFB] flex flex-col items-center justify-center gap-3">
-        <p className="text-slate-500 text-sm">Empresa no encontrada.</p>
-        <button onClick={() => navigate(-1)} className="text-xs text-slate-400 hover:text-slate-600 flex items-center gap-1">
-          <ArrowLeft className="w-3.5 h-3.5" /> Volver
+      <div style={{ minHeight: "100vh", backgroundColor: "#F6F5F0", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 12 }}>
+        <p style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: "0.9rem", color: "#8C7B6B" }}>Empresa no encontrada.</p>
+        <button
+          onClick={() => navigate(-1)}
+          style={{ display: "flex", alignItems: "center", gap: 6, fontSize: "0.82rem", color: "#A8998A", background: "none", border: "none", cursor: "pointer", fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+        >
+          <ArrowLeft style={{ width: 14, height: 14 }} /> Volver
         </button>
       </div>
     );
@@ -57,81 +82,166 @@ export function VistaEmpresa() {
   const foto = perfil.foto_url ?? perfil.foto_perfil;
   const fotoSrc = foto ? (foto.startsWith("http") ? foto : `${BASE_URL}${foto}`) : null;
 
+  const tabs: { id: "publicaciones" | "perfil" | "empleos"; label: string }[] = [
+    { id: "publicaciones", label: "Publicaciones" },
+    { id: "perfil", label: "Perfil" },
+    { id: "empleos", label: `Empleos (${ofertas.length})` },
+  ];
+
+  const kpis = [
+    { label: "Empleos activos", value: ofertas.length.toString() },
+    { label: "Aliado Liceo", value: "✓" },
+    { label: "Lo Espejo", value: "📍" },
+  ];
+
   return (
-    <div className="min-h-screen bg-[#F9FAFB]">
-      <div className="bg-white border-b border-slate-200">
-        {/* Cover */}
-        <div className="relative h-36 md:h-44 overflow-hidden">
-          <img
-            src="https://images.unsplash.com/photo-1565010640914-8d817b58d808?w=1200&h=300&fit=crop&auto=format"
-            className="w-full h-full object-cover" alt="cover empresa"
-          />
-          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-slate-900/20 to-slate-900/55" />
-          <button onClick={() => navigate(-1)}
-            className="absolute top-3 left-4 flex items-center gap-1.5 bg-white/90 backdrop-blur-sm rounded-full px-3 py-1.5 text-slate-700 hover:bg-white transition-colors">
-            <ArrowLeft className="w-3.5 h-3.5" />
-            <span className="text-xs font-semibold">Volver</span>
+    <div style={{ minHeight: "100vh", backgroundColor: "#F6F5F0", fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+
+      <div style={{ backgroundColor: "#FFFFFF", borderBottom: "1px solid #E8E4DC" }}>
+
+        {/* Cover — full width, diagonal stripes (empresa texture) */}
+        <div style={{
+          height: 160,
+          backgroundColor: "#0d1b35",
+          backgroundImage: "repeating-linear-gradient(135deg, rgba(255,255,255,0.04) 0px, rgba(255,255,255,0.04) 1px, transparent 1px, transparent 14px)",
+          position: "relative",
+        }}>
+          <button
+            onClick={() => navigate(-1)}
+            style={{
+              position: "absolute",
+              top: 14,
+              left: 20,
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+              fontSize: "0.82rem",
+              color: "rgba(255,255,255,0.75)",
+              backgroundColor: "rgba(255,255,255,0.1)",
+              border: "1px solid rgba(255,255,255,0.15)",
+              borderRadius: 8,
+              padding: "5px 12px",
+              cursor: "pointer",
+              fontFamily: "'Plus Jakarta Sans', sans-serif",
+            }}
+          >
+            <ArrowLeft style={{ width: 13, height: 13 }} /> Volver
           </button>
-          <div className="absolute top-3 right-4 flex items-center gap-1.5 bg-white/90 backdrop-blur-sm rounded-full px-3 py-1.5">
-            <CheckCircle className="w-3.5 h-3.5 text-blue-500" />
-            <span className="text-slate-900 text-xs font-semibold">Empresa Aliada</span>
+
+          <div style={{
+            position: "absolute",
+            top: 14,
+            right: 20,
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 5,
+            backgroundColor: "rgba(212,175,55,0.15)",
+            border: "1px solid rgba(212,175,55,0.4)",
+            borderRadius: 20,
+            padding: "4px 12px",
+          }}>
+            <CheckCircle style={{ width: 13, height: 13, color: "#D4AF37" }} />
+            <span style={{ fontSize: 11, fontWeight: 700, color: "#D4AF37" }}>Empresa Aliada</span>
           </div>
         </div>
 
-        <div className="max-w-3xl mx-auto px-4 pb-0">
-          <div className="flex items-end gap-4 -mt-10 mb-4 relative z-10">
-            <div className="relative flex-shrink-0">
-              <div className="w-20 h-20 rounded-2xl border-4 border-white shadow-md overflow-hidden bg-slate-100 flex items-center justify-center">
+        {/* Identity + tabs — centered container */}
+        <div style={{ maxWidth: 1100, margin: "0 auto", padding: "0 24px" }}>
+
+          {/* Avatar + name — overlaps cover */}
+          <div style={{ display: "flex", alignItems: "flex-end", gap: 18, marginTop: -44 }}>
+            <div style={{ position: "relative", flexShrink: 0 }}>
+              <div style={{
+                width: 96,
+                height: 96,
+                borderRadius: 18,
+                border: "4px solid #FFFFFF",
+                overflow: "hidden",
+                backgroundColor: "#0d1b35",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}>
                 {fotoSrc ? (
-                  <img src={fotoSrc} className="w-full h-full object-cover" alt={perfil.nombre_empresa} />
+                  <img src={fotoSrc} alt={perfil.nombre_empresa} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
                 ) : (
-                  <Building2 className="w-8 h-8 text-slate-400" />
+                  <span style={{ fontFamily: "'Playfair Display', serif", fontSize: "2.2rem", fontWeight: 700, color: "#D4AF37" }}>
+                    {perfil.nombre_empresa.charAt(0).toUpperCase()}
+                  </span>
                 )}
               </div>
-              <div className="absolute -bottom-2 -right-2 w-7 h-7 rounded-xl flex items-center justify-center border-2 border-white shadow bg-blue-500 z-10">
-                <CheckCircle className="w-3.5 h-3.5 text-white" />
+              <div style={{
+                position: "absolute", bottom: -4, right: -4,
+                width: 26, height: 26, borderRadius: "50%",
+                backgroundColor: "#D4AF37", border: "3px solid #FFFFFF",
+                display: "flex", alignItems: "center", justifyContent: "center", zIndex: 10,
+              }}>
+                <CheckCircle style={{ width: 14, height: 14, color: "#FFFFFF" }} />
               </div>
             </div>
 
-            <div className="flex-1 pb-1">
-              <h1 className="text-slate-900" style={{ fontWeight: 800, fontSize: "1.2rem", lineHeight: 1.2 }}>
+            <div style={{ flex: 1, minWidth: 0, paddingBottom: 12, paddingTop: 48 }}>
+              <h1 style={{
+                fontFamily: "'Playfair Display', serif",
+                fontSize: "1.5rem", fontWeight: 700, color: "#0d1b35",
+                margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+              }}>
                 {perfil.nombre_empresa}
               </h1>
-              <p className="text-slate-600 text-sm mt-0.5 flex items-center gap-1">
-                <Briefcase className="w-3.5 h-3.5" /> {perfil.industria}
+              <p style={{ display: "flex", alignItems: "center", gap: 5, fontSize: "0.92rem", color: "#6B5D52", fontWeight: 600, margin: "3px 0 0" }}>
+                <Briefcase style={{ width: 13, height: 13 }} />
+                {perfil.industria}
               </p>
-              <p className="text-slate-400 text-xs mt-0.5 flex items-center gap-1">
-                <MapPin className="w-3 h-3" /> Lo Espejo, Región Metropolitana
+              <p style={{ display: "flex", alignItems: "center", gap: 4, fontSize: "0.82rem", color: "#A8998A", margin: "2px 0 0" }}>
+                <MapPin style={{ width: 12, height: 12 }} />
+                Lo Espejo, Región Metropolitana
               </p>
             </div>
           </div>
 
-          {/* KPIs */}
-          <div className="grid grid-cols-3 gap-2 mb-4">
-            {[
-              { label: "Empleos activos", value: ofertas.length.toString() },
-              { label: "Aliado Liceo", value: "✓", gold: true },
-              { label: "Lo Espejo", value: "📍" },
-            ].map((k) => (
-              <div key={k.label} className="text-center py-2">
-                <p className="text-slate-900 font-bold text-xl" style={{ color: k.gold ? "#D4AF37" : undefined }}>
+          {/* KPI row */}
+          <div style={{
+            display: "grid", gridTemplateColumns: "repeat(3, 1fr)",
+            margin: "16px 0 0",
+            backgroundColor: "#F6F5F0", border: "1px solid #E8E4DC", borderRadius: 12,
+          }}>
+            {kpis.map((k, i) => (
+              <div key={k.label} style={{
+                textAlign: "center", padding: "12px 8px",
+                borderRight: i < 2 ? "1px solid #E8E4DC" : "none",
+              }}>
+                <p style={{
+                  fontFamily: "'Playfair Display', serif",
+                  fontSize: "0.95rem", fontWeight: 700,
+                  color: i === 1 ? "#D4AF37" : "#0d1b35",
+                  margin: 0, lineHeight: 1.2,
+                }}>
                   {k.value}
                 </p>
-                <p className="text-slate-400 text-xs mt-0.5">{k.label}</p>
+                <p style={{ fontSize: "0.72rem", color: "#8C7B6B", margin: "3px 0 0", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                  {k.label}
+                </p>
               </div>
             ))}
           </div>
 
           {/* Tabs */}
-          <div className="flex border-b border-slate-200 -mx-4 px-4">
-            {([
-              { id: "publicaciones", label: "Publicaciones" },
-              { id: "perfil", label: "Perfil" },
-              { id: "empleos", label: `Empleos (${ofertas.length})` },
-            ] as { id: "publicaciones" | "perfil" | "empleos"; label: string }[]).map((t) => (
-              <button key={t.id} onClick={() => setTab(t.id)}
-                className={`flex-1 py-3 text-sm border-b-2 -mb-px transition-all ${tab === t.id ? "border-slate-900 text-slate-900" : "border-transparent text-slate-500 hover:text-slate-700"}`}
-                style={{ fontWeight: tab === t.id ? 700 : 500 }}>
+          <div style={{ display: "flex", borderBottom: "2px solid #E8E4DC", marginTop: 16 }}>
+            {tabs.map((t) => (
+              <button
+                key={t.id}
+                onClick={() => setTab(t.id)}
+                style={{
+                  flex: 1, padding: "10px 4px",
+                  background: "none", border: "none", cursor: "pointer",
+                  fontSize: "0.82rem", fontWeight: 600,
+                  color: tab === t.id ? "#0d1b35" : "#94a3b8",
+                  borderBottom: tab === t.id ? "2px solid #D4AF37" : "2px solid transparent",
+                  marginBottom: -2,
+                  transition: "color 0.15s",
+                  fontFamily: "'Plus Jakarta Sans', sans-serif",
+                }}
+              >
                 {t.label}
               </button>
             ))}
@@ -139,72 +249,138 @@ export function VistaEmpresa() {
         </div>
       </div>
 
-      <div className="max-w-3xl mx-auto px-4 py-5">
-        {tab === "perfil" && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
-            <div className="bg-white rounded-xl border border-slate-200 p-5">
-              <h3 className="text-slate-900 text-sm font-bold mb-3">Sobre la empresa</h3>
-              <p className="text-slate-600 text-sm leading-relaxed">
-                {perfil.descripcion || "Empresa aliada del Liceo Cardenal Caro comprometida con la inserción laboral técnica."}
-              </p>
-              <div className="flex flex-wrap gap-2 mt-4">
-                <span className="text-xs bg-slate-100 text-slate-700 px-3 py-1 rounded-full border border-slate-200">
-                  {perfil.industria}
-                </span>
-              </div>
-            </div>
+      {/* Tab content */}
+      <div style={{ maxWidth: 768, margin: "0 auto", padding: "20px 16px" }}>
 
-            {perfil.sitio_web && (
-              <div className="bg-white rounded-xl border border-slate-200 p-5">
-                <h3 className="text-slate-900 text-sm font-bold mb-2">Sitio web</h3>
-                <a href={perfil.sitio_web} target="_blank" rel="noopener noreferrer"
-                  className="flex items-center gap-2 text-blue-600 text-sm hover:underline">
-                  <Globe className="w-4 h-4" /> {perfil.sitio_web}
-                </a>
-              </div>
-            )}
-          </motion.div>
-        )}
-
+        {/* Publicaciones */}
         {tab === "publicaciones" && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
             <PostList posts={posts} nombre={perfil.nombre_empresa} fotoSrc={fotoSrc} />
           </motion.div>
         )}
 
+        {/* Perfil */}
+        {tab === "perfil" && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+            <div style={{ backgroundColor: "#FFFFFF", border: "1px solid #E8E4DC", borderRadius: 14, padding: 20 }}>
+              <p style={{ fontSize: "0.68rem", fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 12 }}>
+                Sobre la empresa
+              </p>
+              <p style={{ fontSize: "0.92rem", color: "#4A3F35", lineHeight: 1.7, margin: 0 }}>
+                {perfil.descripcion || "Empresa aliada del Liceo Cardenal Caro comprometida con la inserción laboral técnica."}
+              </p>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 14 }}>
+                <span style={{
+                  fontSize: 12, fontWeight: 700, padding: "5px 14px",
+                  borderRadius: 20, backgroundColor: "#F0EDE8", border: "1px solid #E8E4DC", color: "#4A3F35",
+                }}>
+                  {perfil.industria}
+                </span>
+                <span style={{
+                  fontSize: 12, fontWeight: 700, padding: "5px 14px",
+                  borderRadius: 20, backgroundColor: "#FFFBF0", border: "1px solid #D4AF37", color: "#B8962E",
+                }}>
+                  ✓ Empresa Aliada
+                </span>
+              </div>
+            </div>
+
+            {perfil.sitio_web && (
+              <div style={{ backgroundColor: "#FFFFFF", border: "1px solid #E8E4DC", borderRadius: 14, padding: 20 }}>
+                <p style={{ fontSize: "0.68rem", fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 12 }}>
+                  Sitio web
+                </p>
+                <a
+                  href={perfil.sitio_web}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    display: "flex", alignItems: "center", gap: 8, padding: "10px 14px",
+                    borderRadius: 10, border: "1px solid #E8E4DC", backgroundColor: "#F6F5F0",
+                    color: "#0d1b35", fontSize: "0.85rem", fontWeight: 600, textDecoration: "none",
+                  }}
+                >
+                  <Globe style={{ width: 15, height: 15, color: "#8C7B6B", flexShrink: 0 }} />
+                  <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {perfil.sitio_web}
+                  </span>
+                </a>
+              </div>
+            )}
+          </motion.div>
+        )}
+
+        {/* Empleos */}
         {tab === "empleos" && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-3">
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
             {ofertas.length === 0 ? (
-              <div className="bg-white rounded-xl border border-slate-200 p-8 text-center">
-                <p className="text-slate-400 text-sm">No hay empleos activos.</p>
+              <div style={{ backgroundColor: "#FFFFFF", border: "1px solid #E8E4DC", borderRadius: 14, padding: 48, textAlign: "center" }}>
+                <div style={{ width: 48, height: 48, borderRadius: 12, backgroundColor: "#F0EDE8", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 12px" }}>
+                  <Briefcase style={{ width: 22, height: 22, color: "#C0B09A" }} />
+                </div>
+                <p style={{ fontSize: "0.88rem", fontWeight: 700, color: "#0d1b35", margin: 0 }}>Sin empleos activos</p>
+                <p style={{ fontSize: "0.82rem", color: "#A8998A", marginTop: 4 }}>Esta empresa no tiene ofertas disponibles en este momento.</p>
               </div>
             ) : (
-              ofertas.map((o) => (
-                <div key={o.id} className="bg-white rounded-xl border border-slate-200 p-4">
-                  <p className="text-slate-900 text-sm font-semibold">{o.titulo}</p>
-                  <div className="flex flex-wrap gap-2 mt-2">
-                    {o.tipo && (
-                      <span className="text-xs bg-blue-50 text-blue-700 border border-blue-200 px-2 py-0.5 rounded-full font-medium">
-                        {o.tipo}
-                      </span>
-                    )}
-                    {o.modalidad && (
-                      <span className="text-xs bg-slate-100 text-slate-600 border border-slate-200 px-2 py-0.5 rounded-full">
-                        {o.modalidad}
-                      </span>
-                    )}
-                    {o.ubicacion && (
-                      <span className="text-xs text-slate-400 flex items-center gap-0.5">
-                        <MapPin className="w-3 h-3" /> {o.ubicacion}
+              ofertas.map((o, i) => (
+                <motion.div
+                  key={o.id}
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: i * 0.06 }}
+                  style={{ backgroundColor: "#FFFFFF", border: "1px solid #E8E4DC", borderRadius: 14, padding: 18, borderLeft: `3.5px solid ${o.tipo === "Full-time" ? "#10b981" : o.tipo === "Práctica" ? "#8b5cf6" : "#3b82f6"}` }}
+                >
+                  <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8, marginBottom: 10 }}>
+                    <p style={{ fontSize: "0.92rem", fontWeight: 700, color: "#0d1b35", margin: 0 }}>{o.titulo}</p>
+                    {o.salario && (
+                      <span style={{ fontSize: 12, fontWeight: 700, color: "#15803d", backgroundColor: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 8, padding: "3px 10px", flexShrink: 0 }}>
+                        ${Number(o.salario).toLocaleString("es-CL")}
                       </span>
                     )}
                   </div>
-                  <p className="text-slate-500 text-xs mt-2 line-clamp-2">{o.descripcion}</p>
-                </div>
+
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 10 }}>
+                    {o.tipo && <span style={tipoStyle[o.tipo] ?? tipoStyle["Part-time"]}>{o.tipo}</span>}
+                    {o.modalidad && <span style={modalidadStyle[o.modalidad] ?? modalidadStyle["Presencial"]}>{o.modalidad}</span>}
+                    {o.ubicacion && (
+                      <span style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11, color: "#8C7B6B" }}>
+                        <MapPin style={{ width: 11, height: 11 }} /> {o.ubicacion}
+                      </span>
+                    )}
+                    {o.especialidad && (
+                      <span style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11, color: "#8C7B6B" }}>
+                        <Briefcase style={{ width: 11, height: 11 }} /> {o.especialidad}
+                      </span>
+                    )}
+                  </div>
+
+                  {o.descripcion && (
+                    <p style={{ fontSize: "0.82rem", color: "#6B5D52", lineHeight: 1.55, margin: "0 0 14px", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" } as React.CSSProperties}>
+                      {o.descripcion}
+                    </p>
+                  )}
+
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                    <span style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11, color: "#A8998A" }}>
+                      <Clock style={{ width: 11, height: 11 }} />
+                      {new Date(o.fecha_publicacion).toLocaleDateString("es-CL")}
+                    </span>
+                    <button style={{
+                      display: "flex", alignItems: "center", gap: 6,
+                      padding: "7px 16px", borderRadius: 8,
+                      backgroundColor: "#0d1b35", border: "none",
+                      color: "#FFFFFF", fontSize: "0.78rem", fontWeight: 700,
+                      cursor: "pointer", fontFamily: "'Plus Jakarta Sans', sans-serif",
+                    }}>
+                      <Send style={{ width: 12, height: 12 }} /> Postular
+                    </button>
+                  </div>
+                </motion.div>
               ))
             )}
           </motion.div>
         )}
+
       </div>
     </div>
   );
