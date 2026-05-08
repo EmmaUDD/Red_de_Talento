@@ -2,6 +2,7 @@
 
 export interface AuthUser {
   id: number;
+  profile_id?: number;
   username: string;
   email: string;
   first_name: string;
@@ -110,6 +111,7 @@ export interface EstudiantePerfil {
   foto?: string;
   bio?: string;
   video_pitch?: string;
+  email?: string;
   habilidades: Habilidad[];
   habilidades_pendientes?: Habilidad[];
   insignias: Insignia[];
@@ -144,6 +146,7 @@ export interface EmpresaResult {
   foto_url?: string;
   descripcion?: string;
   sitio_web?: string;
+  email?: string;
 }
 
 export interface DocenteResult {
@@ -155,6 +158,7 @@ export interface DocenteResult {
   foto_url?: string;
   bio?: string;
   nivel?: string;
+  email?: string;
 }
 
 export type EstadoReporte = "pendiente" | "en_revision" | "resuelto";

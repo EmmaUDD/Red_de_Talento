@@ -46,7 +46,7 @@ export function ReportModal({ targetName, targetType, postId, targetId, onClose 
     try {
       const id = postId ?? targetId;
       if (id) {
-        await feedApi.reportar(id, `${motivo}: ${descripcion}`);
+        await feedApi.reportar(id, motivo, descripcion);
       }
     } catch {
       // silencioso — igual mostrar éxito

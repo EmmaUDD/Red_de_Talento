@@ -300,7 +300,16 @@ export function VistaDocente() {
                 )}
                 <InfoRow icon={MapPin} text="Liceo Cardenal Caro, Lo Espejo, RM" />
                 <InfoRow icon={Clock} text="Disponible: Lun–Vie · 08:00–18:00 hrs" />
-                <InfoRow icon={Mail} text="docente@liceocaro.cl" />
+                {perfil.email && (
+                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <div style={{ width: 30, height: 30, borderRadius: 8, backgroundColor: "#F0EDE8", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                      <Mail style={{ width: 14, height: 14, color: "#8C7B6B" }} />
+                    </div>
+                    <a href={`mailto:${perfil.email}`} style={{ fontSize: "0.9rem", color: "#0d1b35", fontWeight: 600, textDecoration: "none" }}>
+                      {perfil.email}
+                    </a>
+                  </div>
+                )}
                 {perfil.nivel && (
                   <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                     <div style={{

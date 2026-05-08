@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useSearchParams } from "react-router";
 import {
-  Search, Award, Building2, BookOpen, Loader2, MapPin, Briefcase,
+  Search, Building2, BookOpen, Loader2, MapPin, Briefcase,
   CheckCircle, GraduationCap, Users, BookMarked, Clock, ExternalLink,
 } from "lucide-react";
 import { perfilApi, cursosApi, ofertasApi } from "@/api/api";

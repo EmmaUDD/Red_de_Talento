@@ -398,9 +398,6 @@ export function TeacherValidacion() {
   const [mensajeAccion, setMensajeAccion] = useState<string | null>(null);
   const [mostrarResueltos, setMostrarResueltos] = useState(false);
 
-  const [courseForm, setCourseForm] = useState({ title: "", link: "", specialty: "", nivel: "basico", plataforma: "otro", desc: "" });
-  const [coursePublished, setCoursePublished] = useState(false);
-  const [publishingCourse, setPublishingCourse] = useState(false);
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [cursosParaValidar, setCursosParaValidar] = useState<any[]>([]);
@@ -477,20 +474,6 @@ export function TeacherValidacion() {
     finally { setValidandoCurso(null); }
   };
 
-  const handlePublishCourse = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!courseForm.title || !courseForm.link || !courseForm.specialty) return;
-    setPublishingCourse(true);
-    try {
-      await cursosApi.crear({
-        titulo: courseForm.title, url: courseForm.link,
-        plataforma: courseForm.plataforma, especialidad: courseForm.specialty,
-        nivel: courseForm.nivel, descripcion: courseForm.desc,
-      });
-      setCoursePublished(true);
-    } catch { setCoursePublished(true); }
-    finally { setPublishingCourse(false); }
-  };
 
   const nombre = user ? `${user.first_name} ${user.last_name}`.trim() || user.username : "—";
 

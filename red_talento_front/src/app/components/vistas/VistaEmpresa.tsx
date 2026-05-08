@@ -2,8 +2,8 @@ import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router";
 import { motion } from "motion/react";
 import {
-  Building2, MapPin, Briefcase, CheckCircle,
-  ArrowLeft, Loader2, Globe, Clock, Send,
+  MapPin, Briefcase, CheckCircle,
+  ArrowLeft, Loader2, Globe, Clock, Send, Mail,
 } from "lucide-react";
 import { perfilApi, ofertasApi, feedApi } from "@/api/api";
 import type { EmpresaResult, OfertaLaboral, FeedPost } from "@/app/types";
@@ -285,26 +285,49 @@ export function VistaEmpresa() {
               </div>
             </div>
 
-            {perfil.sitio_web && (
+            {(perfil.sitio_web || perfil.email) && (
               <div style={{ backgroundColor: "#FFFFFF", border: "1px solid #E8E4DC", borderRadius: 14, padding: 20 }}>
                 <p style={{ fontSize: "0.68rem", fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 12 }}>
-                  Sitio web
+                  Contacto
                 </p>
-                <a
-                  href={perfil.sitio_web}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  style={{
-                    display: "flex", alignItems: "center", gap: 8, padding: "10px 14px",
-                    borderRadius: 10, border: "1px solid #E8E4DC", backgroundColor: "#F6F5F0",
-                    color: "#0d1b35", fontSize: "0.85rem", fontWeight: 600, textDecoration: "none",
-                  }}
-                >
-                  <Globe style={{ width: 15, height: 15, color: "#8C7B6B", flexShrink: 0 }} />
-                  <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                    {perfil.sitio_web}
-                  </span>
-                </a>
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  {perfil.email && (
+                    <a
+                      href={`mailto:${perfil.email}`}
+                      style={{
+                        display: "flex", alignItems: "center", gap: 10, padding: "10px 14px",
+                        borderRadius: 10, border: "1px solid #E8E4DC", backgroundColor: "#F6F5F0",
+                        color: "#0d1b35", fontSize: "0.85rem", fontWeight: 600, textDecoration: "none",
+                      }}
+                    >
+                      <div style={{ width: 28, height: 28, borderRadius: 8, backgroundColor: "#0d1b35", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                        <Mail style={{ width: 13, height: 13, color: "#D4AF37" }} />
+                      </div>
+                      <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        {perfil.email}
+                      </span>
+                    </a>
+                  )}
+                  {perfil.sitio_web && (
+                    <a
+                      href={perfil.sitio_web}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{
+                        display: "flex", alignItems: "center", gap: 10, padding: "10px 14px",
+                        borderRadius: 10, border: "1px solid #E8E4DC", backgroundColor: "#F6F5F0",
+                        color: "#0d1b35", fontSize: "0.85rem", fontWeight: 600, textDecoration: "none",
+                      }}
+                    >
+                      <div style={{ width: 28, height: 28, borderRadius: 8, backgroundColor: "#F0EDE8", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                        <Globe style={{ width: 13, height: 13, color: "#8C7B6B" }} />
+                      </div>
+                      <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        {perfil.sitio_web}
+                      </span>
+                    </a>
+                  )}
+                </div>
               </div>
             )}
           </motion.div>

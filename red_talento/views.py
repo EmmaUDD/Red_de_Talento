@@ -41,16 +41,25 @@ from .models import (
     Reporte,
     Disponibilidad,
     InsigniaEstudiante,
+    Insignias,
     Curso,
     CursoCompletado,
 )
 from .permissions import EsDocente, EsDocenteAdmin, EsEstudiante, EsEmpresa
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from .utils import score
 from django.utils import timezone
 from datetime import timedelta
 import qrcode
 import io
+
+
+def asignar_insignia(estudiante, codigo):
+    try:
+        insignia = Insignias.objects.get(criterio_codigo=codigo)
+        InsigniaEstudiante.objects.get_or_create(estudiante=estudiante, insignia=insignia)
+    except Insignias.DoesNotExist:
+        pass
 
 
 class LoginView(TokenObtainPairView):
@@ -200,6 +209,8 @@ class HabilidadesView(APIView):
         serializer = HabilidadSerializer(habilidad, data=request.data, partial=True)
         if serializer.is_valid():
             serializer.save()
+            if serializer.instance.validado:
+                asignar_insignia(habilidad.estudiante, 'habilidad_aprobada')
             return Response({'mensaje': 'Habilidad validada'}, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -463,6 +474,7 @@ class PostulacionView(APIView):
                     tipo='post',
                     contenido=contenido,
                 )
+                asignar_insignia(estudiante, 'empleo_conseguido')
             return Response(serializer.data, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -470,7 +482,16 @@ class PostulacionView(APIView):
 class BusquedaEstudiantesView(APIView):
     permission_classes = [IsAuthenticated]
     def get(self, request):
-        estudiante = PerfilEstudiante.objects.filter(usuario__is_active=True)
+        solo_pendientes = request.query_params.get('pendientes') == 'true'
+        es_admin = (
+            request.user.role == 'docente' and
+            hasattr(request.user, 'perfil_docente') and
+            request.user.perfil_docente.es_admin
+        )
+        if solo_pendientes and es_admin:
+            estudiante = PerfilEstudiante.objects.filter(usuario__is_active=False)
+        else:
+            estudiante = PerfilEstudiante.objects.filter(usuario__is_active=True)
         especialidad = request.query_params.get('especialidad')
         nombre = request.query_params.get('nombre')
         disponibilidad = request.query_params.get('disponibilidad')
@@ -626,7 +647,11 @@ class RegistroEstudianteView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class PerfilEstudianteView(APIView):
-    permission_classes = [IsAuthenticated]
+    def get_permissions(self):
+        if self.request.method == 'GET':
+            return [AllowAny()]
+        return [IsAuthenticated()]
+
     def get(self, request, id):
         try:
             perfil = PerfilEstudiante.objects.get(id=id)
@@ -645,10 +670,13 @@ class PerfilEstudianteView(APIView):
         serializer = PerfilEstudianteSerializer(perfil, data=request.data, partial=True, context={'request': request})
         if serializer.is_valid():
             serializer.save()
+            perfil.refresh_from_db()
+            if perfil.bio and perfil.foto_perfil and perfil.especialidad:
+                asignar_insignia(perfil, 'perfil_completo')
             return Response(serializer.data, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    
+
 class RegistroDocenteView(APIView):
     def post(self, request):
         serializer = RegistroDocenteSerializer(data=request.data)
@@ -786,6 +814,15 @@ class CursoCompletadoView(APIView):
         serializer = CursoCompletadoSerializer(completado, data=request.data, partial=True)
         if serializer.is_valid():
             serializer.save()
+            if serializer.instance.validado:
+                estudiante = completado.estudiante
+                total = CursoCompletado.objects.filter(estudiante=estudiante, validado=True).count()
+                if total >= 3:
+                    asignar_insignia(estudiante, '3_cursos_completados')
+                if total >= 5:
+                    asignar_insignia(estudiante, '5_cursos_completados')
+                if total >= 10:
+                    asignar_insignia(estudiante, '10_cursos_completados')
             return Response(serializer.data, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 

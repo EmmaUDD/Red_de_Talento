@@ -11,12 +11,6 @@ import { es } from "date-fns/locale";
 
 const BASE_URL = import.meta.env.VITE_API_URL ?? "http://127.0.0.1:8000";
 
-const S = {
-  label: {
-    fontSize: "0.68rem", fontWeight: 700, color: "#94a3b8",
-    textTransform: "uppercase" as const, letterSpacing: "0.08em", margin: 0,
-  } as React.CSSProperties,
-};
 
 function Spinner({ size = 14 }: { size?: number }) {
   return (

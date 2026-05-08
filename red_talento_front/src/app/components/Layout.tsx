@@ -184,7 +184,7 @@ export function Layout() {
   const location = useLocation();
   const [search, setSearch] = useState("");
   const [adminBadge, setAdminBadge] = useState(0);
-  const searchRef = useRef<HTMLDivElement>(null);
+  const searchRef = useRef<HTMLFormElement>(null);
 
   useEffect(() => {
     if (!document.querySelector(`link[href="${FONT_URL}"]`)) {
