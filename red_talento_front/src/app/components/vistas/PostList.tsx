@@ -52,7 +52,7 @@ function imageSrc(url: string) {
 }
 
 function PostCard({ post, nombre, fotoSrc, onDelete }: {
-  post: FeedPost; nombre: string; fotoSrc: string | null; onDelete?: (id: number) => void;
+  post: FeedPost; nombre: string; fotoSrc: string | null; onDelete?: (id: string) => void;
 }) {
   const cfg = tipoChip[post.tipo] ?? tipoChip.post;
   const Icon = cfg.icon;
@@ -186,7 +186,7 @@ function PostCard({ post, nombre, fotoSrc, onDelete }: {
 }
 
 export function PostList({ posts, nombre, fotoSrc, onDeletePost }: {
-  posts: FeedPost[]; nombre: string; fotoSrc: string | null; onDeletePost?: (id: number) => void;
+  posts: FeedPost[]; nombre: string; fotoSrc: string | null; onDeletePost?: (id: string) => void;
 }) {
   if (posts.length === 0) {
     return (

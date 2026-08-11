@@ -1,0 +1,191 @@
+---
+# Fase 1: instalar MongoDB Community 7.0 en los 3 nodos y dejarlo corriendo
+# como parte del replica set (todavia sin autenticacion).
+- name: Instalar MongoDB en los nodos del replica set
+  hosts: mongo
+  become: true
+  vars_files:
+    - group_vars/mongo.yml
+
+  tasks:
+    - name: Instalar dependencias
+      apt:
+        name: ["gnupg", "curl"]
+        state: present
+        update_cache: true
+
+    - name: Agregar la llave GPG de MongoDB
+      apt_key:
+        url: https://pgp.mongodb.com/server-7.0.asc
+        state: present
+
+    - name: Agregar el repositorio de MongoDB 7.0
+      apt_repository:
+        repo: "deb [ arch=amd64 ] https://repo.mongodb.org/apt/ubuntu jammy/mongodb-org/7.0 multiverse"
+        state: present
+        filename: mongodb-org-7.0
+
+    - name: Instalar mongodb-org
+      apt:
+        name: mongodb-org
+        state: present
+        update_cache: true
+
+    - name: Configurar mongod.conf (sin autenticacion todavia)
+      template:
+        src: templates/mongod.conf.j2
+        dest: /etc/mongod.conf
+      vars:
+        mongo_auth_enabled: false
+      notify: restart mongod
+
+    - name: Asegurar que mongod esta iniciado y habilitado al boot
+      systemd:
+        name: mongod
+        state: started
+        enabled: true
+
+  handlers:
+    - name: restart mongod
+      systemd:
+        name: mongod
+        state: restarted
+
+# Fase 2: armar el replica set desde mongo-1 y crear el usuario administrador
+# usando la "localhost exception" de Mongo (permite crear el primer usuario
+# sin credenciales, solo mientras no exista ninguno).
+- name: Inicializar el replica set y crear usuarios
+  hosts: mongo[0]
+  become: true
+  vars_files:
+    - group_vars/mongo.yml
+
+  tasks:
+    - name: Esperar a que mongod este escuchando
+      wait_for:
+        port: 27017
+        delay: 5
+        timeout: 60
+
+    - name: Revisar si el replica set ya esta inicializado
+      command: mongosh --quiet --eval "rs.status().ok"
+      register: rs_status
+      changed_when: false
+      failed_when: false
+
+    - name: Inicializar el replica set con los 3 nodos (IPs privadas)
+      when: "'1' not in rs_status.stdout"
+      command: >
+        mongosh --quiet --eval
+        'rs.initiate({
+          _id: "{{ mongo_replica_set }}",
+          members: [
+            { _id: 0, host: "{{ hostvars['mongo-1'].mongo_private_ip }}:27017" },
+            { _id: 1, host: "{{ hostvars['mongo-2'].mongo_private_ip }}:27017" },
+            { _id: 2, host: "{{ hostvars['mongo-3'].mongo_private_ip }}:27017" }
+          ]
+        })'
+
+    - name: Esperar a que este nodo quede como PRIMARY
+      command: mongosh --quiet --eval "rs.isMaster().ismaster"
+      register: is_master
+      until: "'true' in is_master.stdout"
+      retries: 15
+      delay: 4
+      changed_when: false
+
+    - name: Revisar si el usuario admin ya existe
+      command: >
+        mongosh --quiet --eval
+        "db.getSiblingDB('admin').getUser('{{ mongo_admin_user }}') != null"
+      register: admin_exists
+      changed_when: false
+
+    - name: Crear el usuario administrador (root)
+      when: "'true' not in admin_exists.stdout"
+      command: >
+        mongosh --quiet --eval
+        "db.getSiblingDB('admin').createUser({
+          user: '{{ mongo_admin_user }}',
+          pwd: '{{ mongo_admin_password }}',
+          roles: [{ role: 'root', db: 'admin' }]
+        })"
+
+    - name: Crear el usuario de la aplicacion (readWrite sobre su base)
+      when: "'true' not in admin_exists.stdout"
+      command: >
+        mongosh --quiet -u {{ mongo_admin_user }} -p '{{ mongo_admin_password }}' --authenticationDatabase admin --eval
+        "db.getSiblingDB('{{ mongo_app_db }}').createUser({
+          user: '{{ mongo_app_user }}',
+          pwd: '{{ mongo_app_password }}',
+          roles: [{ role: 'readWrite', db: '{{ mongo_app_db }}' }]
+        })"
+
+# Fase 3: distribuir la keyfile compartida y activar autenticacion,
+# reiniciando los nodos de a uno (serial: 1) para no tumbar el replica
+# set completo mientras se aplica el cambio.
+- name: Activar autenticacion con keyfile
+  hosts: mongo
+  become: true
+  serial: 1
+  vars_files:
+    - group_vars/mongo.yml
+
+  tasks:
+    - name: Generar la keyfile localmente (una sola vez, si no existe)
+      delegate_to: localhost
+      become: false
+      run_once: true
+      shell: openssl rand -base64 756 > files/mongo-keyfile
+      args:
+        creates: files/mongo-keyfile
+
+    - name: Copiar la keyfile al nodo
+      copy:
+        src: files/mongo-keyfile
+        dest: /etc/mongodb-keyfile
+        owner: mongodb
+        group: mongodb
+        mode: "0400"
+
+    - name: Activar authorization + keyFile en mongod.conf
+      template:
+        src: templates/mongod.conf.j2
+        dest: /etc/mongod.conf
+      vars:
+        mongo_auth_enabled: true
+      notify: restart mongod
+
+    - name: Forzar el reinicio ahora (no esperar al final del play)
+      meta: flush_handlers
+
+    - name: Esperar a que mongod vuelva a responder tras el reinicio
+      wait_for:
+        port: 27017
+        delay: 5
+        timeout: 60
+
+  handlers:
+    - name: restart mongod
+      systemd:
+        name: mongod
+        state: restarted
+
+# Verificacion final: confirmar replica set + autenticacion funcionando.
+- name: Verificar el estado final del replica set
+  hosts: mongo[0]
+  become: true
+  vars_files:
+    - group_vars/mongo.yml
+
+  tasks:
+    - name: rs.status() autenticado
+      command: >
+        mongosh --quiet -u {{ mongo_admin_user }} -p '{{ mongo_admin_password }}' --authenticationDatabase admin
+        --eval "rs.status().members.map(m => m.name + ' - ' + m.stateStr).join('\n')"
+      register: final_status
+      changed_when: false
+
+    - name: Mostrar el estado del replica set
+      debug:
+        msg: "{{ final_status.stdout_lines }}"

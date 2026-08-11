@@ -148,6 +148,9 @@ class Reporte(models.Model):
     reportado_por = models.ForeignKey(Usuario, on_delete=models.CASCADE, related_name='reportado_por')
     usuario_reportado = models.ForeignKey(Usuario, on_delete=models.CASCADE, related_name='usuario_reportado')
     publicacion = models.ForeignKey('PublicacionesFeed', null=True, blank=True, on_delete=models.SET_NULL, related_name='reportes')
+    # El feed ahora vive en MongoDB (ver mongo.py), asi que las publicaciones
+    # nuevas se reportan guardando el ObjectId como texto en vez de la FK de arriba.
+    publicacion_mongo_id = models.CharField(max_length=24, null=True, blank=True)
     motivo = models.CharField(max_length=200)
     descripcion = models.TextField()
     fecha = models.DateTimeField(auto_now_add=True)

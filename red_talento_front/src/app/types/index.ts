@@ -122,7 +122,7 @@ export interface EstudiantePerfil {
 export type TipoPost = "post" | "oferta" | "evento" | "anuncio";
 
 export interface FeedPost {
-  id: number;
+  id: string;
   autor_id?: number;
   autor_perfil_id?: number;
   autor_nombre: string;

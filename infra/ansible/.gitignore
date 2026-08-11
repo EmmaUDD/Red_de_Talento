@@ -1,0 +1,4 @@
+inventory.ini
+*.retry
+group_vars/mongo.yml
+files/mongo-keyfile

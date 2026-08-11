@@ -70,7 +70,7 @@ function parseEvento(contenido: string) {
   return { titulo, datetime, lugar, descripcion: descLines.join(" ").trim() };
 }
 
-function FeedPostCard({ post, canModerate, onDelete }: { post: FeedPost; canModerate: boolean; onDelete?: (id: number) => void }) {
+function FeedPostCard({ post, canModerate, onDelete }: { post: FeedPost; canModerate: boolean; onDelete?: (id: string) => void }) {
   const { openPerfil } = usePerfil();
   const { user } = useAuth();
   const [liked, setLiked] = useState(post.ya_likeado ?? false);
@@ -105,9 +105,9 @@ function FeedPostCard({ post, canModerate, onDelete }: { post: FeedPost; canMode
 
   const handleLike = async () => {
     try {
-      await feedApi.likear(post.id);
-      setLiked((l) => !l);
-      setLikesCount((c) => (liked ? c - 1 : c + 1));
+      const { likes, ya_likeado } = await feedApi.likear(post.id);
+      setLiked(ya_likeado);
+      setLikesCount(likes);
     } catch { }
   };
 
@@ -409,7 +409,7 @@ function PostComposer({ onPost }: { onPost: (p: FeedPost) => void }) {
       await feedApi.crearPost(text.trim(), postType, imagen ?? undefined);
       const fullName = user ? `${user.first_name} ${user.last_name}`.trim() || user.username : "";
       const newPost: import("@/app/types").FeedPost = {
-        id: Date.now(),
+        id: `temp-${Date.now()}`,
         autor_nombre: fullName,
         autor_rol: (user?.role ?? "student") as import("@/app/types").Role,
         autor_foto: user?.foto_perfil,

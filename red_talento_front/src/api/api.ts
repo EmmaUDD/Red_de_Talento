@@ -179,9 +179,9 @@ function fromBackendPost(p: any): FeedPost {
     contenido: p.contenido ?? "",
     tipo: (p.tipo as FeedPost["tipo"]) ?? "post",
     fecha: p.fecha ?? "",
-    likes: 0,
-    comentarios: 0,
-    ya_likeado: false,
+    likes: p.likes ?? 0,
+    comentarios: p.comentarios ?? 0,
+    ya_likeado: p.ya_likeado ?? false,
     imagen_url: p.imagen_url ?? undefined,
     autor_perfil_id: p.autor_perfil_id ?? undefined,
     autor_foto: p.autor_foto_url ?? undefined,
@@ -554,23 +554,21 @@ export const feedApi = {
     return request<unknown>("/api/feed/", { method: "POST", body: form });
   },
 
-  likear: async (_id: number): Promise<void> => {
-    // Backend aún no tiene endpoint de likes — stub silencioso
-    return Promise.resolve();
-  },
+  likear: (id: string): Promise<{ likes: number; ya_likeado: boolean }> =>
+    request<{ likes: number; ya_likeado: boolean }>(`/api/feed/${id}/like/`, { method: "POST" }),
 
-  reportar: (usuarioReportadoId: number, motivo: string, descripcion: string, publicacionId?: number): Promise<unknown> =>
+  reportar: (usuarioReportadoId: number, motivo: string, descripcion: string, publicacionId?: string): Promise<unknown> =>
     request<unknown>("/api/reporte/", {
       method: "POST",
       body: JSON.stringify({
         usuario_reportado: usuarioReportadoId,
         motivo,
         descripcion,
-        ...(publicacionId ? { publicacion: publicacionId } : {}),
+        ...(publicacionId ? { publicacion_mongo_id: publicacionId } : {}),
       }),
     }),
 
-  eliminarPost: (id: number): Promise<void> =>
+  eliminarPost: (id: string): Promise<void> =>
     request<void>(`/api/feed/${id}/`, { method: "DELETE" }),
 
 };

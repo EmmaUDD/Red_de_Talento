@@ -19,7 +19,6 @@ from .serializers import (
     EvidenciaSerializer,
     OfertaLaboralSerializer,
     PostulacionSerializer,
-    PublicacionFeedSerializer,
     ReporteSerializer,
     DisponibilidadSerializer,
     InsigniaEstudianteSerializer,
@@ -37,7 +36,6 @@ from .models import (
     OfertaLaboral,
     Evidencia,
     Postulacion,
-    PublicacionesFeed,
     Reporte,
     Disponibilidad,
     InsigniaEstudiante,
@@ -49,9 +47,81 @@ from .permissions import EsDocente, EsDocenteAdmin, EsEstudiante, EsEmpresa
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from .utils import score
 from django.utils import timezone
+from django.core.files.storage import default_storage
 from datetime import timedelta
+from bson import ObjectId
+from bson.errors import InvalidId
+from .mongo import get_feed_collection
 import qrcode
 import io
+
+
+ROLE_DISPLAY = {'estudiante': 'student', 'docente': 'teacher', 'empresa': 'company'}
+
+
+def crear_post_feed(autor_id, tipo, contenido, imagen_url=None):
+    """Inserta un post en la coleccion 'posts' de MongoDB (feed de publicaciones)."""
+    doc = {
+        'autor_id': autor_id,
+        'tipo': tipo,
+        'contenido': contenido,
+        'imagen_url': imagen_url,
+        'fecha': timezone.now(),
+        'likes': [],
+        'comentarios': [],
+    }
+    get_feed_collection().insert_one(doc)
+    return doc
+
+
+def resolver_autores(autor_ids):
+    """Trae de MySQL los datos de los autores (username, rol, foto, perfil_id)
+    que se muestran en el feed, sin duplicarlos dentro del documento de Mongo."""
+    usuarios = Usuario.objects.filter(id__in=autor_ids).select_related(
+        'perfil_estudiante', 'perfil_docente', 'perfil_empresa'
+    )
+    info = {}
+    for u in usuarios:
+        perfil_id, foto = None, None
+        if u.role == 'estudiante' and hasattr(u, 'perfil_estudiante'):
+            perfil_id, foto = u.perfil_estudiante.id, u.perfil_estudiante.foto_perfil
+        elif u.role == 'docente' and hasattr(u, 'perfil_docente'):
+            perfil_id, foto = u.perfil_docente.id, u.perfil_docente.foto_perfil
+        elif u.role == 'empresa' and hasattr(u, 'perfil_empresa'):
+            perfil_id, foto = u.perfil_empresa.id, u.perfil_empresa.foto_perfil
+        info[u.id] = {
+            'username': u.get_full_name() or u.username,
+            'role': ROLE_DISPLAY.get(u.role, u.role),
+            'perfil_id': perfil_id,
+            'foto': foto,
+        }
+    return info
+
+
+def serializar_post(doc, request, autores):
+    autor = autores.get(doc['autor_id'], {})
+    imagen_url = doc.get('imagen_url')
+    if imagen_url and request:
+        imagen_url = request.build_absolute_uri(imagen_url)
+    foto_url = None
+    if autor.get('foto') and request:
+        foto_url = request.build_absolute_uri(autor['foto'].url)
+    likes = doc.get('likes', [])
+    return {
+        'id': str(doc['_id']),
+        'autor': doc['autor_id'],
+        'autor_username': autor.get('username', f"Usuario {doc['autor_id']}"),
+        'autor_role': autor.get('role'),
+        'autor_perfil_id': autor.get('perfil_id'),
+        'autor_foto_url': foto_url,
+        'contenido': doc.get('contenido', ''),
+        'tipo': doc.get('tipo', 'post'),
+        'imagen_url': imagen_url,
+        'fecha': doc['fecha'].isoformat() if doc.get('fecha') else None,
+        'likes': len(likes),
+        'comentarios': len(doc.get('comentarios', [])),
+        'ya_likeado': request.user.id in likes if request and request.user.is_authenticated else False,
+    }
 
 
 def asignar_insignia(estudiante, codigo):
@@ -273,31 +343,80 @@ class EvidenciasView(APIView):
 
 
 class PublicacionFeedView(APIView):
+    """Feed de publicaciones. A diferencia del resto de la app (MySQL),
+    esto se guarda en MongoDB: el contenido es semi-estructurado (texto,
+    imagen opcional, likes y comentarios embebidos) y no tiene relaciones
+    fuertes con el resto del modelo, un buen caso de uso para NoSQL."""
     permission_classes = [IsAuthenticated]
+
     def post(self, request):
-        serializer = PublicacionFeedSerializer(data=request.data, context={'request': request})
-        if serializer.is_valid():
-            serializer.save(autor=request.user)
-            return Response({'mensaje': 'Publicación Creada!'}, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        contenido = request.data.get('contenido')
+        if not contenido:
+            return Response({'contenido': ['Este campo es requerido.']}, status=status.HTTP_400_BAD_REQUEST)
+        tipo = request.data.get('tipo', 'post')
+
+        imagen_url = None
+        imagen = request.FILES.get('imagen')
+        if imagen:
+            ruta = default_storage.save(f"feed_imagenes/{imagen.name}", imagen)
+            imagen_url = default_storage.url(ruta)
+
+        crear_post_feed(request.user.id, tipo, contenido, imagen_url)
+        return Response({'mensaje': 'Publicación Creada!'}, status=status.HTTP_201_CREATED)
 
     def get(self, request):
-        qs = PublicacionesFeed.objects.order_by('-fecha')
+        query = {}
         autor_id = request.query_params.get('autor_id')
         if autor_id:
-            qs = qs.filter(autor__id=autor_id)
-        serializer = PublicacionFeedSerializer(qs, many=True, context={'request': request})
-        return Response(serializer.data, status=status.HTTP_200_OK)
-    
+            query['autor_id'] = int(autor_id)
+        docs = list(get_feed_collection().find(query).sort('fecha', -1))
+        autores = resolver_autores({d['autor_id'] for d in docs})
+        data = [serializar_post(d, request, autores) for d in docs]
+        return Response(data, status=status.HTTP_200_OK)
+
     def delete(self, request, id):
-        try: 
-            publicacion = PublicacionesFeed.objects.get(id=id)
-        except PublicacionesFeed.DoesNotExist:
+        try:
+            oid = ObjectId(id)
+        except InvalidId:
+            return Response({'error': 'Id inválido'}, status=status.HTTP_400_BAD_REQUEST)
+        coleccion = get_feed_collection()
+        doc = coleccion.find_one({'_id': oid})
+        if not doc:
             return Response({'error': 'La publicación no existe'}, status=status.HTTP_404_NOT_FOUND)
-        if not publicacion.autor == request.user:
+        if doc['autor_id'] != request.user.id:
             return Response({'error': 'Usuario sin permisos'}, status=status.HTTP_403_FORBIDDEN)
-        publicacion.delete()
-        return Response("Publicación Borrada",status=status.HTTP_204_NO_CONTENT)
+        coleccion.delete_one({'_id': oid})
+        return Response("Publicación Borrada", status=status.HTTP_204_NO_CONTENT)
+
+
+class FeedLikeView(APIView):
+    """Toggle de like sobre un post. Aprovecha que Mongo permite guardar los
+    likes como un array dentro del mismo documento (sin tabla ni join extra
+    como se necesitaria en el modelo relacional)."""
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, id):
+        try:
+            oid = ObjectId(id)
+        except InvalidId:
+            return Response({'error': 'Id inválido'}, status=status.HTTP_400_BAD_REQUEST)
+        coleccion = get_feed_collection()
+        doc = coleccion.find_one({'_id': oid})
+        if not doc:
+            return Response({'error': 'La publicación no existe'}, status=status.HTTP_404_NOT_FOUND)
+
+        user_id = request.user.id
+        ya_likeado = user_id in doc.get('likes', [])
+        if ya_likeado:
+            coleccion.update_one({'_id': oid}, {'$pull': {'likes': user_id}})
+        else:
+            coleccion.update_one({'_id': oid}, {'$addToSet': {'likes': user_id}})
+
+        doc_actualizado = coleccion.find_one({'_id': oid}, {'likes': 1})
+        return Response({
+            'likes': len(doc_actualizado.get('likes', [])),
+            'ya_likeado': not ya_likeado,
+        }, status=status.HTTP_200_OK)
 
 
 class ReporteView(APIView):
@@ -469,11 +588,7 @@ class PostulacionView(APIView):
                     f"{nombre_empresa} para el puesto de {oferta_titulo}. "
                     f"¡Felicitaciones y mucho éxito en esta nueva etapa!"
                 )
-                PublicacionesFeed.objects.create(
-                    autor=empresa.usuario,
-                    tipo='post',
-                    contenido=contenido,
-                )
+                crear_post_feed(empresa.usuario.id, 'post', contenido)
                 asignar_insignia(estudiante, 'empleo_conseguido')
             return Response(serializer.data, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

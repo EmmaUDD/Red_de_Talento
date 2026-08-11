@@ -10,7 +10,6 @@ from .models import (
     Evidencia,
     OfertaLaboral,
     Postulacion,
-    PublicacionesFeed,
     Reporte,
     Disponibilidad,
     HabilidadRequerida,
@@ -99,64 +98,6 @@ class OfertaLaboralSerializer(serializers.ModelSerializer):
         except Exception:
             return ''
 
-class PublicacionFeedSerializer(serializers.ModelSerializer):
-    autor_username = serializers.SerializerMethodField()
-    autor_role = serializers.SerializerMethodField()
-    imagen_url = serializers.SerializerMethodField()
-    autor_perfil_id = serializers.SerializerMethodField()
-    autor_foto_url = serializers.SerializerMethodField()
-
-    class Meta:
-        model = PublicacionesFeed
-        fields = '__all__'
-        read_only_fields = ['autor', 'fecha']
-
-    def get_autor_username(self, obj):
-        return obj.autor.get_full_name() or obj.autor.username
-
-    def get_autor_role(self, obj):
-        role_map = {'estudiante': 'student', 'docente': 'teacher', 'empresa': 'company'}
-        return role_map.get(obj.autor.role, obj.autor.role)
-
-    def get_imagen_url(self, obj):
-        if not obj.imagen:
-            return None
-        request = self.context.get('request')
-        if request:
-            return request.build_absolute_uri(obj.imagen.url)
-        return obj.imagen.url
-
-    def get_autor_perfil_id(self, obj):
-        try:
-            role = obj.autor.role
-            if role == 'estudiante':
-                return obj.autor.perfil_estudiante.id
-            elif role == 'docente':
-                return obj.autor.perfil_docente.id
-            elif role == 'empresa':
-                return obj.autor.perfil_empresa.id
-        except Exception:
-            pass
-        return None
-
-    def get_autor_foto_url(self, obj):
-        request = self.context.get('request')
-        try:
-            role = obj.autor.role
-            if role == 'estudiante':
-                foto = obj.autor.perfil_estudiante.foto_perfil
-            elif role == 'docente':
-                foto = obj.autor.perfil_docente.foto_perfil
-            elif role == 'empresa':
-                foto = obj.autor.perfil_empresa.foto_perfil
-            else:
-                return None
-            if foto and request:
-                return request.build_absolute_uri(foto.url)
-        except Exception:
-            pass
-        return None
-
 class ReporteSerializer(serializers.ModelSerializer):
     reportado_por_nombre = serializers.SerializerMethodField()
     usuario_reportado_nombre = serializers.SerializerMethodField()
@@ -182,22 +123,50 @@ class ReporteSerializer(serializers.ModelSerializer):
             return ""
 
     def get_publicacion_data(self, obj):
-        if not obj.publicacion:
-            return None
-        pub = obj.publicacion
         request = self.context.get('request')
-        imagen_url = None
-        if pub.imagen:
-            imagen_url = request.build_absolute_uri(pub.imagen.url) if request else pub.imagen.url
-        autor = pub.autor
-        autor_nombre = f"{autor.first_name} {autor.last_name}".strip() or autor.username
-        return {
-            'id': pub.id,
-            'contenido': pub.contenido,
-            'imagen_url': imagen_url,
-            'autor_nombre': autor_nombre,
-            'fecha': pub.fecha.isoformat() if pub.fecha else None,
-        }
+        # Posts creados antes de la migracion a Mongo siguen en MySQL (FK).
+        if obj.publicacion:
+            pub = obj.publicacion
+            imagen_url = None
+            if pub.imagen:
+                imagen_url = request.build_absolute_uri(pub.imagen.url) if request else pub.imagen.url
+            autor = pub.autor
+            autor_nombre = f"{autor.first_name} {autor.last_name}".strip() or autor.username
+            return {
+                'id': pub.id,
+                'contenido': pub.contenido,
+                'imagen_url': imagen_url,
+                'autor_nombre': autor_nombre,
+                'fecha': pub.fecha.isoformat() if pub.fecha else None,
+            }
+        # Posts nuevos viven en MongoDB, referenciados por su ObjectId.
+        if obj.publicacion_mongo_id:
+            from bson import ObjectId
+            from bson.errors import InvalidId
+            from .mongo import get_feed_collection
+            try:
+                doc = get_feed_collection().find_one({'_id': ObjectId(obj.publicacion_mongo_id)})
+            except InvalidId:
+                return None
+            if not doc:
+                return None
+            autor_nombre = ''
+            try:
+                autor = Usuario.objects.get(id=doc['autor_id'])
+                autor_nombre = f"{autor.first_name} {autor.last_name}".strip() or autor.username
+            except Usuario.DoesNotExist:
+                pass
+            imagen_url = doc.get('imagen_url')
+            if imagen_url and request:
+                imagen_url = request.build_absolute_uri(imagen_url)
+            return {
+                'id': str(doc['_id']),
+                'contenido': doc.get('contenido', ''),
+                'imagen_url': imagen_url,
+                'autor_nombre': autor_nombre,
+                'fecha': doc['fecha'].isoformat() if doc.get('fecha') else None,
+            }
+        return None
 
 class PostulacionSerializer(serializers.ModelSerializer):
     oferta_titulo = serializers.SerializerMethodField()

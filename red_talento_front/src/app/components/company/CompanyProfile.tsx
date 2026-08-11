@@ -92,13 +92,13 @@ export function CompanyProfile() {
   const { user, refreshUser } = useAuth();
   const { openPerfil } = usePerfil();
   const [tab, setTab] = useState<"perfil" | "empleos" | "publicaciones">("perfil");
-  const [likedPosts, setLikedPosts] = useState<number[]>([]);
-  const [likeCounts, setLikeCounts] = useState<Record<number, number>>({});
+  const [likedPosts, setLikedPosts] = useState<string[]>([]);
+  const [likeCounts, setLikeCounts] = useState<Record<string, number>>({});
   const [showReport, setShowReport] = useState(false);
   const [ofertas, setOfertas] = useState<OfertaLaboral[]>([]);
   const [posts, setPosts] = useState<FeedPost[]>([]);
-  const [menuPostId, setMenuPostId] = useState<number | null>(null);
-  const [deletingPostId, setDeletingPostId] = useState<number | null>(null);
+  const [menuPostId, setMenuPostId] = useState<string | null>(null);
+  const [deletingPostId, setDeletingPostId] = useState<string | null>(null);
 
   const [editMode, setEditMode] = useState(false);
   const [editForm, setEditForm] = useState({
@@ -144,7 +144,7 @@ export function CompanyProfile() {
       feedApi.getPostsDeUsuario(user.id)
         .then((myPosts) => {
           setPosts(myPosts);
-          const counts: Record<number, number> = {};
+          const counts: Record<string, number> = {};
           myPosts.forEach((p) => { counts[p.id] = p.likes; });
           setLikeCounts(counts);
         })
@@ -194,7 +194,7 @@ export function CompanyProfile() {
     finally { setSaving(false); }
   };
 
-  const handleEliminarPost = async (id: number) => {
+  const handleEliminarPost = async (id: string) => {
     setMenuPostId(null);
     setDeletingPostId(id);
     try {
@@ -204,11 +204,12 @@ export function CompanyProfile() {
     setDeletingPostId(null);
   };
 
-  const toggleLike = async (id: number) => {
-    const liked = likedPosts.includes(id);
-    setLikedPosts((p) => liked ? p.filter((x) => x !== id) : [...p, id]);
-    setLikeCounts((p) => ({ ...p, [id]: liked ? (p[id] ?? 0) - 1 : (p[id] ?? 0) + 1 }));
-    try { await feedApi.likear(id); } catch {}
+  const toggleLike = async (id: string) => {
+    try {
+      const { likes, ya_likeado } = await feedApi.likear(id);
+      setLikedPosts((p) => ya_likeado ? [...p.filter((x) => x !== id), id] : p.filter((x) => x !== id));
+      setLikeCounts((p) => ({ ...p, [id]: likes }));
+    } catch {}
   };
 
   const abrirPostulantes = async (oferta: OfertaLaboral) => {
